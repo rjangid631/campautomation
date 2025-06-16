@@ -1,0 +1,16 @@
+from django.db import models
+
+class TestData(models.Model):
+    company_id = models.IntegerField(unique=True)
+    service_name = models.CharField(max_length=255)
+    case_per_day = models.IntegerField()
+    number_of_days = models.IntegerField()
+    total_case = models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        self.total_case = self.case_per_day * self.number_of_days
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.service_name} - {self.total_case} cases"
+    
