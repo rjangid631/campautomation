@@ -2,12 +2,12 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 from clients.models.client import Client
-from .service import Service  # Import from same directory
+from clients.models.service import Service  # Import from same directory
 
 class Package(models.Model):
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True, related_name='packages')
-    name = models.CharField(max_length=100)
-    services = models.ManyToManyField('Service')  # Link to service
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    services = models.ManyToManyField(Service, related_name='packages')
     start_date = models.DateField()
     end_date = models.DateField()
 

@@ -20,6 +20,9 @@ class ServiceSelectionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Services must be a dictionary.")
 
             for service_name, details in package["services"].items():
+                if not isinstance(details, dict):
+                    raise serializers.ValidationError(f"Service '{service_name}' must be a dictionary.")
+
                 if "total_case" not in details:
                     raise serializers.ValidationError(f"'total_case' missing for service '{service_name}'.")
 
