@@ -1,7 +1,5 @@
-
 from rest_framework import serializers
 from clients.models.testdata import TestData
-
 
 class TestCaseDataSerializer(serializers.ModelSerializer):
     class Meta:

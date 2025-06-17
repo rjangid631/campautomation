@@ -1,5 +1,4 @@
 from django.db import models
-
 from clients.models.service import Service
 
 class PriceRange(models.Model):
@@ -9,4 +8,3 @@ class PriceRange(models.Model):
 
     def __str__(self):
         return f'{self.service.name}: Up to {self.max_cases} cases - ₹{self.price}'
-    

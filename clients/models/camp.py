@@ -1,7 +1,10 @@
 from django.db import models
 
+from clients.models.client import Client
+
+
 class Camp(models.Model):
-    company = models.ForeignKey('Company', on_delete=models.CASCADE, related_name='camps')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='camps', null=True, blank=True)
     location = models.CharField(max_length=255)
     district = models.CharField(max_length=255)
     state = models.CharField(max_length=255)
@@ -10,4 +13,4 @@ class Camp(models.Model):
     end_date = models.DateField()
 
     def __str__(self):
-        return f"{self.company.name} - {self.location} ({self.start_date} to {self.end_date})"
+        return f"{self.client.name} - {self.location} ({self.start_date} to {self.end_date})"

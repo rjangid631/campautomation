@@ -1,8 +1,7 @@
-from clients.models.copyprice import CopyPrice
 from rest_framework import serializers
-
+from clients.models.copyprice import CopyPrice
 
 class CopyPriceSerializer(serializers.ModelSerializer):
     class Meta:
-        model=CopyPrice
+        model = CopyPrice
         fields = '__all__'

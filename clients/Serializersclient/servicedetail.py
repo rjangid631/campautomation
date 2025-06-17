@@ -1,7 +1,5 @@
-
-from clients.models.servicedetails import ServiceDetails
 from rest_framework import serializers
-
+from clients.models.servicedetails import ServiceDetails
 
 class ServiceDetailsSerializer(serializers.ModelSerializer):
     class Meta:

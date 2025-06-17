@@ -17,33 +17,20 @@ class CostDetailsViewSet(viewsets.ViewSet):
                 company_id=company_id,
                 service_name=service,
                 defaults={
-                    
-                    
                     'food': costs.get('food', 0),
-                    
                     'stay': costs.get('stay', 0),
-                    
                     'travel': costs.get('travel', 0),
-
                     'salary': costs.get('salary', 0),
-
                     'misc': costs.get('misc', 0),
-
-                    'equipment': costs.get('equiment', 0),
-
+                    'equipment': costs.get('equipment', 0),  # fixed key
                     'consumables': costs.get('consumables', 0),
-
                     'reporting': costs.get('reporting', 0),
-                    
-                    
                 }
             )
 
         return Response({'message': 'Costs saved successfully'}, status=status.HTTP_201_CREATED)
-    
-    # Optionally, add a list method if you need to handle GET requests
+
     def list(self, request):
         queryset = CostDetails.objects.all()
         serializer = CostDetailsSerializer(queryset, many=True)
         return Response(serializer.data)
-    

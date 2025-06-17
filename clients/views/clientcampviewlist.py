@@ -10,10 +10,9 @@ class ClientCampViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-
         try:
             client = Client.objects.get(email=user.email)
         except Client.DoesNotExist:
             raise NotFound("Client profile not found for this user.")
 
-        return Camp.objects.filter(company__client=client)
+        return Camp.objects.filter(client=client)  # or company__client=client if indirect
