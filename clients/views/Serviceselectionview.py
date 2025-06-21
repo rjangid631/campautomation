@@ -1,5 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+import traceback
 from clients.models.serviceselection import ServiceSelection
 from clients.Serializersclient.serviceselectionserializer import ServiceSelectionSerializer
 
@@ -8,19 +10,35 @@ class ServiceSelectionViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceSelectionSerializer
 
     def create(self, request, *args, **kwargs):
-        data = request.data
-        is_many = isinstance(data, list)
+        try:
+            print("📥 Incoming request data:", request.data)
 
-        serializer = self.get_serializer(data=data, many=is_many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        if is_many:
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            print("✅ Serializer validated data:", serializer.validated_data)
 
-    def perform_create(self, serializer):
-        # Handles both single and multiple saves
-        serializer.save()
+            instance = serializer.save()
+
+            response_data = {
+                "success": True,
+                "message": "Service selection saved successfully.",
+                "data": serializer.to_representation(instance)  # safer than unpacking
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        except ValidationError as ve:
+            print("❌ Validation error:", ve.detail)
+            return Response({"detail": ve.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print("❌ Internal Server Error in ServiceSelectionViewSet.create()")
+            traceback.print_exc()
+            return Response(
+                {
+                    "error": str(e),
+                    "message": "An internal server error occurred while creating service selection."
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
