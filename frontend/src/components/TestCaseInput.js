@@ -5,7 +5,18 @@ import { AppContext } from '../App';
 
 function TestCaseInput({ onNext, onBack }) {
   const appCtx = useContext(AppContext);
-  const companyId = appCtx.companyId ? parseInt(appCtx.companyId, 10) : parseInt(localStorage.getItem("clientId"), 10);
+  let companyId = null;
+
+    if (appCtx?.companyId && typeof appCtx.companyId === 'string') {
+      companyId = appCtx.companyId;
+    } else {
+      const storedId = localStorage.getItem("clientId");
+      if (storedId && storedId.startsWith("CL-")) {
+        companyId = storedId;
+      } else {
+        console.warn("⚠️ Company ID not found or invalid in context/localStorage");
+      }
+    }
   const selectedPackages = appCtx.selectedPackages || [];
 
   const [caseData, setCaseData] = useState({});

@@ -10,9 +10,10 @@ function CoordinatorLogin({ onLogin }) {
   });
 
   const [signupData, setSignupData] = useState({
-    username: "",
+    name: "",
+    email: "",
     password: "",
-    companyName: "",
+    contact_number: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +45,7 @@ function CoordinatorLogin({ onLogin }) {
       const { role, username: user } = await loginAsCoordinator(username, password);
       localStorage.setItem("role", role);
       localStorage.setItem("username", user);
-      onLogin(role); // Coordinator doesn't have clientId
+      onLogin(role);
       navigate("/dashboard");
     } catch (error) {
       await handleCustomerLogin(username, password);
@@ -54,13 +55,11 @@ function CoordinatorLogin({ onLogin }) {
   const handleCustomerLogin = async (username, password) => {
     try {
       const { role, username: user, clientId, token } = await loginAsCustomer(username, password);
-
       localStorage.setItem("role", role);
       localStorage.setItem("username", user);
       localStorage.setItem("clientId", clientId);
       localStorage.setItem("token", token);
-
-      onLogin(role, clientId); // ✅ Pass clientId here
+      onLogin(role, clientId);
       navigate("/customer-dashboard");
     } catch (error) {
       setErrorMessage(error.message);
@@ -69,10 +68,9 @@ function CoordinatorLogin({ onLogin }) {
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
-    const { username, password, companyName } = signupData;
 
     try {
-      const successMessage = await signupUser(username, password, companyName);
+      const successMessage = await signupUser(signupData);
       alert(successMessage);
       setShowSignup(false);
     } catch (error) {
@@ -95,61 +93,126 @@ function CoordinatorLogin({ onLogin }) {
           className="flex flex-col gap-y-5"
           onSubmit={showSignup ? handleSignupSubmit : handleOnSubmit}
         >
-          <label className="w-full">
-            <p className="mb-2 text-sm font-semibold text-gray-700">
-              Username/Email <sup className="text-red-500">*</sup>
-            </p>
-            <input
-              required
-              type="text"
-              name="username"
-              value={showSignup ? signupData.username : formData.username}
-              onChange={showSignup ? handleSignupChange : handleOnChange}
-              placeholder="Enter username or email"
-              className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-            />
-          </label>
+          {showSignup ? (
+            <>
+              {/* Name */}
+              <label className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Name <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type="text"
+                  name="name"
+                  value={signupData.name}
+                  onChange={handleSignupChange}
+                  placeholder="Enter your name"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+              </label>
 
-          <label className="relative">
-            <p className="mb-2 text-sm font-semibold text-gray-700">
-              Password <sup className="text-red-500">*</sup>
-            </p>
-            <input
-              required
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={showSignup ? signupData.password : formData.password}
-              onChange={showSignup ? handleSignupChange : handleOnChange}
-              placeholder="Enter Password"
-              className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-            />
-            <span
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-[40px] z-[10] cursor-pointer"
-            >
-              {showPassword ? (
-                <AiOutlineEyeInvisible fontSize={24} fill="#AFB2BF" />
-              ) : (
-                <AiOutlineEye fontSize={24} fill="#AFB2BF" />
-              )}
-            </span>
-          </label>
+              {/* Email */}
+              <label className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Email <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type="email"
+                  name="email"
+                  value={signupData.email}
+                  onChange={handleSignupChange}
+                  placeholder="Enter your email"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+              </label>
 
-          {showSignup && (
-            <label className="w-full">
-              <p className="mb-2 text-sm font-semibold text-gray-700">
-                Company Name <sup className="text-red-500">*</sup>
-              </p>
-              <input
-                required
-                type="text"
-                name="companyName"
-                value={signupData.companyName}
-                onChange={handleSignupChange}
-                placeholder="Enter your company name"
-                className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-              />
-            </label>
+              {/* Contact Number */}
+              <label className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Contact Number <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type="text"
+                  name="contact_number"
+                  value={signupData.contact_number}
+                  onChange={handleSignupChange}
+                  placeholder="Enter your contact number"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+              </label>
+
+              {/* Password */}
+              <label className="relative">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Password <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={signupData.password}
+                  onChange={handleSignupChange}
+                  placeholder="Enter Password"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+                <span
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-[40px] z-[10] cursor-pointer"
+                >
+                  {showPassword ? (
+                    <AiOutlineEyeInvisible fontSize={24} fill="#AFB2BF" />
+                  ) : (
+                    <AiOutlineEye fontSize={24} fill="#AFB2BF" />
+                  )}
+                </span>
+              </label>
+            </>
+          ) : (
+            <>
+              {/* Login Username/Email */}
+              <label className="w-full">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Username/Email <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleOnChange}
+                  placeholder="Enter username or email"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+              </label>
+
+              {/* Login Password */}
+              <label className="relative">
+                <p className="mb-2 text-sm font-semibold text-gray-700">
+                  Password <sup className="text-red-500">*</sup>
+                </p>
+                <input
+                  required
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleOnChange}
+                  placeholder="Enter Password"
+                  className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                />
+                <span
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-[40px] z-[10] cursor-pointer"
+                >
+                  {showPassword ? (
+                    <AiOutlineEyeInvisible fontSize={24} fill="#AFB2BF" />
+                  ) : (
+                    <AiOutlineEye fontSize={24} fill="#AFB2BF" />
+                  )}
+                </span>
+              </label>
+            </>
           )}
 
           <div className="flex flex-col gap-y-4">

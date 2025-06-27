@@ -2,8 +2,16 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
-import { AppContext } from '../App'; // adjust path if needed
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { AppContext } from '../App';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -13,14 +21,16 @@ const CustomerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [expandedCompanyIndex, setExpandedCompanyIndex] = useState(null);
 
-  // 🔍 Pull from localStorage and context
-  const storedClientId = parseInt(localStorage.getItem('clientId'));
-  const storedCompanyName = localStorage.getItem('companyName');
+  // ✅ Load from localStorage
+  const storedClientIdRaw = localStorage.getItem("clientId");
+  const storedClientId = storedClientIdRaw && storedClientIdRaw !== "NaN" && storedClientIdRaw !== "null"
+    ? parseInt(storedClientIdRaw)
+    : null;
 
   const { companyId: contextCompanyId } = useContext(AppContext);
   const clientId = storedClientId || contextCompanyId;
 
-  console.log("🧩 clientId from localStorage:", storedClientId);
+  console.log("🧩 clientId from localStorage:", storedClientIdRaw);
   console.log("🧩 clientId from context:", contextCompanyId);
   console.log("✅ Final clientId used for fetch:", clientId);
 
@@ -34,21 +44,29 @@ const CustomerDashboard = () => {
         return;
       }
 
+      if (!clientId) {
+        console.warn("⚠️ Client ID not found. Cannot fetch dashboard.");
+        setError("Client ID not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
       try {
         console.log("📤 Fetching client dashboard for clientId:", clientId);
         const response = await axios.get(
           `http://127.0.0.1:8000/api/client-dashboard/?client_id=${clientId}`,
           {
             headers: {
-              Authorization: `Token ${token}`
-            }
+              Authorization: `Token ${token}`,
+            },
           }
         );
 
-        const data = response.data.map(item => ({
+        const data = response.data.map((item) => ({
           ...item,
           datenow: new Date().toISOString().split('T')[0],
         }));
+
         setCompanyDetails(data);
         console.log("✅ Dashboard data received:", data);
       } catch (err) {
@@ -59,13 +77,7 @@ const CustomerDashboard = () => {
       }
     };
 
-    if (clientId) {
-      fetchClientDashboard();
-    } else {
-      console.warn("⚠️ Client ID not found. Cannot fetch dashboard.");
-      setError("Client ID not found. Please login again.");
-      setLoading(false);
-    }
+    fetchClientDashboard();
   }, [clientId]);
 
   const toggleDetails = (index) => {
@@ -73,11 +85,11 @@ const CustomerDashboard = () => {
   };
 
   const chartData = {
-    labels: companyDetails.map(c => c.name || 'N/A'),
+    labels: companyDetails.map((c) => c.name || 'N/A'),
     datasets: [
       {
         label: 'Service Count (Dummy ₹)',
-        data: companyDetails.map(c =>
+        data: companyDetails.map((c) =>
           c.services.reduce((sum, s) => sum + s.total_cases, 0)
         ),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
@@ -96,9 +108,11 @@ const CustomerDashboard = () => {
   if (loading) return <Loader />;
   if (error) return <div className="text-red-600 p-4">{error}</div>;
 
-  const displayedCompanyName = storedCompanyName && storedCompanyName !== "undefined"
-    ? storedCompanyName
-    : companyDetails[0]?.name || "Welcome";
+  const displayedCompanyName =
+    localStorage.getItem('companyName') &&
+    localStorage.getItem('companyName') !== "undefined"
+      ? localStorage.getItem('companyName')
+      : companyDetails[0]?.name || "Welcome";
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -119,13 +133,16 @@ const CustomerDashboard = () => {
           {companyDetails.length > 0 && (
             <div className="mb-6">
               <h2 className="text-2xl font-semibold mb-4">Service Summary</h2>
-              <Bar data={chartData} options={{
-                responsive: true,
-                plugins: {
-                  legend: { position: 'top' },
-                  title: { display: true, text: 'Service Totals by Client' },
-                },
-              }} />
+              <Bar
+                data={chartData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Service Totals by Client' },
+                  },
+                }}
+              />
             </div>
           )}
 

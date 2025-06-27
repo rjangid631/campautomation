@@ -1,1 +1,1 @@
-from .client import Client
+from clients.models.client import Client

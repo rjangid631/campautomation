@@ -33,11 +33,19 @@ function SimpleCostCalculation() {
           axios.get('http://127.0.0.1:8000/api/service_costs/'),
         ]);
 
+        console.log("📦 priceResponse.data:", priceResponse.data);
+        console.log("📦 subserviceResponse.data:", subserviceResponse.data);
+
         const priceData = priceResponse.data.reduce((acc, service) => {
-          acc[service.name] = service.price_ranges.map(range => ({
-            maxCases: range.max_cases,
-            pricePerCase: parseFloat(range.price),
-          }));
+          if (!Array.isArray(service.price_ranges)) {
+            console.warn(`⚠️ price_ranges missing or invalid for service: ${service.name}`, service);
+            acc[service.name] = [];
+          } else {
+            acc[service.name] = service.price_ranges.map(range => ({
+              maxCases: range.max_cases,
+              pricePerCase: parseFloat(range.price),
+            }));
+          }
           return acc;
         }, {});
 
@@ -62,12 +70,13 @@ function SimpleCostCalculation() {
         setSubserviceCosts(subserviceData);
         setInitialized(true);
       } catch (error) {
-        console.error('Error fetching service prices or costs:', error);
+        console.error('❌ Error fetching service prices or costs:', error);
       }
     };
 
     if (!initialized) fetchServiceData();
   }, [initialized]);
+
 
   const calculateTotalPrice = (key, totalCase) => {
     if (!key || !totalCase) return 0;
@@ -153,65 +162,71 @@ function SimpleCostCalculation() {
   const totalCases = calculateTotalCases();
   const perCasePrice = totalCases > 0 ? grandTotal / totalCases : 0;
 
+  console.log("🔍 Actual clientDetails object:", clientDetails);
+  console.log("🔍 JSON version:", JSON.stringify(clientDetails, null, 2));
   const generatePDF = () => {
-    if (!caseData || !clientDetails) return;
+  if (!caseData || !clientDetails) return;
 
-    const doc = new jsPDF('l', 'mm', 'a3');
-    const margin = 15;
-    const rowHeight = 12;
-    const sectionSpacing = 14;
-    let currentY = margin + 25;
+  const doc = new jsPDF('l', 'mm', 'a3');
+  const margin = 15;
+  const rowHeight = 12;
+  const sectionSpacing = 14;
+  let currentY = margin + 25;
 
-    doc.setFontSize(30).setTextColor(0, 102, 204).text("Xrai", margin, margin);
-    doc.setFontSize(22).setTextColor(0, 0, 0).text("Client Details", margin, currentY);
+  doc.setFontSize(30).setTextColor(0, 102, 204).text("Xrai", margin, margin);
+  doc.setFontSize(22).setTextColor(0, 0, 0).text("Client Details", margin, currentY);
 
-    doc.setFontSize(18);
-    const clientInfo = [
-      { label: "Client Name", value: clientDetails.name },
-      { label: "Address", value: `${clientDetails.landmark}, ${clientDetails.district}, ${clientDetails.state} - ${clientDetails.pin_code}` },
-    ];
-    currentY += 12;
+  doc.setFontSize(18);
+  const clientInfo = [
+    { label: "Client Name", value: clientDetails?.name || "N/A" },
+    {
+      label: "Address",
+      value: `${clientDetails?.landmark || "N/A"}, ${clientDetails?.district || "N/A"}, ${clientDetails?.state || "N/A"} - ${clientDetails?.pin_code || "N/A"}`
+    },
+  ];
+  currentY += 12;
 
-    clientInfo.forEach(detail => {
-      doc.text(`${detail.label}: ${detail.value}`, margin, currentY);
-      currentY += rowHeight;
-    });
+  clientInfo.forEach(detail => {
+    doc.text(`${detail.label}: ${detail.value}`, margin, currentY);
+    currentY += rowHeight;
+  });
 
-    doc.setFontSize(22);
-    currentY += sectionSpacing;
-    doc.text("Service Costs", margin, currentY);
+  doc.setFontSize(22);
+  currentY += sectionSpacing;
+  doc.text("Service Costs", margin, currentY);
 
-    const serviceHeaderY = currentY + 17;
-    doc.setFillColor(0, 153, 255);
-    doc.rect(margin, serviceHeaderY - 10, 180, 10, 'F');
-    doc.setFont("Helvetica", "bold").setTextColor(255, 255, 255);
-    doc.text("Service", margin + 2, serviceHeaderY);
-    doc.text("Total Cases", margin + 100, serviceHeaderY);
+  const serviceHeaderY = currentY + 17;
+  doc.setFillColor(0, 153, 255);
+  doc.rect(margin, serviceHeaderY - 10, 180, 10, 'F');
+  doc.setFont("Helvetica", "bold").setTextColor(255, 255, 255);
+  doc.text("Service", margin + 2, serviceHeaderY);
+  doc.text("Total Cases", margin + 100, serviceHeaderY);
 
-    let serviceStartY = serviceHeaderY + 8;
-    Object.keys(caseData || {}).forEach((key, index) => {
-      const [, service] = key.split('__');
-      const totalCase = caseData?.[key]?.totalCase || 0;
+  let serviceStartY = serviceHeaderY + 8;
+  Object.keys(caseData || {}).forEach((key, index) => {
+    const [, service] = key.split('__');
+    const totalCase = caseData?.[key]?.totalCase || 0;
 
-      if (serviceStartY + rowHeight > doc.internal.pageSize.height - margin) {
-        doc.addPage();
-        serviceStartY = margin;
-      }
+    if (serviceStartY + rowHeight > doc.internal.pageSize.height - margin) {
+      doc.addPage();
+      serviceStartY = margin;
+    }
 
-      doc.setFillColor(index % 2 === 0 ? 240 : 255);
-      doc.rect(margin, serviceStartY, 180, rowHeight, 'F');
-      doc.setFont("Helvetica", "normal").setTextColor(0, 0, 0);
-      doc.text(service, margin + 2, serviceStartY + 8);
-      doc.text(totalCase.toString(), margin + 100, serviceStartY + 8);
-      serviceStartY += rowHeight;
-    });
+    doc.setFillColor(index % 2 === 0 ? 240 : 255);
+    doc.rect(margin, serviceStartY, 180, rowHeight, 'F');
+    doc.setFont("Helvetica", "normal").setTextColor(0, 0, 0);
+    doc.text(service, margin + 2, serviceStartY + 8);
+    doc.text(totalCase.toString(), margin + 100, serviceStartY + 8);
+    serviceStartY += rowHeight;
+  });
 
-    currentY = serviceStartY + sectionSpacing;
-    doc.setFontSize(22).setTextColor(0, 102, 204);
-    doc.text(`Grand Total: ₹${grandTotal.toFixed(0)}`, margin, currentY);
-    doc.text(`Per-Case Price: ₹${perCasePrice.toFixed(0)}`, margin, currentY + 10);
-    doc.save("xraidigitalcampcalculator.pdf");
-  };
+  currentY = serviceStartY + sectionSpacing;
+  doc.setFontSize(22).setTextColor(0, 102, 204);
+  doc.text(`Grand Total: ₹${grandTotal.toFixed(0)}`, margin, currentY);
+  doc.text(`Per-Case Price: ₹${perCasePrice.toFixed(0)}`, margin, currentY + 10);
+  doc.save("xraidigitalcampcalculator.pdf");
+};
+
 
   if (!caseData) return <div className="text-red-500 p-4">No case data available.</div>;
 
