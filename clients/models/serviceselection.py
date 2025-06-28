@@ -1,10 +1,23 @@
+from datetime import datetime
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils.dateparse import parse_date
+
 from clients.models.client import Client
+from clients.models.camp import Camp
+from clients.models.service import Service
+from clients.models.package import Package
 
 class ServiceSelection(models.Model):
     client = models.ForeignKey(
         Client,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='service_selections'
+    )
+    camp = models.ForeignKey(
+        Camp,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -37,8 +50,43 @@ class ServiceSelection(models.Model):
                     raise ValidationError(f"'total_case' for service '{service_name}' must be a non-negative integer.")
 
     def save(self, *args, **kwargs):
+        print("🔔 ServiceSelection.save() called")
         self.full_clean()
         super().save(*args, **kwargs)
+
+        if self.client:
+            print("📋 Saving packages for client:", self.client)
+            print("🧩 Camp object:", self.camp)
+
+            for pkg in self.packages:
+                start_date_str = pkg.get("start_date")
+                end_date_str = pkg.get("end_date")
+
+                try:
+                    start_date = datetime.strptime(start_date_str, "%d-%m-%Y").date()
+                    end_date = datetime.strptime(end_date_str, "%d-%m-%Y").date()
+                except ValueError:
+                    print(f"❌ Invalid date format in package: {pkg}")
+                    continue
+
+                print(f"📦 Creating or getting package: {pkg.get('package_name')} ({start_date} - {end_date})")
+
+                package_obj, created = Package.objects.get_or_create(
+                    client=self.client,
+                    camp=self.camp,
+                    name=pkg.get("package_name"),
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+
+                if not created:
+                    print(f"⚠️ Package already exists: {package_obj}")
+                    package_obj.services.clear()
+
+                for service_name in pkg.get("services", {}).keys():
+                    service = Service.objects.filter(name=service_name).first()
+                    if service:
+                        package_obj.services.add(service)
 
     def __str__(self):
         return f"{self.client.name if self.client else 'Unknown Client'} ({len(self.packages)} packages)"
@@ -54,9 +102,6 @@ class ServiceSelection(models.Model):
     selected_services.fget.short_description = 'Selected Services'
 
     def get_all_services_with_cases(self):
-        """
-        Returns a list of all services across all packages with their total_case.
-        """
         result = []
         for package in self.packages:
             for service, details in package.get("services", {}).items():

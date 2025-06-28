@@ -1,8 +1,12 @@
 from rest_framework import serializers
+from clients.models.camp import Camp
 from clients.models.client import Client
+from clients.models.package import Package
 from clients.models.serviceselection import ServiceSelection
 from clients.models.service import Service
 from datetime import datetime
+
+from clients.models.testdata import TestData
 
 class ServiceSelectionSerializer(serializers.ModelSerializer):
     selected_services = serializers.ReadOnlyField()
@@ -64,7 +68,6 @@ class ServiceSelectionSerializer(serializers.ModelSerializer):
                         f"'total_case' for service '{service_name}' in package '{package.get('package_name')}' must be a non-negative integer."
                     )
 
-                # Optional: validate service exists in DB
                 if not Service.objects.filter(name=service_name).exists():
                     raise serializers.ValidationError(
                         f"Service '{service_name}' in package '{package.get('package_name')}' does not exist."
@@ -73,19 +76,57 @@ class ServiceSelectionSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        packages_data = validated_data.pop("packages")
-        client = validated_data["client"]
+            packages_data = validated_data.pop("packages")
+            client = validated_data["client"]
 
-        # ✅ Save packages JSON into the model
-        service_selection = ServiceSelection.objects.create(
-            client=client,
-            packages=packages_data
-        )
+            # ✅ Get camp from raw input
+            camp_id = self.initial_data.get("camp")
+            camp = None
+            if camp_id:
+                try:
+                    camp = Camp.objects.get(id=camp_id)
+                except Camp.DoesNotExist:
+                    raise serializers.ValidationError({"camp": "Invalid camp ID"})
 
-        # ✅ Store for custom response
-        self.created_packages = packages_data
+            # ✅ Create ServiceSelection
+            service_selection = ServiceSelection.objects.create(
+                client=client,
+                camp=camp,
+                packages=packages_data
+            )
 
-        return service_selection
+            # ✅ Create Package and TestData entries
+            for pkg_data in packages_data:
+                name = pkg_data['package_name']
+                start_date = datetime.strptime(pkg_data['start_date'], '%d-%m-%Y').date()
+                end_date = datetime.strptime(pkg_data['end_date'], '%d-%m-%Y').date()
+                services = pkg_data['services']
+
+                package, created = Package.objects.get_or_create(
+                    client=client,
+                    camp=camp,
+                    name=name,
+                    start_date=start_date,
+                    end_date=end_date
+                )
+
+                for service_name, detail in services.items():
+                    total_case = detail.get("total_case", 0)
+                    service_obj, _ = Service.objects.get_or_create(name=service_name)
+                    package.services.add(service_obj)
+
+                    TestData.objects.create(
+                        client=client,
+                        package=package,
+                        service_name=service_name,
+                        total_case=total_case,
+                        case_per_day=0,
+                        number_of_days=0,
+                        report_type=None
+                    )
+
+            self.created_packages = packages_data
+            return service_selection
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

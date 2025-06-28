@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from clients.forms import PackageAdminForm
 from clients.models.serviceselection import ServiceSelection
 from clients.models.package import Package
 from clients.models.camp import Camp
@@ -81,7 +82,8 @@ class CopyPriceAdmin(admin.ModelAdmin):
 
 @admin.register(Package)
 class PackageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'client', 'start_date', 'end_date')
+    form = PackageAdminForm 
+    list_display = ('name', 'camp','client', 'start_date', 'end_date')
     filter_horizontal = ['services']
     list_filter = ['start_date', 'end_date']
     search_fields = ['name', 'client__name']

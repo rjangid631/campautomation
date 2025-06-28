@@ -10,4 +10,4 @@ class CampSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Camp
-        fields = '__all__'
+        fields = ['id', 'client', 'location', 'district', 'state', 'pin_code', 'start_date', 'end_date']

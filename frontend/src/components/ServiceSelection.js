@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { creatservices } from './api';
 import PropTypes from 'prop-types';
 import { AppContext } from '../App';
@@ -33,6 +33,13 @@ function ServiceSelection({ userType }) {
   ];
 
   const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
+
+  useEffect(() => {
+    const cid = localStorage.getItem('clientId');
+    const campId = localStorage.getItem('campId');
+    console.log('🔍 clientId from localStorage:', cid);
+    console.log('🔍 campId from localStorage:', campId);
+  }, []);
 
   const handleAddPackage = () => {
     setPackages([
@@ -101,57 +108,56 @@ function ServiceSelection({ userType }) {
   };
 
   const handleSave = async () => {
-  try {
-    if (!companyId) throw new Error('Client ID missing.');
+    try {
+      if (!companyId) throw new Error('❌ Client ID missing.');
 
-    const invalid = packages.some(pkg =>
-      !pkg.name || !pkg.start_date || !pkg.end_date || pkg.services.length === 0
-    );
-    if (invalid) throw new Error('Fill all fields for every package.');
+      const campId = localStorage.getItem('campId');
+      if (!campId) throw new Error('❌ Camp ID missing from localStorage. Make sure CampDetails.js saved it correctly.');
 
-    const payload = {
-      client: companyId,
-      packages: packages.map(pkg => {
-        const normalServices = pkg.services.filter(s => s !== 'Pathology');
-        const pathology = pkg.services.includes('Pathology') ? pkg.pathologyOptions : [];
+      console.log('✅ Using campId:', campId);
 
-        const serviceObj = {};
-        [...normalServices, ...pathology].forEach(service => {
-          serviceObj[service] = { total_case: 0 };
-        });
+      const invalid = packages.some(pkg =>
+        !pkg.name || !pkg.start_date || !pkg.end_date || pkg.services.length === 0
+      );
+      if (invalid) throw new Error('❌ Fill all fields for every package.');
 
-        return {
-          package_name: pkg.name,
-          start_date: formatDate(pkg.start_date),
-          end_date: formatDate(pkg.end_date),
-          services: serviceObj
-        };
-      })
-    };
+      const payload = {
+        client: companyId,
+        camp: campId,
+        packages: packages.map(pkg => {
+          const normalServices = pkg.services.filter(s => s !== 'Pathology');
+          const pathology = pkg.services.includes('Pathology') ? pkg.pathologyOptions : [];
 
-    console.log('📦 Payload being sent:', JSON.stringify(payload, null, 2));
-    const response = await creatservices(payload);
+          const serviceObj = {};
+          [...normalServices, ...pathology].forEach(service => {
+            serviceObj[service] = { total_case: 0 };
+          });
 
-    // ✅ Fix this part ↓↓↓
-    const returnedData = response.data?.data;
-    if (response.data?.success && Array.isArray(returnedData?.packages)) {
-      const selectedPackages = returnedData.packages.map(pkg => ({
-        packageId: pkg.id,
-        package_name: pkg.package_name,
-        services: pkg.services
-      }));
-      handleServiceSelectionNext(selectedPackages, companyId);
-    } else {
-      console.warn("📭 Unexpected backend response:", response.data);
-      throw new Error('Invalid backend response or packages missing');
+          return {
+            package_name: pkg.name,
+            start_date: formatDate(pkg.start_date),
+            end_date: formatDate(pkg.end_date),
+            services: serviceObj
+          };
+        })
+      };
+
+      console.log('📦 Sending payload:', JSON.stringify(payload, null, 2));
+      const response = await creatservices(payload);
+
+      const returnedData = response.data?.data;
+      if (response.data?.success && returnedData) {
+        console.log('✅ Package save success:', returnedData);
+        handleServiceSelectionNext(payload.packages, companyId);
+      } else {
+        console.warn("📭 Unexpected backend response:", response.data);
+        throw new Error('Invalid backend response or packages missing');
+      }
+    } catch (err) {
+      console.error("❌ Save error:", err);
+      alert(err.message || 'Error saving packages');
     }
-  } catch (err) {
-    console.error("❌ Save error:", err);
-    alert(err.message || 'Error saving packages');
-  }
-};
-
-
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 py-10 px-4 flex justify-center">

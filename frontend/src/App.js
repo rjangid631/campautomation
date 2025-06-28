@@ -18,7 +18,7 @@ export const AppContext = createContext();
 
 function App() {
   const [loginType, setLoginType] = useState(null);
-  const [companyId, setCompanyId] = useState(null); // This will now hold the DB ID (integer)
+  const [companyId, setCompanyId] = useState(null);
   const [campDetails, setCampDetails] = useState({});
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([]);
@@ -29,16 +29,20 @@ function App() {
   const navigate = useNavigate();
   const isAuthenticated = !!loginType;
 
-  // 🔁 Load companyId from localStorage (if any)
+  // 🔁 Load from localStorage (fixes logout issue)
   useEffect(() => {
     const storedId = localStorage.getItem("clientId");
+    const storedType = localStorage.getItem("loginType");
+
     if (storedId) setCompanyId(parseInt(storedId));
+    if (storedType) setLoginType(storedType);
   }, []);
 
   const handleLogin = (type, clientId) => {
     setLoginType(type);
-    setCompanyId(clientId); // ✅ This is now an integer from backend
-    localStorage.setItem("clientId", clientId); // Save for refresh support
+    setCompanyId(clientId);
+    localStorage.setItem("clientId", clientId);
+    localStorage.setItem("loginType", type); // ✅ Persist login type
 
     if (type === 'Coordinator') navigate('/dashboard');
     else if (type === 'Customer') navigate('/customer-dashboard');
@@ -48,7 +52,7 @@ function App() {
     setCampDetails(details);
     if (details.clientId) {
       setCompanyId(details.clientId);
-      localStorage.setItem("clientId", details.clientId); // Also store
+      localStorage.setItem("clientId", details.clientId);
     }
     navigate('/service-selection');
   };
@@ -80,6 +84,7 @@ function App() {
     setCostDetails({});
     localStorage.removeItem('authToken');
     localStorage.removeItem('clientId');
+    localStorage.removeItem('loginType'); // ✅ Clear on logout
     navigate('/login');
   };
 

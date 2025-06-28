@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'clients',
     'rest_framework.authtoken',
+    'camp_manager',
 ]
 
 MIDDLEWARE = [

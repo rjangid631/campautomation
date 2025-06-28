@@ -3,14 +3,12 @@ from clients.models.package import Package
 from clients.models.service import Service
 
 class PackageSerializer(serializers.ModelSerializer):
-    services = serializers.ListField(
-        child=serializers.CharField(), write_only=True
-    )
+    services = serializers.ListField(child=serializers.CharField(), write_only=True)
     service_ids = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Package
-        fields = ['id', 'client', 'name', 'services', 'service_ids', 'start_date', 'end_date']
+        fields = ['id', 'client', 'camp', 'name', 'services', 'service_ids', 'start_date', 'end_date']
 
     def validate_services(self, value):
         queryset = Service.objects.filter(name__in=value)

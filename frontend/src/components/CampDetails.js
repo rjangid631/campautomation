@@ -4,10 +4,12 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { createCamp } from './api';
 import { FaCalendarAlt } from 'react-icons/fa';
 import { AppContext } from '../App';
+import { useNavigate } from 'react-router-dom';
 
 const CampDetails = ({ onNext }) => {
   const { companyId } = useContext(AppContext) || {};
   const clientId = companyId || parseInt(localStorage.getItem('clientId'));
+  const navigate = useNavigate();
 
   const [camps, setCamps] = useState([]);
   const [campLocation, setCampLocation] = useState('');
@@ -42,7 +44,6 @@ const CampDetails = ({ onNext }) => {
       };
       setCamps([...camps, newCamp]);
 
-      // Reset form fields
       setCampLocation('');
       setCampDistrict('');
       setCampState('');
@@ -65,23 +66,36 @@ const CampDetails = ({ onNext }) => {
     setIsSubmitting(true);
 
     try {
-      await Promise.all(
-        camps.map((camp) => {
-          const campData = {
-            client: clientId,
-            location: camp.campLocation,
-            district: camp.campDistrict,
-            state: camp.campState,
-            pin_code: camp.campPinCode,
-            landmark: camp.campLandmark,
-            start_date: camp.startDate.toISOString().split('T')[0],
-            end_date: camp.endDate.toISOString().split('T')[0],
-          };
-          return createCamp(campData);
-        })
-      );
+      const createdCampIds = [];
+
+      for (const camp of camps) {
+        const campData = {
+          client: clientId,
+          location: camp.campLocation,
+          district: camp.campDistrict,
+          state: camp.campState,
+          pin_code: camp.campPinCode,
+          landmark: camp.campLandmark,
+          start_date: camp.startDate.toISOString().split('T')[0],
+          end_date: camp.endDate.toISOString().split('T')[0],
+        };
+
+        const response = await createCamp(campData);
+        if (response?.id) {
+          createdCampIds.push(response.id);
+        }
+      }
+
+      if (createdCampIds.length) {
+        localStorage.setItem('createdCampIds', JSON.stringify(createdCampIds));
+
+        // ✅ Store the first created camp ID for use in ServiceSelection
+        localStorage.setItem('campId', createdCampIds[0]);
+        console.log('✅ Stored campId:', createdCampIds[0]);
+      }
 
       onNext({ camps, clientId });
+      navigate('/service-selection'); // ✅ fixed route from '/services'
     } catch (err) {
       console.error('Error submitting camp data:', err);
       setError('Failed to submit camp data.');
