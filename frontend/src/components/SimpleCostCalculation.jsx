@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import { AppContext } from '../App';
-
+// write by shyam 
 function SimpleCostCalculation() {
   const {
     caseData,
@@ -164,6 +164,8 @@ function SimpleCostCalculation() {
 
   console.log("🔍 Actual clientDetails object:", clientDetails);
   console.log("🔍 JSON version:", JSON.stringify(clientDetails, null, 2));
+
+  // change by shyam on 27-06-2025
   const generatePDF = () => {
   if (!caseData || !clientDetails) return;
 
@@ -177,13 +179,25 @@ function SimpleCostCalculation() {
   doc.setFontSize(22).setTextColor(0, 0, 0).text("Client Details", margin, currentY);
 
   doc.setFontSize(18);
+  
+  // Extract camp details from the first camp (assuming there's at least one)
+  const campInfo = clientDetails?.camps?.[0] || {};
+  
   const clientInfo = [
-    { label: "Client Name", value: clientDetails?.name || "N/A" },
+    { label: "Client ID", value: clientDetails?.clientId || "N/A" },
+    { label: "Camp Location", value: campInfo?.campLocation || "N/A" },
     {
       label: "Address",
-      value: `${clientDetails?.landmark || "N/A"}, ${clientDetails?.district || "N/A"}, ${clientDetails?.state || "N/A"} - ${clientDetails?.pin_code || "N/A"}`
+      value: `${campInfo?.campLandmark || "N/A"}, ${campInfo?.campDistrict || "N/A"}, ${campInfo?.campState || "N/A"} - ${campInfo?.campPinCode || "N/A"}`
     },
+    { 
+      label: "Camp Duration", 
+      value: campInfo?.startDate && campInfo?.endDate 
+        ? `${new Date(campInfo.startDate).toLocaleDateString()} to ${new Date(campInfo.endDate).toLocaleDateString()}`
+        : "N/A"
+    }
   ];
+  
   currentY += 12;
 
   clientInfo.forEach(detail => {
