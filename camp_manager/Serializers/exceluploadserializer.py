@@ -1,8 +1,6 @@
-from camp_manager.Models.Upload_excel import ExcelUpload
 from rest_framework import serializers
 
-
-class ExcelUploadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ExcelUpload
-        fields = '__all__'
+class ExcelUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    camp_id = serializers.IntegerField()
+    package_id = serializers.IntegerField(required=False)
