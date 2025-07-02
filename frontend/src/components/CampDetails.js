@@ -9,7 +9,7 @@ import axios from 'axios';
 // Code written by Shyam on 2025-07-01
 const CampDetails = ({ onNext }) => {
   const { companyId, loginType } = useContext(AppContext) || {};
-  const clientIdFromContext = companyId || parseInt(localStorage.getItem('clientId'));
+  const clientIdFromContext = companyId || localStorage.getItem('clientId'); // Remove parseInt
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clients, setClients] = useState([]);
   const [clientDetails, setClientDetails] = useState(null);
@@ -28,13 +28,33 @@ const CampDetails = ({ onNext }) => {
 // Code written by Shyam on 2025-07-01
   // Fetch all clients if Camp Manager is logged in
   useEffect(() => {
-    if (loginType === 'Coordinator') {
-      axios.get('http://127.0.0.1:8000/api/clients/')
-        .then(res => setClients(res.data))
-        .catch(err => console.error('Error fetching clients:', err));
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('You are not logged in. Please log in to continue.');
+      setClients([]);
+      return;
     }
-  }, [loginType]);
-// Code written by Shyam on 2025-07-01
+    axios.get('http://127.0.0.1:8000/api/clients/', {
+      headers: {
+        Authorization: `Token ${token}`, // <-- CHANGE HERE
+      },
+    })
+      .then(res => {
+        setClients(res.data);
+      })
+      .catch(err => {
+        if (err.response && err.response.status === 401) {
+          setError('Session expired or unauthorized. Please log in again.');
+        } else {
+          setError('Error fetching clients.');
+        }
+        setClients([]);
+        console.error('Error fetching clients:', err);
+      });
+  }, []);
+
+
+
   // Fetch selected client details
   useEffect(() => {
     if (selectedClientId) {
@@ -50,7 +70,28 @@ const CampDetails = ({ onNext }) => {
   const clientId = loginType === 'Coordinator'
     ? (selectedClientId ? parseInt(selectedClientId) : null)
     : clientIdFromContext;
-// Code written by Shyam on 2025-07-01
+
+  // Fetch client details for logged-in client (not Coordinator)
+  useEffect(() => {
+    if (loginType !== 'Coordinator' && clientId) {
+      axios.get(`http://127.0.0.1:8000/api/clients/${clientId}/`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem('token')}`,
+        },
+      })
+        .then(res => {
+          setClientDetails(res.data);
+          console.log('Fetched clientDetails for client login:', res.data);
+        })
+        .catch(err => {
+          setClientDetails(null);
+          setError('Failed to fetch client details.');
+          console.error('Error fetching client details for client login:', err);
+        });
+    }
+  }, [loginType, clientId]);
+
+  // Code written by Shyam on 2025-07-01
   const handleAddCamp = () => {
     if (
       campLocation &&
@@ -87,8 +128,21 @@ const CampDetails = ({ onNext }) => {
   };
 // Code written by Shyam on 2025-07-01
   const handleSubmit = async () => {
+    console.log('handleSubmit called');
+    console.log('loginType:', loginType);
+    console.log('clientId:', clientId);
+    console.log('camps:', camps);
+    console.log('clientDetails:', clientDetails);
+
     if (!clientId || camps.length === 0) {
       setError('Missing client ID or no camp added.');
+      return;
+    }
+
+    // For client login, ensure clientDetails is loaded
+    if (loginType !== 'Coordinator' && !clientDetails) {
+      setError('Client details are still loading. Please wait a moment and try again.');
+      console.warn('Client details not loaded yet.');
       return;
     }
 
@@ -97,9 +151,29 @@ const CampDetails = ({ onNext }) => {
     try {
       const createdCampIds = [];
 
+      // Get client code for both Coordinator and Client logins
+      let clientCode = null;
+      if (loginType === 'Coordinator') {
+        const clientObj = clients.find(
+          c => c.id === (selectedClientId ? parseInt(selectedClientId) : clientId)
+        );
+        clientCode = clientObj ? clientObj.client_id : null;
+        console.log('Coordinator clientObj:', clientObj, 'clientCode:', clientCode);
+      } else {
+        // For client login, get code from clientDetails
+        clientCode = clientDetails ? clientDetails.client_id : null;
+        console.log('Client login clientCode:', clientCode);
+      }
+
+      if (!clientCode) {
+        setError('Client code not found.');
+        setIsSubmitting(false);
+        return;
+      }
+
       for (const camp of camps) {
         const campData = {
-          client: clientId,
+          client: clientCode,
           location: camp.campLocation,
           district: camp.campDistrict,
           state: camp.campState,
@@ -108,8 +182,10 @@ const CampDetails = ({ onNext }) => {
           start_date: camp.startDate.toISOString().split('T')[0],
           end_date: camp.endDate.toISOString().split('T')[0],
         };
+        console.log('Submitting campData:', campData);
 
         const response = await createCamp(campData);
+        console.log('createCamp response:', response);
         if (response?.id) {
           createdCampIds.push(response.id);
         }
@@ -117,14 +193,12 @@ const CampDetails = ({ onNext }) => {
 
       if (createdCampIds.length) {
         localStorage.setItem('createdCampIds', JSON.stringify(createdCampIds));
-
-        // ✅ Store the first created camp ID for use in ServiceSelection
         localStorage.setItem('campId', createdCampIds[0]);
         console.log('✅ Stored campId:', createdCampIds[0]);
       }
 
-      onNext({ camps, clientId });
-      navigate('/service-selection'); // ✅ fixed route from '/services'
+      onNext({ camps, clientId: clientCode });
+      navigate('/service-selection');
     } catch (err) {
       console.error('Error submitting camp data:', err);
       setError('Failed to submit camp data.');
