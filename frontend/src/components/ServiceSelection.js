@@ -35,11 +35,11 @@ function ServiceSelection({ userType }) {
   const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
 
   useEffect(() => {
-    const cid = localStorage.getItem('clientId');
-    const campId = localStorage.getItem('campId');
-    console.log('🔍 clientId from localStorage:', cid);
-    console.log('🔍 campId from localStorage:', campId);
-  }, []);
+  const cid = localStorage.getItem('clientId');
+  const campId = localStorage.getItem('campId');
+  console.log('🔍 ServiceSelection - clientId:', cid);
+  console.log('🔍 ServiceSelection - campId:', campId);
+}, []);
 
   const handleAddPackage = () => {
     setPackages([

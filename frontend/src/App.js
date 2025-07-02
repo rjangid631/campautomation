@@ -1,6 +1,7 @@
 // App.js
 import React, { useState, createContext, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import './index.css'
 import CoordinatorLogin from './components/CoordinatorLogin';
 import CampDetails from './components/CampDetails';
 import ServiceSelection from './components/ServiceSelection';
@@ -8,11 +9,11 @@ import TestCaseInput from './components/TestCaseInput';
 import CostCalculation from './components/CostCalculation';
 import CostSummaryScreen from './components/CostSummaryScreen';
 import SimpleCostCalculation from './components/SimpleCostCalculation';
-import Dashboard from './components/Dashboard';
 import CustomerDashboard from './components/CustomerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import NewDashboard from './components/NewDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
+import Dashboard from './components/Dashboard'; // <-- Add this line
 
 export const AppContext = createContext();
 
