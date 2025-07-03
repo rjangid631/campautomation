@@ -55,19 +55,33 @@ export const loginAsCustomer = async (email, password) => {
 };
 
 // ✅ REGISTER
-export const signupUser = async ({ name, email, password, contact_number }) => {
+export const signupUser = async ({
+  client_id,
+  name,
+  email,
+  password,
+  contact_number,
+  gst_number,
+  pan_card,
+  district,
+  state,
+  pin_code,
+  landmark
+}) => {
   try {
-    const response = await api.post("register/", {
+    await api.post('register/', {
+      client_id,
       name,
       email,
       password,
       contact_number,
+      gst_number,
+      pan_card,
+      district,
+      state,
+      pin_code,
+      landmark,
     });
-
-    const { client_id } = response.data;
-
-    // ✅ Save client_id to localStorage
-    localStorage.setItem("clientId", client_id);
 
     return "Signup successful! You can now log in.";
   } catch (error) {
@@ -77,7 +91,6 @@ export const signupUser = async ({ name, email, password, contact_number }) => {
     );
   }
 };
-
 
 // ✅ CREATE CAMP
 export const createCamp = async (campData) => {
