@@ -55,7 +55,8 @@ class ClientAdmin(UserAdmin):
 
 @admin.register(Camp)
 class CampAdmin(admin.ModelAdmin):
-    list_display = ('client', 'location', 'district', 'state', 'pin_code', 'start_date', 'end_date')
+    list_display = ('client', 'location', 'district', 'state', 'pin_code', 'start_date', 'end_date', 'ready_to_go')  # ✅ Added 'ready_to_go'
+    list_editable = ('ready_to_go',)
     search_fields = ('location', 'client__name')
 
 @admin.register(ServiceSelection)
