@@ -208,3 +208,25 @@ export const loginAsCoordinator = async (username, password) => {
     throw new Error("Invalid coordinator credentials.");
   }
 };
+
+// ✅ HARD-CODED TECHNICINE LOGIN
+export const loginAsTechnicine = async (technicineId, password) => {
+  const technicineCredentials = {
+    technicineId: "technicine@gmail.com",
+    password: "U4rad@2025",
+  };
+
+  if (
+    technicineId === technicineCredentials.technicineId &&
+    password === technicineCredentials.password
+  ) {
+    // You can generate a dummy token if needed
+    return {
+      role: "Technicine",
+      technicineId,
+      token: "dummy-technicine-token",
+    };
+  } else {
+    throw new Error("Invalid technicine credentials.");
+  }
+};

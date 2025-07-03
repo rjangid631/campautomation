@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
-import { loginAsCoordinator, loginAsCustomer, signupUser } from "./api";
+import { loginAsCoordinator, loginAsCustomer, signupUser, loginAsTechnicine } from "./api";
 
 function CoordinatorLogin({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ function CoordinatorLogin({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loginMode, setLoginMode] = useState("default"); // "default" or "technicine"
 
   const navigate = useNavigate();
 
@@ -66,6 +67,20 @@ function CoordinatorLogin({ onLogin }) {
     }
   };
 
+  const handleTechnicineLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const { role, technicineId, token } = await loginAsTechnicine(formData.username, formData.password);
+      localStorage.setItem("role", role);
+      localStorage.setItem("technicineId", technicineId);
+      localStorage.setItem("token", token);
+      onLogin(role, technicineId);
+      navigate("/technicial-Dashboard"); // <-- updated path
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
@@ -82,16 +97,45 @@ function CoordinatorLogin({ onLogin }) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-500">
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          {showSignup ? "Sign Up" : "Login"}
+          {showSignup
+            ? "Sign Up"
+            : loginMode === "technicine"
+            ? "Technicine Login"
+            : "Login"}
         </h2>
 
         {errorMessage && (
           <div className="mb-4 text-red-500 text-sm">{errorMessage}</div>
         )}
 
+        <div className="flex justify-center gap-4 mb-4">
+          <button
+            className={`px-3 py-1 rounded ${loginMode === "default" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setLoginMode("default")}
+            disabled={showSignup}
+            type="button"
+          >
+            Coordinator/Customer
+          </button>
+          <button
+            className={`px-3 py-1 rounded ${loginMode === "technicine" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setLoginMode("technicine")}
+            disabled={showSignup}
+            type="button"
+          >
+            Technicine
+          </button>
+        </div>
+
         <form
           className="flex flex-col gap-y-5"
-          onSubmit={showSignup ? handleSignupSubmit : handleOnSubmit}
+          onSubmit={
+            showSignup
+              ? handleSignupSubmit
+              : loginMode === "technicine"
+              ? handleTechnicineLogin
+              : handleOnSubmit
+          }
         >
           {showSignup ? (
             <>
@@ -171,10 +215,13 @@ function CoordinatorLogin({ onLogin }) {
             </>
           ) : (
             <>
-              {/* Login Username/Email */}
+              {/* Login Username/ID */}
               <label className="w-full">
                 <p className="mb-2 text-sm font-semibold text-gray-700">
-                  Username/Email <sup className="text-red-500">*</sup>
+                  {loginMode === "technicine"
+                    ? "Technicine ID"
+                    : "Username/Email"}{" "}
+                  <sup className="text-red-500">*</sup>
                 </p>
                 <input
                   required
@@ -182,7 +229,11 @@ function CoordinatorLogin({ onLogin }) {
                   name="username"
                   value={formData.username}
                   onChange={handleOnChange}
-                  placeholder="Enter username or email"
+                  placeholder={
+                    loginMode === "technicine"
+                      ? "Enter Technicine ID"
+                      : "Enter username or email"
+                  }
                   className="w-full h-12 rounded-md border border-gray-300 p-4 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
                 />
               </label>
@@ -220,7 +271,11 @@ function CoordinatorLogin({ onLogin }) {
               type="submit"
               className="mt-6 rounded-md bg-blue-600 py-3 text-lg font-semibold text-white hover:bg-blue-700 transition duration-200"
             >
-              {showSignup ? "Sign Up" : "Login"}
+              {showSignup
+                ? "Sign Up"
+                : loginMode === "technicine"
+                ? "Technicine Login"
+                : "Login"}
             </button>
 
             <div className="text-center mt-4">

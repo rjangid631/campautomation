@@ -15,6 +15,7 @@ import NewDashboard from './components/NewDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './components/Dashboard'; // <-- Add this line
 import ViewServiceSelection from './components/ViewServiceSelection';
+import TechnicialDashboard from "./components/TechnicialDashboard";
 
 export const AppContext = createContext();
 
@@ -164,6 +165,7 @@ function App() {
             <Route path="/newdashboard" element={<NewDashboard />} />
             <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/view-serviceselection/:campId" element={<ViewServiceSelection />} />
+            <Route path="/technicial-Dashboard" element={<TechnicialDashboard />} />
           </Routes>
 
           <Outlet />
