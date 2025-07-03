@@ -13,6 +13,7 @@ from clients.views.Testcaseview import TestCaseDataViewSet
 from clients.views.copypriceview import CopyPriceViewSet
 from clients.views.pdfuploadview import PDFUploadView, generate_pdf_view
 from clients.views.clientview import ClientRegisterView
+from clients.views.clientviewset import ClientViewSet
 from clients.views.serviceviewset import ServiceViewSet
 from clients.views.packageview import PackageViewSet
 
@@ -26,6 +27,7 @@ router.register(r'costsummaries', CostSummaryViewSet)
 router.register(r'copyprice', CopyPriceViewSet)
 router.register(r'services', ServiceViewSet)
 router.register(r'packages', PackageViewSet)
+router.register(r'clients', ClientViewSet, basename='clients')
 
 urlpatterns = [
     path('', include(router.urls)),
