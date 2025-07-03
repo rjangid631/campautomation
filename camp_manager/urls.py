@@ -4,6 +4,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from camp_manager.views import CampManagerViewSet
 from camp_manager.views.camp_manager import CampManagerUserViewSet
+from camp_manager.views.campmanager_auth import CampManagerLoginView, CampManagerRegisterView
 from camp_manager.views.patient_detail import check_in_patient, get_patient_details
 from camp_manager.views.uploadview import UploadExcelViewSet
 
@@ -21,6 +22,8 @@ urlpatterns = [
     path('upload-excel/', upload_excel_view, name='upload-excel'),  # ✅ manual custom endpoint
     path('patient/<str:unique_patient_id>/', get_patient_details, name='get-patient-details'),
     path('patient/<str:unique_patient_id>/checkin/', check_in_patient, name='checkin-patient'),
+    path('login/', CampManagerLoginView.as_view(), name='campmanager-login'),
+    path('register/', CampManagerRegisterView.as_view(), name='campmanager-register'),
 ]
 
 # ✅ Append static media files URL

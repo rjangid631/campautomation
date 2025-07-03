@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'clients',
-    'rest_framework.authtoken',
+    'users',
     'camp_manager',
 ]
 
@@ -110,7 +110,6 @@ AUTH_USER_MODEL = 'clients.Client'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [

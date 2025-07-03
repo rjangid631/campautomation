@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
 from clients.forms import PackageAdminForm
 from clients.models.serviceselection import ServiceSelection
@@ -34,9 +35,23 @@ class PriceRangeAdmin(admin.ModelAdmin):
     search_fields = ('service__name',)
 
 @admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
-    list_display = ('client_id', 'name', 'email', 'contact_number', 'gst_number', 'pan_card', 'state')
+class ClientAdmin(UserAdmin):
+    model = Client
+    list_display = ('client_id', 'name', 'email', 'contact_number', 'login_type', 'gst_number', 'pan_card', 'state')
+    list_filter = ('login_type', 'state', 'is_active', 'is_staff')
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal Info', {'fields': ('name', 'contact_number', 'client_id', 'login_type', 'gst_number', 'pan_card', 'district', 'state', 'pin_code', 'landmark')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'name', 'contact_number', 'password1', 'password2', 'login_type', 'is_active', 'is_staff')}
+        ),
+    )
     search_fields = ('client_id', 'name', 'email', 'contact_number', 'gst_number')
+    ordering = ('email',)
 
 @admin.register(Camp)
 class CampAdmin(admin.ModelAdmin):

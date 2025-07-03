@@ -1,6 +1,5 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken import views
 from clients.views.clientdashboard import ClientDashboardView
 from clients.views.loginview import ClientLoginView
 from clients.views.clientcampviewlist import ClientCampViewSet
@@ -34,7 +33,6 @@ urlpatterns = [
     path('login/', ClientLoginView.as_view(), name='client-login'),
     path('register/', ClientRegisterView.as_view(), name='client-register'),
     path('client-dashboard/', ClientDashboardView.as_view(), name='client-dashboard'),
-    path('api-token-auth/', views.obtain_auth_token),
     path('prices/', ServicePriceView.as_view(), name='service-prices'),
     path('api/validate-coupon/<str:code>/', validate_coupon, name='validate_coupon'),
     path('upload-pdf/', PDFUploadView.as_view(), name='upload_pdf'),
