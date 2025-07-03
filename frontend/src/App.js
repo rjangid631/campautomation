@@ -171,7 +171,7 @@ function App() {
           <Outlet />
         </div>
       </AppContext.Provider>
-    </ErrorBoundary>
+    </ErrorBoundary>  // done 
   );
 }
 

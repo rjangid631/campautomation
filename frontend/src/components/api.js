@@ -215,6 +215,7 @@ export const loginAsTechnicine = async (technicineId, password) => {
     technicineId: "technicine@gmail.com",
     password: "U4rad@2025",
   };
+  // Sir jii
 
   if (
     technicineId === technicineCredentials.technicineId &&

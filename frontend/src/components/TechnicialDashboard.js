@@ -8,7 +8,7 @@ function TechnicialDashboard() {
         <p className="text-lg text-gray-700 mb-6">
           Welcome, Technicine! You have successfully logged in.
         </p>
-        {/* Add more dashboard features here */}
+        <div> Hii Sir</div>
       </div>
     </div>
   );
