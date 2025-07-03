@@ -1,6 +1,7 @@
 # camp_manager/models.py
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager, Group, Permission
+from django.contrib.auth.models import BaseUserManager, Group, Permission
+from users.models import BaseUser
 
 class CampManagerUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -17,13 +18,8 @@ class CampManagerUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         return self.create_user(email, password, **extra_fields)
 
-class CampManager(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
-    name = models.CharField(max_length=255)
-    contact_number = models.CharField(max_length=15, unique=True)
-
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+class CampManager(BaseUser):
+    login_type = models.CharField(max_length=20, default='Coordinator')
 
     groups = models.ManyToManyField(
         Group,
@@ -41,9 +37,3 @@ class CampManager(AbstractBaseUser, PermissionsMixin):
     )
 
     objects = CampManagerUserManager()
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name']
-
-    def __str__(self):
-        return self.email
