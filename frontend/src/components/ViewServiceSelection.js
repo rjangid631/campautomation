@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // <-- update import
 import axios from 'axios';
 import { Calendar, MapPin, Package, Users } from 'lucide-react';
 
 const ViewServiceSelection = () => {
   const { campId } = useParams();
+  const navigate = useNavigate(); // <-- add this line
   const [campData, setCampData] = useState(null);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +14,10 @@ const ViewServiceSelection = () => {
   const [selectedTechs, setSelectedTechs] = useState({});
   const [uploading, setUploading] = useState({});
   const [uploadMsg, setUploadMsg] = useState({});
+  const [readyLoading, setReadyLoading] = useState(false);
+  const [readySuccess, setReadySuccess] = useState(false);
+  const [readyError, setReadyError] = useState(null);
+  const [excelUploaded, setExcelUploaded] = useState({}); // Add this line
 
   useEffect(() => {
     const fetchCampDetails = async () => {
@@ -71,11 +76,34 @@ const ViewServiceSelection = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUploadMsg(prev => ({ ...prev, [pkgId]: 'Upload successful!' }));
+      setExcelUploaded(prev => ({ ...prev, [pkgId]: true })); // Mark as uploaded
     } catch (err) {
       setUploadMsg(prev => ({ ...prev, [pkgId]: 'Upload failed.' }));
+      setExcelUploaded(prev => ({ ...prev, [pkgId]: false })); // Mark as not uploaded
     }
     setUploading(prev => ({ ...prev, [pkgId]: false }));
   };
+
+  const handleReadyToGo = async () => {
+    setReadyLoading(true);
+    setReadyError(null);
+    try {
+      await axios.patch(`http://127.0.0.1:8000/api/camps/${campId}/`, {
+        ready_to_go: true,
+      });
+      setReadySuccess(true);
+      setCampData(prev => ({ ...prev, ready_to_go: true }));
+      // Redirect to manager dashboard after marking as ready
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000); // Optional: short delay for user feedback
+    } catch (err) {
+      setReadyError('Failed to update. Please try again.');
+    }
+    setReadyLoading(false);
+  };
+
+  const isAnyExcelUploaded = Object.values(excelUploaded).some(Boolean);
 
   if (loading) {
     return (
@@ -197,6 +225,7 @@ const ViewServiceSelection = () => {
                           Service {serviceId}
                         </span>
                       ))}
+
                     </div>
                   </div>
 
@@ -252,6 +281,7 @@ const ViewServiceSelection = () => {
                   </div>
                 </div>
               ))}
+
             </div>
           )}
         </div>
@@ -281,6 +311,38 @@ const ViewServiceSelection = () => {
                 <p className="text-sm text-gray-600">Unique Services</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Ready to Go Button */}
+        {campData && (
+          <div className="flex flex-col items-center mt-8">
+            <button
+              className={`px-6 py-2 rounded font-semibold text-white transition ${
+                campData.ready_to_go
+                  ? 'bg-green-500 cursor-not-allowed'
+                  : isAnyExcelUploaded
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+              onClick={handleReadyToGo}
+              disabled={campData.ready_to_go || readyLoading || !isAnyExcelUploaded}
+            >
+              {campData.ready_to_go
+                ? 'Ready to Go!'
+                : readyLoading
+                ? 'Updating...'
+                : 'Ready to go'}
+            </button>
+            {!isAnyExcelUploaded && !campData.ready_to_go && (
+              <span className="text-gray-500 mt-2">Upload at least one Excel to enable Ready to Go</span>
+            )}
+            {readyError && (
+              <span className="text-red-600 mt-2">{readyError}</span>
+            )}
+            {readySuccess && !campData.ready_to_go && (
+              <span className="text-green-600 mt-2">Marked as Ready!</span>
+            )}
           </div>
         )}
       </div>
