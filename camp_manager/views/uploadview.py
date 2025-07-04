@@ -6,7 +6,15 @@ import uuid
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
+from PIL import Image, ImageDraw, ImageFont, ImageWin
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
+import tempfile
+import os
+import traceback
+import win32print
+import win32ui
 
 from clients.models.camp import Camp
 from clients.models.package import Package
@@ -14,8 +22,48 @@ from camp_manager.Models.Upload_excel import ExcelUpload
 from camp_manager.Models.Patientdata import PatientData
 from camp_manager.Serializers.exceluploadserializer import ExcelUploadSerializer
 
+
 class UploadExcelViewSet(viewsets.ViewSet):
     parser_classes = [MultiPartParser]
+
+    def get_thermal_printer_name(self):
+        try:
+            printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)
+            for flags, description, name, comment in printers:
+                lower_name = name.lower()
+                if "pos" in lower_name or "thermal" in lower_name or "80" in lower_name:
+                    return name
+            return win32print.GetDefaultPrinter()
+        except Exception:
+            return win32print.GetDefaultPrinter()
+
+    def print_thermal_slip(self, slip_path, patient_name):
+        try:
+            printer_name = self.get_thermal_printer_name()
+            print(f"🖨 Printing slip for: {patient_name} on printer: {printer_name}")
+
+            hprinter = win32print.OpenPrinter(printer_name)
+            hdc = win32ui.CreateDC()
+            hdc.CreatePrinterDC(printer_name)
+            hdc.StartDoc("Camp Medical Slip")
+            hdc.StartPage()
+
+            bmp = Image.open(slip_path).convert("RGB")
+            dib = ImageWin.Dib(bmp)
+
+            printable_width = hdc.GetDeviceCaps(8)
+            aspect_ratio = bmp.height / bmp.width
+            scaled_height = int(printable_width * aspect_ratio)
+            dib.draw(hdc.GetHandleOutput(), (0, 0, printable_width, scaled_height))
+
+            hdc.EndPage()
+            hdc.EndDoc()
+            hdc.DeleteDC()
+            win32print.ClosePrinter(hprinter)
+
+        except Exception:
+            print("🛑 Thermal Print Exception:")
+            traceback.print_exc()
 
     def upload_excel(self, request):
         serializer = ExcelUploadSerializer(data=request.data)
@@ -45,42 +93,29 @@ class UploadExcelViewSet(viewsets.ViewSet):
             if missing_columns:
                 return Response({'error': f'Missing columns in Excel: {missing_columns}'}, status=400)
 
-            main_services = [
+            all_possible_services = [
                 'X-ray', 'ECG', 'PFT', 'Audiometry', 'Optometry',
                 'Doctor Consultation', 'Pathology', 'Dental Consultation',
                 'Vitals', 'Form 7', 'BMD', 'Tetanus Vaccine',
-                'Typhoid Vaccine', 'Coordinator'
-            ]
-            pathology_subservices = [
-                'CBC', 'Complete Hemogram', 'Hemoglobin', 'Urine Routine',
-                'Stool Examination', 'Lipid Profile', 'Kidney Profile',
-                'LFT', 'KFT', 'Random Blood Glucose', 'Blood Grouping'
+                'Typhoid Vaccine', 'Coordinator', 'CBC', 'Complete Hemogram',
+                'Hemoglobin', 'Urine Routine', 'Stool Examination', 'Lipid Profile',
+                'Kidney Profile', 'LFT', 'KFT', 'Random Blood Glucose', 'Blood Grouping'
             ]
 
             for _, row in df.iterrows():
                 unique_patient_id = str(uuid.uuid4())[:8]
 
-                services_done = [
-                    service for service in main_services
+                selected_services = [
+                    service for service in all_possible_services
                     if service in df.columns and str(row.get(service, '')).strip().lower() in ['yes', 'done', '1', 'true']
                 ]
 
-                pathology_done = [
-                    sub for sub in pathology_subservices
-                    if sub in df.columns and str(row.get(sub, '')).strip().lower() in ['yes', 'done', '1', 'true']
-                ]
-
-                all_services = services_done + pathology_done
-
-                # ✅ Full QR Code Data
                 qr_data = f"http://192.168.1.13:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
+                qr_img = qrcode.make(qr_data)
+                qr_buffer = BytesIO()
+                qr_img.save(qr_buffer, format='PNG')
+                qr_filename = f'{unique_patient_id}_qr.png'
 
-                qr = qrcode.make(qr_data)
-                buffer = BytesIO()
-                qr.save(buffer, format='PNG')
-                filename = f'{unique_patient_id}_qr.png'
-
-                # ✅ Create patient and save QR
                 patient = PatientData.objects.create(
                     excel_upload=excel_upload,
                     patient_excel_id=row.get('patient_id', ''),
@@ -89,37 +124,89 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     age=row.get('age', 0),
                     gender=row.get('gender', ''),
                     contact_number=row.get('phone', ''),
-                    service=", ".join(all_services)
+                    service=", ".join(selected_services)
                 )
-                patient.qr_code.save(filename, ContentFile(buffer.getvalue()), save=True)
+                patient.qr_code.save(qr_filename, ContentFile(qr_buffer.getvalue()), save=True)
 
-                # 🖨 PDF Slip generation
+                # ✅ PDF Slip Generation
                 pdf_buffer = BytesIO()
-                c = canvas.Canvas(pdf_buffer)
+                c = canvas.Canvas(pdf_buffer, pagesize=A4)
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(50, 800, "🩺 Camp Medical Slip")
                 c.setFont("Helvetica", 12)
+                c.drawString(50, 770, f"Name: {patient.patient_name}")
+                c.drawString(50, 750, f"Age: {patient.age}")
+                c.drawString(50, 730, f"Gender: {patient.gender}")
+                c.drawString(50, 710, f"Contact: {patient.contact_number}")
+                c.drawString(50, 690, f"Package: {package.name if package else '-'}")
+                c.drawString(50, 660, "Selected Services:")
 
-                c.drawString(100, 800, "🩺 Camp Medical Slip")
-                c.drawString(100, 780, f"Name: {patient.patient_name}")
-                c.drawString(100, 760, f"Age: {patient.age}")
-                c.drawString(100, 740, f"Gender: {patient.gender}")
-                c.drawString(100, 720, f"Contact: {patient.contact_number}")
-                c.drawString(100, 700, f"Package: {package.name if package else '-'}")
-                c.drawString(100, 680, f"Services: {', '.join(all_services)}")
+                y_pos = 640
+                for service in selected_services:
+                    c.drawString(70, y_pos, f"• {service}")
+                    y_pos -= 20
 
-                # Add QR image to PDF
-                qr_buffer = buffer.getvalue()
-                qr_img_path = f"{unique_patient_id}_qr.png"
-                with open(qr_img_path, "wb") as f:
-                    f.write(qr_buffer)
-                c.drawImage(qr_img_path, 400, 730, width=100, height=100)
-
+                qr_buffer.seek(0)
+                c.drawImage(ImageReader(qr_buffer), 400, 700, width=120, height=120)
                 c.save()
-                pdf_buffer.seek(0)
 
-                # Save PDF to model
+                pdf_buffer.seek(0)
                 pdf_filename = f"{unique_patient_id}_slip.pdf"
                 patient.pdf_slip.save(pdf_filename, ContentFile(pdf_buffer.read()), save=True)
 
-            return Response({'message': 'File uploaded and patients with QR and PDF slips created successfully'})
+                # ✅ Thermal Slip with Logo
+                line_height = 30
+                header_height = 300
+                qr_height = 200
+                logo_height = 100
+                total_height = header_height + (len(selected_services) * line_height) + qr_height + logo_height
+
+                width, height = 576, total_height
+                slip = Image.new("L", (width, height), 255)
+                draw = ImageDraw.Draw(slip)
+
+                try:
+                    font = ImageFont.truetype("arial.ttf", 24)
+                except:
+                    font = ImageFont.load_default()
+
+                y = 10
+                try:
+                    logo = Image.open("media/logo.png").convert("L").resize((200, 80))
+                    slip.paste(logo, (int((width - 200) / 2), y))
+                    y += 90
+                except Exception as e:
+                    print("⚠️ Logo loading failed:", e)
+
+                draw.text((10, y), "🩺 Camp Medical Slip", font=font, fill=0)
+                y += 40
+                draw.text((10, y), f"Name: {patient.patient_name}", font=font, fill=0)
+                y += 30
+                draw.text((10, y), f"Age: {patient.age}", font=font, fill=0)
+                y += 30
+                draw.text((10, y), f"Gender: {patient.gender}", font=font, fill=0)
+                y += 30
+                draw.text((10, y), f"Contact: {patient.contact_number}", font=font, fill=0)
+                y += 30
+                draw.text((10, y), f"Package: {package.name if package else '-'}", font=font, fill=0)
+                y += 40
+
+                draw.text((10, y), "Selected Services:", font=font, fill=0)
+                y += 30
+                for service in selected_services:
+                    draw.text((30, y), f"✅ {service}", font=font, fill=0)
+                    y += line_height
+
+                qr_img = qrcode.make(qr_data).resize((180, 180))
+                slip.paste(qr_img, (width - 200, y))
+
+                slip_path = os.path.join(tempfile.gettempdir(), f"{unique_patient_id}_thermal.png")
+                slip.save(slip_path)
+
+                self.print_thermal_slip(slip_path, patient.patient_name)
+
+            return Response({'message': 'PDF & Thermal slips created and printed successfully for all patients.'})
         except Exception as e:
+            print("🛑 Upload Excel Exception:")
+            traceback.print_exc()
             return Response({'error': str(e)}, status=500)
