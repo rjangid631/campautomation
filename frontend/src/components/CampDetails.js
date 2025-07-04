@@ -74,7 +74,14 @@ const CampDetails = ({ onNext }) => {
   // Fetch client details for logged-in client (not Coordinator)
   useEffect(() => {
     if (loginType !== 'Coordinator' && clientId) {
-      axios.get(`http://127.0.0.1:8000/api/clients/${clientId}/`, {
+      // If clientId is not a number, find the numeric id from clients list
+      const numericId = isNaN(Number(clientId))
+        ? (clients.find(c => c.client_id === clientId)?.id)
+        : clientId;
+
+      if (!numericId) return;
+
+      axios.get(`http://127.0.0.1:8000/api/clients/${numericId}/`, {
         headers: {
           Authorization: `Token ${localStorage.getItem('token')}`,
         },
@@ -89,7 +96,7 @@ const CampDetails = ({ onNext }) => {
           console.error('Error fetching client details for client login:', err);
         });
     }
-  }, [loginType, clientId]);
+  }, [loginType, clientId, clients]);
 
   // Code written by Shyam on 2025-07-01
   const handleAddCamp = () => {

@@ -103,6 +103,35 @@ const ViewServiceSelection = () => {
     setReadyLoading(false);
   };
 
+  // Hardcoded service mapping
+  const SERVICE_MAP = {
+    1: "ECG",
+    2: "X-ray",
+    3: "PFT",
+    4: "Audiometry",
+    5: "Optometry",
+    6: "Doctor Consultation",
+    7: "Pathology",
+    8: "Dental Consultation",
+    9: "Vitals",
+    10: "Form 7",
+    11: "BMD",
+    12: "Tetanus Vaccine",
+    13: "Typhoid Vaccine",
+    14: "Coordinator",
+    15: "CBC",
+    16: "Complete Hemogram",
+    17: "Hemoglobin",
+    18: "Urine Routine",
+    19: "Stool Examination",
+    20: "Lipid Profile",
+    21: "Kidney Profile",
+    22: "LFT",
+    23: "KFT",
+    24: "Random Blood Glucose",
+    25: "Blood Grouping"
+  };
+
   const isAnyExcelUploaded = Object.values(excelUploaded).some(Boolean);
 
   if (loading) {
@@ -222,7 +251,7 @@ const ViewServiceSelection = () => {
                           key={index}
                           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200"
                         >
-                          Service {serviceId}
+                          {SERVICE_MAP[serviceId] || `Service ${serviceId}`}
                         </span>
                       ))}
 
