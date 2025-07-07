@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 
 from clients.models.client import Client
 from clients.models.service import Service  # Import from same directory
-from clients.models.camp import Camp  # Import from same directory
+from clients.models.camp import Camp
+from technician.Models.technician import Technician  # Import from same directory
 
 class Package(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
@@ -12,6 +13,11 @@ class Package(models.Model):
     services = models.ManyToManyField(Service, related_name='packages')
     start_date = models.DateField()
     end_date = models.DateField()
+    technicians = models.ManyToManyField(
+        'technician.Technician',
+        related_name='assigned_packages',
+        blank=True
+    )
 
     def clean(self):
         if self.end_date < self.start_date:

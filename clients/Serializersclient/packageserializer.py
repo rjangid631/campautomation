@@ -8,7 +8,7 @@ class PackageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Package
-        fields = ['id', 'client', 'camp', 'name', 'services', 'service_ids', 'start_date', 'end_date']
+        fields = ['id', 'client', 'camp', 'name', 'services', 'service_ids', 'start_date', 'end_date','technicians']
 
     def validate_services(self, value):
         queryset = Service.objects.filter(name__in=value)

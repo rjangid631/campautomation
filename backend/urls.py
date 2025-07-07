@@ -25,6 +25,7 @@ urlpatterns = [
     # Separate API namespaces
     path('api/', include('clients.urls')),  # for camp, service, packages, etc.
     path('api/campmanager/', include('camp_manager.urls')),  # for upload/view patients etc.
+    path('api/technician/', include('technician.urls')),  # for technician login, get assigned patients, mark service done
 ]
 
 if settings.DEBUG:

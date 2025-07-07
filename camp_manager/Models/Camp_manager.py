@@ -1,4 +1,3 @@
-# camp_manager/models.py
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, Group, Permission
 from users.models import BaseUser
@@ -26,14 +25,14 @@ class CampManager(BaseUser):
         related_name='campmanager_groups',
         blank=True,
         help_text='The groups this camp manager belongs to.',
-        verbose_name='groups'
+        verbose_name='groups',
     )
     user_permissions = models.ManyToManyField(
         Permission,
         related_name='campmanager_permissions',
         blank=True,
         help_text='Specific permissions for this camp manager.',
-        verbose_name='user permissions'
+        verbose_name='user permissions',
     )
 
     objects = CampManagerUserManager()

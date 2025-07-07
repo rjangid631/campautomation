@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'clients',
     'users',
     'camp_manager',
+    'technician',
 ]
 
 MIDDLEWARE = [

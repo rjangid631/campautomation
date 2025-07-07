@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // <-- update import
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Calendar, MapPin, Package, Users } from 'lucide-react';
 
 const ViewServiceSelection = () => {
   const { campId } = useParams();
-  const navigate = useNavigate(); // <-- add this line
+  const navigate = useNavigate();
+
   const [campData, setCampData] = useState(null);
   const [packages, setPackages] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showTech, setShowTech] = useState({});
@@ -17,8 +19,9 @@ const ViewServiceSelection = () => {
   const [readyLoading, setReadyLoading] = useState(false);
   const [readySuccess, setReadySuccess] = useState(false);
   const [readyError, setReadyError] = useState(null);
-  const [excelUploaded, setExcelUploaded] = useState({}); // Add this line
+  const [excelUploaded, setExcelUploaded] = useState({});
 
+  // Fetch camp details
   useEffect(() => {
     const fetchCampDetails = async () => {
       try {
@@ -28,58 +31,72 @@ const ViewServiceSelection = () => {
         setPackages(response.data.packages);
         setError(null);
       } catch (error) {
-        console.error('Error fetching camp details:', error);
         setError('Failed to load camp details. Please try again.');
-        setCampData(null);
-        setPackages([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (campId) {
-      fetchCampDetails();
-    }
+    if (campId) fetchCampDetails();
   }, [campId]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  // Fetch technicians
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/technician/technicians/');
+        setTechnicians(response.data);
+      } catch (err) {
+        console.error("Failed to fetch technicians", err);
+      }
+    };
+    fetchTechnicians();
+  }, []);
+
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
+
+  const handleAssignTechnicians = async (pkgId) => {
+    if (!selectedTechs[pkgId] || selectedTechs[pkgId].length === 0) {
+      alert("Please select at least one technician.");
+      return;
+    }
+
+    try {
+      await axios.post("http://127.0.0.1:8000/api/technician/assign-package/", {
+        camp_id: campId,
+        package_id: pkgId,
+        technician_ids: selectedTechs[pkgId],
+      });
+      alert("Technicians assigned successfully!");
+    } catch (err) {
+      alert("Failed to assign technicians.");
+    }
   };
 
-  // Handle technician checkbox change
-  const handleTechChange = (pkgId, techId) => {
-    setSelectedTechs(prev => ({
-      ...prev,
-      [pkgId]: prev[pkgId]
-        ? prev[pkgId].includes(techId)
-          ? prev[pkgId].filter(id => id !== techId)
-          : [...prev[pkgId], techId]
-        : [techId]
-    }));
-  };
-
-  // Handle Excel upload
   const handleExcelUpload = async (pkgId, file) => {
     if (!file) return;
     setUploading(prev => ({ ...prev, [pkgId]: true }));
     setUploadMsg(prev => ({ ...prev, [pkgId]: '' }));
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('package_id', pkgId);
-    formData.append('camp_id', campId); // Add camp_id to the form data
+    formData.append('camp_id', campId);
+
     try {
       await axios.post('http://127.0.0.1:8000/api/campmanager/upload-excel/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUploadMsg(prev => ({ ...prev, [pkgId]: 'Upload successful!' }));
-      setExcelUploaded(prev => ({ ...prev, [pkgId]: true })); // Mark as uploaded
+      setExcelUploaded(prev => ({ ...prev, [pkgId]: true }));
     } catch (err) {
       setUploadMsg(prev => ({ ...prev, [pkgId]: 'Upload failed.' }));
-      setExcelUploaded(prev => ({ ...prev, [pkgId]: false })); // Mark as not uploaded
+      setExcelUploaded(prev => ({ ...prev, [pkgId]: false }));
     }
     setUploading(prev => ({ ...prev, [pkgId]: false }));
   };
@@ -93,43 +110,20 @@ const ViewServiceSelection = () => {
       });
       setReadySuccess(true);
       setCampData(prev => ({ ...prev, ready_to_go: true }));
-      // Redirect to manager dashboard after marking as ready
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000); // Optional: short delay for user feedback
+      setTimeout(() => navigate('/dashboard'), 1000);
     } catch (err) {
       setReadyError('Failed to update. Please try again.');
     }
     setReadyLoading(false);
   };
 
-  // Hardcoded service mapping
   const SERVICE_MAP = {
-    1: "ECG",
-    2: "X-ray",
-    3: "PFT",
-    4: "Audiometry",
-    5: "Optometry",
-    6: "Doctor Consultation",
-    7: "Pathology",
-    8: "Dental Consultation",
-    9: "Vitals",
-    10: "Form 7",
-    11: "BMD",
-    12: "Tetanus Vaccine",
-    13: "Typhoid Vaccine",
-    14: "Coordinator",
-    15: "CBC",
-    16: "Complete Hemogram",
-    17: "Hemoglobin",
-    18: "Urine Routine",
-    19: "Stool Examination",
-    20: "Lipid Profile",
-    21: "Kidney Profile",
-    22: "LFT",
-    23: "KFT",
-    24: "Random Blood Glucose",
-    25: "Blood Grouping"
+    1: "ECG", 2: "X-ray", 3: "PFT", 4: "Audiometry", 5: "Optometry",
+    6: "Doctor Consultation", 7: "Pathology", 8: "Dental Consultation", 9: "Vitals",
+    10: "Form 7", 11: "BMD", 12: "Tetanus Vaccine", 13: "Typhoid Vaccine", 14: "Coordinator",
+    15: "CBC", 16: "Complete Hemogram", 17: "Hemoglobin", 18: "Urine Routine",
+    19: "Stool Examination", 20: "Lipid Profile", 21: "Kidney Profile", 22: "LFT",
+    23: "KFT", 24: "Random Blood Glucose", 25: "Blood Grouping"
   };
 
   const isAnyExcelUploaded = Object.values(excelUploaded).some(Boolean);
@@ -137,10 +131,7 @@ const ViewServiceSelection = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading camp details...</p>
-        </div>
+        <p className="text-gray-600">Loading camp details...</p>
       </div>
     );
   }
@@ -148,232 +139,132 @@ const ViewServiceSelection = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        </div>
+        <p className="text-red-600">{error}</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Service Selection Details
-          </h1>
-          <p className="text-gray-600">
-            Camp #{campId} - Overview of services and packages
-          </p>
-        </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Service Selection Details - Camp #{campId}
+        </h1>
 
-        {/* Camp Information Card */}
         {campData && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <div className="flex items-center mb-4">
-              <MapPin className="h-6 w-6 text-blue-600 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-900">Camp Information</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <label className="text-sm font-medium text-gray-500 block mb-1">Location</label>
-                <p className="text-gray-900 font-medium">{campData.location}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <label className="text-sm font-medium text-gray-500 block mb-1">District</label>
-                <p className="text-gray-900 font-medium">{campData.district}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <label className="text-sm font-medium text-gray-500 block mb-1">State</label>
-                <p className="text-gray-900 font-medium">{campData.state}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <label className="text-sm font-medium text-gray-500 block mb-1">PIN Code</label>
-                <p className="text-gray-900 font-medium">{campData.pin_code}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg col-span-2">
-                <label className="text-sm font-medium text-gray-500 block mb-1">Duration</label>
-                <div className="flex items-center text-gray-900">
-                  <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                  <span className="font-medium">
-                    {formatDate(campData.start_date)} - {formatDate(campData.end_date)}
-                  </span>
-                </div>
-              </div>
+          <div className="bg-white shadow rounded p-6 mb-6">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div><strong>Location:</strong> {campData.location}</div>
+              <div><strong>District:</strong> {campData.district}</div>
+              <div><strong>State:</strong> {campData.state}</div>
+              <div><strong>PIN Code:</strong> {campData.pin_code}</div>
+              <div className="md:col-span-2"><strong>Dates:</strong> {formatDate(campData.start_date)} - {formatDate(campData.end_date)}</div>
             </div>
           </div>
         )}
 
-        {/* Packages Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center mb-6">
-            <Package className="h-6 w-6 text-green-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Service Packages ({packages.length})
-            </h2>
-          </div>
+        {packages.map(pkg => (
+          <div key={pkg.id} className="bg-white shadow p-6 rounded-lg mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{pkg.name}</h3>
 
-          {packages.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No packages found for this camp.</p>
+            <div className="mb-3">
+              <label className="font-medium text-gray-700">Services:</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {pkg.service_ids.map((sid, i) => (
+                  <span key={i} className="px-3 py-1 bg-purple-100 border border-purple-200 rounded-full text-sm text-purple-800">
+                    {SERVICE_MAP[sid] || `Service ${sid}`}
+                  </span>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-8">
-              {packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 via-white to-blue-50"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {pkg.name}
-                      </h3>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>
-                          {formatDate(pkg.start_date)} - {formatDate(pkg.end_date)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Services */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-purple-700 block mb-1">Services</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {pkg.service_ids.map((serviceId, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200"
-                        >
-                          {SERVICE_MAP[serviceId] || `Service ${serviceId}`}
-                        </span>
+            <button
+              onClick={() => setShowTech(prev => ({ ...prev, [pkg.id]: !prev[pkg.id] }))}
+              className="text-blue-600 underline text-sm mb-2"
+            >
+              {showTech[pkg.id] ? 'Hide Technicians' : 'Choose Technicians'}
+            </button>
+
+            {showTech[pkg.id] && (
+              <div className="border p-3 bg-blue-50 rounded">
+                {technicians.length > 0 ? (
+                  <>
+                    <div className="grid sm:grid-cols-2 gap-2 mb-3">
+                      {technicians.map(tech => (
+                        <label key={tech.id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedTechs[pkg.id]?.includes(tech.id) || false}
+                            onChange={() =>
+                              setSelectedTechs(prev => ({
+                                ...prev,
+                                [pkg.id]: prev[pkg.id]
+                                  ? prev[pkg.id].includes(tech.id)
+                                    ? prev[pkg.id].filter(id => id !== tech.id)
+                                    : [...prev[pkg.id], tech.id]
+                                  : [tech.id]
+                              }))
+                            }
+                            className="accent-blue-600"
+                          />
+                          {tech.name}
+                        </label>
                       ))}
-
                     </div>
-                  </div>
-
-                  {/* Technician Section */}
-                  <div className="mb-4">
                     <button
-                      className="text-blue-600 underline font-medium"
-                      onClick={() =>
-                        setShowTech(prev => ({ ...prev, [pkg.id]: !prev[pkg.id] }))
-                      }
+                      onClick={() => handleAssignTechnicians(pkg.id)}
+                      className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
                     >
-                      {showTech[pkg.id] ? 'Hide Technicians' : 'Choose Technicians'}
+                      Save Assignment
                     </button>
-                    {showTech[pkg.id] && (
-                      <div className="mt-3 border rounded-lg p-3 bg-blue-50">
-                        {pkg.technician_ids && pkg.technician_ids.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {pkg.technician_ids.map(techId => (
-                              <label key={techId} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedTechs[pkg.id]?.includes(techId) || false}
-                                  onChange={() => handleTechChange(pkg.id, techId)}
-                                  className="accent-blue-600"
-                                />
-                                <span className="text-gray-800">Technician {techId}</span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500">No technicians assigned.</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500">No technicians available.</p>
+                )}
+              </div>
+            )}
 
-                  {/* Excel Upload Section */}
-                  <div>
-                    <label className="block font-medium mb-1 text-green-700">Upload Patient Excel:</label>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={e => handleExcelUpload(pkg.id, e.target.files[0])}
-                      className="block border border-gray-300 rounded px-2 py-1"
-                      disabled={uploading[pkg.id]}
-                    />
-                    {uploading[pkg.id] && (
-                      <span className="text-blue-600 ml-2">Uploading...</span>
-                    )}
-                    {uploadMsg[pkg.id] && (
-                      <span className="ml-2">{uploadMsg[pkg.id]}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-green-700 mb-1">Upload Patient Excel:</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => handleExcelUpload(pkg.id, e.target.files[0])}
+                className="block border border-gray-300 rounded px-2 py-1"
+                disabled={uploading[pkg.id]}
+              />
+              {uploading[pkg.id] && <span className="ml-2 text-blue-600">Uploading...</span>}
+              {uploadMsg[pkg.id] && <span className="ml-2">{uploadMsg[pkg.id]}</span>}
             </div>
+          </div>
+        ))}
+
+        <div className="text-center mt-8">
+          <button
+            className={`px-6 py-2 rounded font-semibold text-white transition ${
+              campData.ready_to_go
+                ? 'bg-green-500 cursor-not-allowed'
+                : isAnyExcelUploaded
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+            onClick={handleReadyToGo}
+            disabled={campData.ready_to_go || readyLoading || !isAnyExcelUploaded}
+          >
+            {campData.ready_to_go
+              ? 'Ready to Go!'
+              : readyLoading
+              ? 'Updating...'
+              : 'Ready to go'}
+          </button>
+          {!isAnyExcelUploaded && !campData.ready_to_go && (
+            <p className="text-gray-500 mt-2">Upload at least one Excel to enable Ready to Go</p>
+          )}
+          {readyError && <p className="text-red-600 mt-2">{readyError}</p>}
+          {readySuccess && !campData.ready_to_go && (
+            <p className="text-green-600 mt-2">Marked as Ready!</p>
           )}
         </div>
-
-        {/* Summary Card */}
-        {packages.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 mt-6">
-            <div className="flex items-center mb-4">
-              <Users className="h-6 w-6 text-blue-600 mr-2" />
-              <h3 className="text-lg font-semibold text-gray-900">Summary</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{packages.length}</p>
-                <p className="text-sm text-gray-600">Total Packages</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">
-                  {packages.reduce((total, pkg) => total + pkg.service_ids.length, 0)}
-                </p>
-                <p className="text-sm text-gray-600">Total Services</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-purple-600">
-                  {[...new Set(packages.flatMap(pkg => pkg.service_ids))].length}
-                </p>
-                <p className="text-sm text-gray-600">Unique Services</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Ready to Go Button */}
-        {campData && (
-          <div className="flex flex-col items-center mt-8">
-            <button
-              className={`px-6 py-2 rounded font-semibold text-white transition ${
-                campData.ready_to_go
-                  ? 'bg-green-500 cursor-not-allowed'
-                  : isAnyExcelUploaded
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
-              onClick={handleReadyToGo}
-              disabled={campData.ready_to_go || readyLoading || !isAnyExcelUploaded}
-            >
-              {campData.ready_to_go
-                ? 'Ready to Go!'
-                : readyLoading
-                ? 'Updating...'
-                : 'Ready to go'}
-            </button>
-            {!isAnyExcelUploaded && !campData.ready_to_go && (
-              <span className="text-gray-500 mt-2">Upload at least one Excel to enable Ready to Go</span>
-            )}
-            {readyError && (
-              <span className="text-red-600 mt-2">{readyError}</span>
-            )}
-            {readySuccess && !campData.ready_to_go && (
-              <span className="text-green-600 mt-2">Marked as Ready!</span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

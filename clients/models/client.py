@@ -1,6 +1,5 @@
-# clients/models.py
 from django.db import models
-from django.contrib.auth.models import BaseUserManager
+from django.contrib.auth.models import BaseUserManager, Group, Permission
 from users.models import BaseUser
 import uuid
 
@@ -24,7 +23,6 @@ class ClientManager(BaseUserManager):
 
 class Client(BaseUser):
     client_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
-
     gst_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     pan_card = models.CharField(max_length=10, unique=True, null=True, blank=True)
     district = models.CharField(max_length=255, null=True, blank=True)
@@ -36,8 +34,25 @@ class Client(BaseUser):
     ROLE_CHOICES = (
         ('Client', 'Client'),
         ('Coordinator', 'Coordinator'),
+        ('Technician', 'Technician'),
     )
     login_type = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Client')
+
+    # Permissions fields to avoid reverse accessor clashes
+    groups = models.ManyToManyField(
+        Group,
+        related_name='client_groups',
+        blank=True,
+        help_text='The groups this client belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='client_permissions',
+        blank=True,
+        help_text='Specific permissions for this client.',
+        verbose_name='user permissions',
+    )
 
     objects = ClientManager()
 
@@ -45,3 +60,6 @@ class Client(BaseUser):
         if not self.client_id:
             self.client_id = generate_client_id()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.login_type})"

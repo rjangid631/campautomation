@@ -18,8 +18,11 @@ import win32ui
 
 from clients.models.camp import Camp
 from clients.models.package import Package
+from clients.models.service import Service
 from camp_manager.Models.Upload_excel import ExcelUpload
 from camp_manager.Models.Patientdata import PatientData
+from technician.Models.servicestatus import ServiceStatus
+from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
 from camp_manager.Serializers.exceluploadserializer import ExcelUploadSerializer
 
 
@@ -128,7 +131,26 @@ class UploadExcelViewSet(viewsets.ViewSet):
                 )
                 patient.qr_code.save(qr_filename, ContentFile(qr_buffer.getvalue()), save=True)
 
-                # ✅ PDF Slip Generation
+                # ✅ Create ServiceStatus entries for each selected service
+                for service_name in selected_services:
+                    try:
+                        service_obj = Service.objects.get(name__iexact=service_name.strip())
+                        assignment = TechnicianServiceAssignment.objects.filter(
+                            camp=camp,
+                            service=service_obj,
+                            technician__in=package.technicians.all()
+                        ).first()
+
+                        ServiceStatus.objects.create(
+                            patient=patient,
+                            service=service_obj,
+                            technician=assignment.technician if assignment else None,
+                            is_completed=False
+                        )
+                    except Service.DoesNotExist:
+                        continue
+
+                # ✅ PDF Generation
                 pdf_buffer = BytesIO()
                 c = canvas.Canvas(pdf_buffer, pagesize=A4)
                 c.setFont("Helvetica-Bold", 14)
