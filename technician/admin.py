@@ -10,5 +10,16 @@ class TechnicianServiceAssignmentAdmin(admin.ModelAdmin):
     search_fields = ('technician__name', 'service__name', 'camp__location')
     list_filter = ('camp', 'service')
     
-admin.site.register(Technician)
+class TechnicianAdmin(admin.ModelAdmin):
+    list_display = ['email', 'name', 'contact_number', 'is_active', 'is_staff']
+    search_fields = ['email', 'name', 'contact_number']
+
+    def save_model(self, request, obj, form, change):
+        # Auto-hash plain text password if not already hashed
+        password = form.cleaned_data.get('password')
+        if password and not password.startswith('pbkdf2_'):
+            obj.set_password(password)
+        super().save_model(request, obj, form, change)
+    
+admin.site.register(Technician, TechnicianAdmin)
 admin.site.register(ServiceStatus)
