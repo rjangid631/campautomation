@@ -5,6 +5,7 @@ from camp_manager.Models.Patientdata import PatientData
 
 @api_view(['GET', 'POST'])
 def get_assigned_patients(request):
+    # Get technician and package IDs from request
     technician_id = (
         request.data.get("technician_id") if request.method == "POST"
         else request.query_params.get("technician_id")
@@ -15,6 +16,7 @@ def get_assigned_patients(request):
         else request.query_params.get("package_id")
     )
 
+    # Validate technician ID
     if not technician_id:
         return Response({"error": "Technician ID is required"}, status=400)
 
@@ -23,17 +25,23 @@ def get_assigned_patients(request):
     except Technician.DoesNotExist:
         return Response({"error": "Technician not found"}, status=404)
 
-    technician_services = technician.services.values_list('name', flat=True)
+    # Get list of technician services
+    technician_services = [s.lower().strip() for s in technician.services.values_list('name', flat=True)]
+
+    # Base queryset
     matching_patients = PatientData.objects.filter(checked_in=True)
 
+    # Filter by package through excel_upload
     if package_id:
-        matching_patients = matching_patients.filter(package_id=package_id)
+        matching_patients = matching_patients.filter(excel_upload__package_id=package_id)
 
+    # Filter patients by matching technician services
     filtered_patients = [
         patient for patient in matching_patients
-        if any(service.strip() in technician_services for service in patient.service.split(','))
+        if any(service.strip().lower() in technician_services for service in patient.service.split(','))
     ]
 
+    # Prepare response data
     data = [
         {
             "id": patient.id,
@@ -48,4 +56,3 @@ def get_assigned_patients(request):
         "status": "success",
         "patients": data
     })
-
