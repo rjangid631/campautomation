@@ -13,7 +13,7 @@ class PatientData(models.Model):
     gender = models.CharField(max_length=10)
     contact_number = models.CharField(max_length=15)
     service = models.CharField(max_length=500)
-
+    package = models.ForeignKey("clients.Package", on_delete=models.CASCADE, related_name="patients", null=True, blank=True)
     checked_in = models.BooleanField(default=False)
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     pdf_slip = models.FileField(upload_to='pdf_slips/', null=True, blank=True)
