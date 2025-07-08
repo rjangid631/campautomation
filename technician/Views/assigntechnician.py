@@ -65,25 +65,63 @@ def assign_technicians(request):
 @api_view(['POST'])
 def assign_technicians_to_package(request):
     """
-    POST Body:
+    Assign multiple technicians to multiple services within a specific camp and package.
+
+    Expected request body:
     {
-        "package_id": 1,
-        "technician_ids": [2, 3, 4]
+        "camp_id": 40,
+        "package_id": 19,
+        "service_id": 1,
+        "technician_ids": [1, 2]
     }
     """
+
+    camp_id = request.data.get('camp_id')
     package_id = request.data.get('package_id')
+    service_id = request.data.get('service_id')
     technician_ids = request.data.get('technician_ids', [])
 
+    # Validate required fields
+    if not (camp_id and package_id and service_id and technician_ids):
+        return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
+        camp = Camp.objects.get(id=camp_id)
         package = Package.objects.get(id=package_id)
+        service = Service.objects.get(id=service_id)
+    except Camp.DoesNotExist:
+        return Response({"error": "Camp not found."}, status=404)
     except Package.DoesNotExist:
-        return Response({"error": "Package not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Package not found."}, status=404)
+    except Service.DoesNotExist:
+        return Response({"error": "Service not found."}, status=404)
 
-    technicians = Technician.objects.filter(id__in=technician_ids)
+    # Optionally: delete existing assignments for this package+service
+    TechnicianServiceAssignment.objects.filter(
+        camp=camp,
+        package=package,
+        service=service
+    ).delete()
 
-    package.technicians.set(technicians)
+    assigned_techs = []
+
+    for tech_id in technician_ids:
+        try:
+            technician = Technician.objects.get(id=tech_id)
+            TechnicianServiceAssignment.objects.create(
+                technician=technician,
+                service=service,
+                camp=camp,
+                package=package
+            )
+            assigned_techs.append({"id": technician.id, "name": technician.name})
+        except Technician.DoesNotExist:
+            continue
+
     return Response({
-        "message": "Technicians assigned successfully.",
+        "message": "Technicians assigned to service successfully.",
+        "camp_id": camp.id,
         "package_id": package.id,
-        "assigned_technicians": [{"id": t.id, "name": t.name} for t in technicians]
-    }, status=status.HTTP_200_OK)
+        "service_id": service.id,
+        "assigned_technicians": assigned_techs
+    }, status=200)
