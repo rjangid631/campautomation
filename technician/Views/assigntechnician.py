@@ -62,7 +62,7 @@ def assign_technicians(request):
     return Response({"status": "success", "message": "Assignments saved successfully"})
 
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 def assign_technicians_to_package(request):
     """
     Assign services to multiple technicians in a camp + package.
