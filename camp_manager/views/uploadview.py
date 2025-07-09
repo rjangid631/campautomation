@@ -216,3 +216,30 @@ def print_thermal_slips(request):
         "printed": printed,
         "failed": failed
     })
+
+
+@api_view(['GET'])
+def get_patients_by_camp_and_package(request):
+    camp_id = request.query_params.get('camp_id')
+    package_id = request.query_params.get('package_id')
+
+    if not camp_id or not package_id:
+        return Response({'error': 'camp_id and package_id are required'}, status=400)
+
+    patients = PatientData.objects.filter(
+        excel_upload__camp_id=camp_id,
+        excel_upload__package_id=package_id
+    ).order_by('-id')
+
+    data = [{
+        'id': p.id,
+        'name': p.patient_name,
+        'unique_patient_id': p.unique_patient_id,
+        'services': p.service.split(', ') if p.service else [],
+        'gender': p.gender,
+        'age': p.age,
+        'phone': p.contact_number,
+        'qr_code_url': request.build_absolute_uri(p.qr_code.url) if p.qr_code else None
+    } for p in patients]
+
+    return Response(data)
