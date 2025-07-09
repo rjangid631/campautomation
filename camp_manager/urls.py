@@ -6,7 +6,7 @@ from camp_manager.views import CampManagerViewSet
 from camp_manager.views.camp_manager import CampManagerUserViewSet
 from camp_manager.views.campmanager_auth import CampManagerLoginView, CampManagerRegisterView
 from camp_manager.views.patient_detail import check_in_patient, get_patient_details
-from camp_manager.views.uploadview import UploadExcelViewSet
+from camp_manager.views.uploadview import UploadExcelViewSet, print_thermal_slips
 
 # For manual route
 upload_excel_view = UploadExcelViewSet.as_view({'post': 'upload_excel'})
@@ -24,6 +24,7 @@ urlpatterns = [
     path('patient/<str:unique_patient_id>/checkin/', check_in_patient, name='checkin-patient'),
     path('login/', CampManagerLoginView.as_view(), name='campmanager-login'),
     path('register/', CampManagerRegisterView.as_view(), name='campmanager-register'),
+    path('print-thermal-slips/', print_thermal_slips, name='print-thermal-slips'),
 ]
 
 # ✅ Append static media files URL
