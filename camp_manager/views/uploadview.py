@@ -29,18 +29,21 @@ from camp_manager.Serializers.exceluploadserializer import ExcelUploadSerializer
 class UploadExcelViewSet(viewsets.ViewSet):
     parser_classes = [MultiPartParser]
 
+    ENABLE_THERMAL_PRINTING = False  # 🔁 Toggle this to False to skip printing
+
     def get_thermal_printer_name(self):
         try:
             printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)
             for flags, description, name, comment in printers:
-                lower_name = name.lower()
-                if "pos" in lower_name or "thermal" in lower_name or "80" in lower_name:
+                if any(x in name.lower() for x in ["pos", "thermal", "80"]):
                     return name
             return win32print.GetDefaultPrinter()
         except Exception:
             return win32print.GetDefaultPrinter()
 
     def print_thermal_slip(self, slip_path, patient_name):
+        if not self.ENABLE_THERMAL_PRINTING:
+            return
         try:
             printer_name = self.get_thermal_printer_name()
             print(f"🖨 Printing slip for: {patient_name} on printer: {printer_name}")
@@ -113,7 +116,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     if service in df.columns and str(row.get(service, '')).strip().lower() in ['yes', 'done', '1', 'true']
                 ]
 
-                qr_data = f"http://192.168.1.13:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
+                qr_data = f"http://192.168.1.21:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
                 qr_img = qrcode.make(qr_data)
                 qr_buffer = BytesIO()
                 qr_img.save(qr_buffer, format='PNG')
@@ -131,7 +134,6 @@ class UploadExcelViewSet(viewsets.ViewSet):
                 )
                 patient.qr_code.save(qr_filename, ContentFile(qr_buffer.getvalue()), save=True)
 
-                # ✅ Create ServiceStatus entries for each selected service
                 for service_name in selected_services:
                     try:
                         service_obj = Service.objects.get(name__iexact=service_name.strip())
@@ -150,7 +152,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     except Service.DoesNotExist:
                         continue
 
-                # ✅ PDF Generation
+                # ✅ Generate and save PDF
                 pdf_buffer = BytesIO()
                 c = canvas.Canvas(pdf_buffer, pagesize=A4)
                 c.setFont("Helvetica-Bold", 14)
@@ -176,7 +178,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
                 pdf_filename = f"{unique_patient_id}_slip.pdf"
                 patient.pdf_slip.save(pdf_filename, ContentFile(pdf_buffer.read()), save=True)
 
-                # ✅ Thermal Slip with Logo
+                # ✅ Thermal Slip
                 line_height = 30
                 header_height = 300
                 qr_height = 200
