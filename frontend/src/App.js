@@ -1,7 +1,7 @@
-// App.js
 import React, { useState, createContext, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
-import './index.css'
+import './index.css';
+
 import CoordinatorLogin from './components/CoordinatorLogin';
 import CampDetails from './components/CampDetails';
 import ServiceSelection from './components/ServiceSelection';
@@ -13,10 +13,10 @@ import CustomerDashboard from './components/CustomerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import NewDashboard from './components/NewDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
-import Dashboard from './components/Dashboard'; // <-- Add this line
+import Dashboard from './components/Dashboard';
 import ViewServiceSelection from './components/ViewServiceSelection';
-import TechnicialDashboard from "./components/TechnicialDashboard";
-
+import TechnicalDashboard from './components/TechnicialDashboard.js'; // ✅ Explicit .js
+import PatientTechnicianDashboard from './components/PatientTechnicianDashboard';
 export const AppContext = createContext();
 
 function App() {
@@ -32,7 +32,6 @@ function App() {
   const navigate = useNavigate();
   const isAuthenticated = !!loginType;
 
-  // 🔁 Load from localStorage (fixes logout issue)
   useEffect(() => {
     const storedId = localStorage.getItem("clientId");
     const storedType = localStorage.getItem("loginType");
@@ -41,15 +40,21 @@ function App() {
     if (storedType) setLoginType(storedType);
   }, []);
 
-  const handleLogin = (type, clientId) => {
-    setLoginType(type);
-    setCompanyId(clientId);
-    localStorage.setItem("clientId", clientId);
-    localStorage.setItem("loginType", type); // ✅ Persist login type
+  const handleLogin = (type, id) => {
+  setLoginType(type);
+  setCompanyId(id);
 
-    if (type === 'Coordinator') navigate('/dashboard');
-    else if (type === 'Customer') navigate('/customer-dashboard');
-  };
+  localStorage.setItem("loginType", type);
+  localStorage.setItem("clientId", id);
+
+  if (type === 'Coordinator') {
+    navigate('/dashboard');
+  } else if (type === 'Customer') {
+    navigate('/customer-dashboard');
+  } else if (type === 'Technician') {
+    navigate('/technical-dashboard'); // ✅ ADD THIS
+  }
+};
 
   const handleCampDetailsNext = (details) => {
     setCampDetails(details);
@@ -87,7 +92,7 @@ function App() {
     setCostDetails({});
     localStorage.removeItem('authToken');
     localStorage.removeItem('clientId');
-    localStorage.removeItem('loginType'); // ✅ Clear on logout
+    localStorage.removeItem('loginType');
     navigate('/login');
   };
 
@@ -165,13 +170,14 @@ function App() {
             <Route path="/newdashboard" element={<NewDashboard />} />
             <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/view-serviceselection/:campId" element={<ViewServiceSelection />} />
-            <Route path="/technicial-Dashboard" element={<TechnicialDashboard />} />
+            <Route path="/technical-dashboard" element={<TechnicalDashboard />} />
+            <Route path="/patient-dashboard" element={<PatientTechnicianDashboard />} />
           </Routes>
 
           <Outlet />
         </div>
       </AppContext.Provider>
-    </ErrorBoundary>  // done 
+    </ErrorBoundary>
   );
 }
 

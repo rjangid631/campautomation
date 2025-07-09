@@ -23,12 +23,12 @@ api.interceptors.request.use(
 // ✅ LOGIN: Customer
 export const loginAsCustomer = async (email, password) => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/login/', {
+    const response = await fetch(`${BASE_URL}/api/login/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username: email, password }),  // ✅ key fix here
+      body: JSON.stringify({ username: email, password }),
     });
 
     if (!response.ok) {
@@ -44,13 +44,58 @@ export const loginAsCustomer = async (email, password) => {
 
     return {
       role: 'Customer',
-      clientId: data.clientId,      // ✅ double-check backend uses `clientId`
+      clientId: data.clientId,
       name: data.username || data.name,
       token: data.token,
     };
   } catch (error) {
     console.error('Login error:', error);
     throw new Error(error.message || 'Login failed');
+  }
+};
+
+// ✅ LOGIN: Technician
+export const loginAsTechnician = async (email, password) => {
+  console.log(`[API CALL] Attempting technician login with email: ${email}`);
+
+  try {
+    const response = await api.post('technician/login/', {
+      email,
+      password,
+    });
+
+    console.log(`[API RESPONSE] Status: ${response.status}`, response.data);
+
+    // Construct login info from response
+    const loginInfo = {
+      role: 'Technician',
+      technicianId: response.data.technician_id,
+      name: response.data.name,
+      email: response.data.email,
+    };
+
+    console.log('[LOGIN SUCCESS] Technician Info:', loginInfo);
+    return loginInfo;
+
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || error.message || 'Technician login failed';
+    console.error('[LOGIN FAILED]', error.response?.data || error.message);
+    throw new Error(errorMsg);
+  }
+};
+
+
+// ✅ LOGIN: Coordinator (hardcoded)
+export const loginAsCoordinator = async (username, password) => {
+  const coordinatorCredentials = {
+    username: "campcalculator@123",
+    password: "camp15042002",
+  };
+
+  if (username === coordinatorCredentials.username && password === coordinatorCredentials.password) {
+    return { role: "Coordinator", username };
+  } else {
+    throw new Error("Invalid coordinator credentials.");
   }
 };
 
@@ -108,11 +153,10 @@ export const creatservices = async (data) => {
   try {
     const response = await api.post('serviceselection/', data);
 
-    // Log the full response to debug structure
     console.log("🧾 Backend response:", response);
 
     if (response.status === 201 || response.status === 200) {
-      return response;  // ✅ Return full Axios response
+      return response;
     } else {
       console.warn("⚠️ Unexpected status:", response.status);
       return {
@@ -151,7 +195,7 @@ export const fetchHardCopyPrices = async () => {
 // ✅ SAVE TEST CASE DATA
 export const saveTestCaseData = async (payload) => {
   try {
-    const response = await api.post('test-case-data/', payload); // ✅ USE CUSTOM `api`
+    const response = await api.post('test-case-data/', payload);
     return response.data;
   } catch (error) {
     console.error('❌ Error saving test case data:', error.response?.data || error);
@@ -195,39 +239,4 @@ export const submitCostSummary = async (data) => {
   }
 };
 
-// ✅ HARD-CODED COORDINATOR LOGIN
-export const loginAsCoordinator = async (username, password) => {
-  const coordinatorCredentials = {
-    username: "campcalculator@123",
-    password: "camp15042002",
-  };
-
-  if (username === coordinatorCredentials.username && password === coordinatorCredentials.password) {
-    return { role: "Coordinator", username };
-  } else {
-    throw new Error("Invalid coordinator credentials.");
-  }
-};
-
-// ✅ HARD-CODED TECHNICINE LOGIN
-export const loginAsTechnicine = async (technicineId, password) => {
-  const technicineCredentials = {
-    technicineId: "technicine@gmail.com",
-    password: "U4rad@2025",
-  };
-  // Sir jii
-
-  if (
-    technicineId === technicineCredentials.technicineId &&
-    password === technicineCredentials.password
-  ) {
-    // You can generate a dummy token if needed
-    return {
-      role: "Technicine",
-      technicineId,
-      token: "dummy-technicine-token",
-    };
-  } else {
-    throw new Error("Invalid technicine credentials.");
-  }
-};
+export default api;
