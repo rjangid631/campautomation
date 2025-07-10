@@ -16,6 +16,8 @@ import traceback
 import win32print
 import win32ui
 from rest_framework.decorators import api_view
+from django.http import HttpResponse, FileResponse
+from django.shortcuts import get_object_or_404
 
 from clients.models.camp import Camp
 from clients.models.package import Package
@@ -26,10 +28,9 @@ from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
 from camp_manager.Serializers.exceluploadserializer import ExcelUploadSerializer
 
-
 class UploadExcelViewSet(viewsets.ViewSet):
     parser_classes = [MultiPartParser]
-    ENABLE_THERMAL_PRINTING = False  # Toggle to True to enable printing
+    ENABLE_THERMAL_PRINTING = False
 
     def get_thermal_printer_name(self):
         try:
@@ -83,13 +84,11 @@ class UploadExcelViewSet(viewsets.ViewSet):
             excel_upload = ExcelUpload.objects.create(file=file, camp=camp, package=package, unique_id=unique_excel_id)
 
             df = pd.read_excel(file)
-
             required_columns = ['patient_name', 'age', 'gender', 'phone']
             missing = [col for col in required_columns if col not in df.columns]
             if missing:
                 return Response({'error': f'Missing columns in Excel: {missing}'}, status=400)
 
-            # Dynamically detect service columns
             known_cols = ['patient_id'] + required_columns
             service_columns = [col for col in df.columns if col not in known_cols]
 
@@ -137,38 +136,31 @@ class UploadExcelViewSet(viewsets.ViewSet):
                             is_completed=False
                         )
                     except Service.DoesNotExist:
-                        print(f"[⚠️] Service not found: {service_name}")
                         continue
 
-                # Generate thermal slip (image)
-                slip_height = 450 + len(selected_services) * 30
-                slip = Image.new("L", (576, slip_height), 255)
-                draw = ImageDraw.Draw(slip)
-                try:
-                    font = ImageFont.truetype("arial.ttf", 20)
-                except:
-                    font = ImageFont.load_default()
+                # Generate PDF
+                pdf_buffer = BytesIO()
+                c = canvas.Canvas(pdf_buffer, pagesize=A4)
+                c.setFont("Helvetica-Bold", 14)
+                c.drawString(50, 800, "🦠 Camp Medical Slip")
+                c.setFont("Helvetica", 12)
+                c.drawString(50, 770, f"Name: {patient.patient_name}")
+                c.drawString(50, 750, f"Age: {patient.age}")
+                c.drawString(50, 730, f"Gender: {patient.gender}")
+                c.drawString(50, 710, f"Contact: {patient.contact_number}")
+                c.drawString(50, 690, f"Package: {package.name}")
+                c.drawString(50, 670, "Selected Services:")
+                y = 650
+                for s in selected_services:
+                    c.drawString(70, y, f"\u2022 {s}")
+                    y -= 20
+                qr_buffer.seek(0)
+                c.drawImage(ImageReader(qr_buffer), 400, 700, width=120, height=120)
+                c.save()
+                pdf_buffer.seek(0)
 
-                y = 10
-                draw.text((10, y), "🩺 Camp Medical Slip", font=font, fill=0); y += 35
-                draw.text((10, y), f"Name: {patient.patient_name}", font=font, fill=0); y += 30
-                draw.text((10, y), f"Age: {patient.age}", font=font, fill=0); y += 30
-                draw.text((10, y), f"Gender: {patient.gender}", font=font, fill=0); y += 30
-                draw.text((10, y), f"Contact: {patient.contact_number}", font=font, fill=0); y += 30
-                draw.text((10, y), f"Package: {package.name}", font=font, fill=0); y += 35
-                draw.text((10, y), "Services:", font=font, fill=0); y += 25
-
-                for service in selected_services:
-                    draw.text((30, y), f"• {service}", font=font, fill=0)
-                    y += 28
-
-                qr_img_resized = qrcode.make(qr_data).resize((180, 180))
-                slip.paste(qr_img_resized, (370, 20))
-
-                slip_path = os.path.join(tempfile.gettempdir(), f"{unique_patient_id}_thermal.png")
-                slip.save(slip_path)
-
-                self.print_thermal_slip(slip_path, patient.patient_name)
+                pdf_filename = f"{unique_patient_id}_slip.pdf"
+                patient.pdf_slip.save(pdf_filename, ContentFile(pdf_buffer.read()), save=True)
 
                 created_patients_data.append({
                     "id": patient.id,
