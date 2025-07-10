@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from 'react-router-dom';
 
 function TechnicalDashboard() {
   const [assignedCamps, setAssignedCamps] = useState([]);
@@ -17,7 +18,6 @@ function TechnicalDashboard() {
   const [technicianInfo, setTechnicianInfo] = useState(null);
   const navigate = useNavigate();
   
-
   // Get technician info from localStorage
   useEffect(() => {
     const technicianId = localStorage.getItem("technicianId");
@@ -101,6 +101,19 @@ function TechnicalDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    // Clear technician data from localStorage
+    localStorage.removeItem("technicianId");
+    localStorage.removeItem("technicianName");
+    localStorage.removeItem("technicianEmail");
+
+    // Optionally clear other auth/session data if used
+    // localStorage.removeItem("token"); // if token is used
+
+    // Redirect to login page
+    navigate("/login");
   };
 
   // Fetch detailed camp information including packages
@@ -261,17 +274,23 @@ function TechnicalDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">Technican Dashboard</h1>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center py-6 gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Technician Dashboard</h1>
             <div className="text-right">
-              <p className="text-gray-600">Welcome, {technicianInfo?.name || 'Technician'}!</p>
+              <p className="text-gray-600">Welcome, {technicianInfo?.name}!</p>
               <p className="text-sm text-gray-500">{technicianInfo?.email}</p>
+              <button
+                onClick={handleLogout}
+                className="mt-2 block w-full md:w-auto text-left py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                LOGOUT
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

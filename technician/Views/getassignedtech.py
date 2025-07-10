@@ -8,25 +8,21 @@ from technician.Models.technicianserviceassignment import TechnicianServiceAssig
 
 @api_view(['GET'])
 def get_technician_assignments(request):
-    # Get the camp_id from query parameters
-    camp_id = request.query_params.get('camp_id')
-    if not camp_id:
-        return Response({"error": "camp_id is required"}, status=400)
+    technician_id = request.query_params.get('technician_id')
+    if not technician_id:
+        return Response({"error": "technician_id is required"}, status=400)
 
-    # Fetch all technician-service assignments for the given camp
-    assignments = TechnicianServiceAssignment.objects.filter(camp_id=camp_id)
+    # Get all assignments for the technician
+    assignments = TechnicianServiceAssignment.objects.filter(technician_id=technician_id)
 
-    # Structure: { technician_id: [service_id1, service_id2, ...] }
-    response_data = {}
+    response_data = []
 
     for assignment in assignments:
-        technician_id = assignment.technician.id
-        service_id = assignment.service.id
+        response_data.append({
+            "camp_id": assignment.camp.id,
+            "camp_location": assignment.camp.location,
+            "service_id": assignment.service.id,
+            "service_name": assignment.service.name,
+        })
 
-        # Group services under each technician
-        if technician_id not in response_data:
-            response_data[technician_id] = []
-        response_data[technician_id].append(service_id)
-
-    return Response(response_data)
-
+    return Response({"assignments": response_data})
