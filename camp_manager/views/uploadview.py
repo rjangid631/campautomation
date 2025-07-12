@@ -102,7 +102,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     if str(row.get(svc)).strip().lower() in ['yes', '1', 'true', 'done']
                 ]
 
-                qr_data = f"http://192.168.1.21:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
+                qr_data = f"http://192.168.1.22:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
                 qr_img = qrcode.make(qr_data)
                 qr_buffer = BytesIO()
                 qr_img.save(qr_buffer, format='PNG')
