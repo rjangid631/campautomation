@@ -1,4 +1,3 @@
-// imports
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const apiEndpoints = {
   camps: "http://127.0.0.1:8000/api/campmanager/camps/",
   allCamps: "http://127.0.0.1:8000/api/camps/",
-  patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/` // updated endpoint
+  patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`
 };
 
 const Dashboard = () => {
@@ -23,6 +22,8 @@ const Dashboard = () => {
   const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [originalPatients, setOriginalPatients] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -79,47 +80,44 @@ const Dashboard = () => {
     navigate(`/view-serviceselection/${campId}`);
   };
 
+  const fetchPackages = async (campId) => {
+    setLoadingPackages(true);
+    try {
+      const response = await axios.get(apiEndpoints.campDetails(campId));
+      setPackages(response.data.packages || []);
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+      setPackages([]);
+    } finally {
+      setLoadingPackages(false);
+    }
+  };
+  
+  const fetchPackagePatients = async (campId, packageId) => {
+    setLoadingPatients(true);
+    try {
+      const response = await axios.get(apiEndpoints.packagePatients(campId, packageId));
+      setPatients(response.data);
+      setOriginalPatients(response.data); // Store original patients for filtering
+    } catch (error) {
+      console.error('Error fetching package patients:', error);
+      setPatients([]);
+      setOriginalPatients([]);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
 
-// Fetch packages for a camp
-   const fetchPackages = async (campId) => {
-     setLoadingPackages(true);
-     try {
-       const response = await axios.get(apiEndpoints.campDetails(campId));
-       setPackages(response.data.packages || []);
-     } catch (error) {
-       console.error('Error fetching packages:', error);
-       setPackages([]);
-     } finally {
-       setLoadingPackages(false);
-     }
-   };
-   
-   // Fetch patients for a specific package
-   const fetchPackagePatients = async (campId, packageId) => {
-     setLoadingPatients(true);
-     try {
-       const response = await axios.get(apiEndpoints.packagePatients(campId, packageId));
-       setPatients(response.data);
-     } catch (error) {
-       console.error('Error fetching package patients:', error);
-       setPatients([]);
-     } finally {
-       setLoadingPatients(false);
-     }
-   };
-
-  // Handle camp click in Camp Progress menu
-  // Handle camp click in Camp Progress menu
   const handleCampClick = (camp) => {
     setSelectedCamp(camp);
-    setSelectedPackage(null); // Reset selected package
-    setPatients([]); // Clear patients
+    setSelectedPackage(null);
+    setPatients([]);
+    setOriginalPatients([]);
+    setSearchTerm('');
     fetchPackages(camp.id);
   };
 
-  // Button handlers for patients
   const handlePrintQR = (patient) => {
-    // Open new window/tab with patient details
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -151,15 +149,29 @@ const Dashboard = () => {
     `);
   };
 
-  // Handle package click
   const handlePackageClick = (packageItem) => {
     setSelectedPackage(packageItem);
+    setSearchTerm('');
     fetchPackagePatients(selectedCamp.id, packageItem.id);
   };
 
   const handleCampStatus = (patientId) => {
     alert(`Show status for patient ${patientId}`);
-    // Implement actual status logic here
+  };
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    if (term === '') {
+      setPatients(originalPatients);
+    } else {
+      const filtered = originalPatients.filter(patient => 
+        patient.name.toLowerCase().includes(term) || 
+        patient.unique_patient_id.toLowerCase().includes(term) ||
+        patient.phone.includes(term)
+      );
+      setPatients(filtered);
+    }
   };
 
   const menuItems = [
@@ -174,12 +186,14 @@ const Dashboard = () => {
   const handleMenuClick = (menuId) => {
     setActiveMenuItem(menuId);
     setSelectedCamp(null);
-    setSelectedPackage(null); // Add this line
+    setSelectedPackage(null);
     setPatients([]);
-    setPackages([]); // Add this line
+    setPackages([]);
+    setSearchTerm('');
     if (menuId === 'add-camp') navigate('/camp-details');
     else if (menuId === 'logout') navigate('/login');
   };
+
   const formatDate = (dateString) => {
     try {
       return new Date(dateString).toLocaleDateString('en-IN', {
@@ -211,7 +225,6 @@ const Dashboard = () => {
     else return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
   };
 
-  // Filter camps based on activeMenuItem
   const filteredData = Array.isArray(data)
     ? data.filter(camp =>
         (activeMenuItem === 'dashboard' && camp.ready_to_go === true) ||
@@ -225,237 +238,320 @@ const Dashboard = () => {
     return acc;
   }, {});
 
-  // Render Camp Progress content
   const renderCampProgressContent = () => {
-  const readyCamps = data.filter(camp => camp.ready_to_go === true);
+    const readyCamps = data.filter(camp => camp.ready_to_go === true);
 
-  return (
-    <div>
-      <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600' }}>Camps Ready to Go</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {readyCamps.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-            <p>No camps are marked ready to go.</p>
+    return (
+      <div>
+        <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600' }}>Camps Ready to Go</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {readyCamps.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+              <p>No camps are marked ready to go.</p>
+            </div>
+          )}
+          {readyCamps.map(camp => (
+            <div
+              key={camp.id}
+              onClick={() => handleCampClick(camp)}
+              style={{
+                padding: '16px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: selectedCamp?.id === camp.id ? '#eff6ff' : 'white',
+                transition: 'all 0.2s',
+                boxShadow: selectedCamp?.id === camp.id ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                {camp.location} (ID: {camp.id})
+              </h3>
+              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
+              </p>
+              <p style={{ margin: '4px 0 0 0', color: '#9ca3af', fontSize: '12px' }}>
+                Client: {camp.client}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {selectedCamp && (
+          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+              Packages for Camp: {selectedCamp.location} (ID: {selectedCamp.id})
+            </h3>
+            {loadingPackages ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div style={spinnerStyle}></div>
+                <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading packages...</p>
+              </div>
+            ) : packages.length === 0 ? (
+              <p style={{ color: '#6b7280' }}>No packages found for this camp.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {packages.map(packageItem => (
+                  <div key={packageItem.id} style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    backgroundColor: selectedPackage?.id === packageItem.id ? '#eff6ff' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => handlePackageClick(packageItem)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
+                          {packageItem.name}
+                        </h4>
+                        <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                          {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePackageClick(packageItem);
+                          }}
+                          style={{
+                            backgroundColor: selectedPackage?.id === packageItem.id ? '#1d4ed8' : '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px'
+                          }}
+                        >
+                          View Patients
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        {readyCamps.map(camp => (
-          <div
-            key={camp.id}
-            onClick={() => handleCampClick(camp)}
-            style={{
-              padding: '16px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              backgroundColor: selectedCamp?.id === camp.id ? '#eff6ff' : 'white',
-              transition: 'all 0.2s',
-              boxShadow: selectedCamp?.id === camp.id ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
-              {camp.location} (ID: {camp.id})
-            </h3>
-            <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
-              {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
-            </p>
-            <p style={{ margin: '4px 0 0 0', color: '#9ca3af', fontSize: '12px' }}>
-              Client: {camp.client}
-            </p>
-          </div>
-        ))}
-      </div>
 
-      {/* Show packages if a camp is selected */}
-      {selectedCamp && (
-        <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-            Packages for Camp: {selectedCamp.location} (ID: {selectedCamp.id})
-          </h3>
-          {loadingPackages ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-              <div style={spinnerStyle}></div>
-              <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading packages...</p>
+        {selectedPackage && (
+          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
+                Patients for Package: {selectedPackage.name}
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '8px', width: '300px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="Search patients..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 32px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#9ca3af'
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setPatients(originalPatients);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-          ) : packages.length === 0 ? (
-            <p style={{ color: '#6b7280' }}>No packages found for this camp.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {packages.map(packageItem => (
-                <div key={packageItem.id} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  backgroundColor: selectedPackage?.id === packageItem.id ? '#eff6ff' : 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onClick={() => handlePackageClick(packageItem)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
-                        {packageItem.name}
-                      </h4>
-                      <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
-                        {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
-                      </p>
+
+            {loadingPatients ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div style={spinnerStyle}></div>
+                <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading patients...</p>
+              </div>
+            ) : patients.length === 0 ? (
+              <div style={{ 
+                backgroundColor: '#f9fafb', 
+                padding: '24px', 
+                borderRadius: '8px', 
+                textAlign: 'center',
+                border: '1px dashed #e5e7eb'
+              }}>
+                <p style={{ color: '#6b7280', marginBottom: '8px' }}>
+                  {searchTerm ? 'No matching patients found' : 'No patients found for this package'}
+                </p>
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setPatients(originalPatients);
+                    }}
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      color: '#4b5563',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {patients.map(patient => (
+                  <div key={patient.id} style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <p style={{ margin: 0, fontWeight: '600', fontSize: '16px', color: '#1f2937' }}>
+                          {patient.name}
+                        </p>
+                        <span style={{
+                          backgroundColor: '#e5e7eb',
+                          color: '#374151',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          ID: {patient.unique_patient_id}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '8px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                          Age: {patient.age}
+                        </span>
+                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                          Gender: {patient.gender}
+                        </span>
+                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                          Phone: {patient.phone}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '4px' }}>
+                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                          Services: {patient.services.join(', ')}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handlePackageClick(packageItem);
+                          handlePrintQR(patient);
                         }}
                         style={{
-                          backgroundColor: selectedPackage?.id === packageItem.id ? '#1d4ed8' : '#2563eb',
+                          backgroundColor: '#2563eb',
                           color: 'white',
                           border: 'none',
                           borderRadius: '6px',
                           padding: '8px 16px',
                           cursor: 'pointer',
                           fontWeight: '500',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          transition: 'all 0.2s'
                         }}
                       >
-                        View Patients
+                        Print QR
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCampStatus(patient.unique_patient_id);
+                        }}
+                        style={{
+                          backgroundColor: '#4b5563',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          cursor: 'pointer',
+                          fontWeight: '500',
+                          fontSize: '14px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Camp Status
                       </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
-      {/* Show patients if a package is selected */}
-      {selectedPackage && (
-        <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-          <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-            Patients for Package: {selectedPackage.name}
-          </h3>
-          {loadingPatients ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-              <div style={spinnerStyle}></div>
-              <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading patients...</p>
-            </div>
-          ) : patients.length === 0 ? (
-            <p style={{ color: '#6b7280' }}>No patients found for this package.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {patients.map(patient => (
-                <div key={patient.id} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  backgroundColor: 'white'
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                      <p style={{ margin: 0, fontWeight: '600', fontSize: '16px' }}>
-                        {patient.name}
-                      </p>
-                      <span style={{
-                        backgroundColor: '#e5e7eb',
-                        color: '#374151',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}>
-                        ID: {patient.unique_patient_id}
-                      </span>
-                    </div>
-                    <div style={{ marginTop: '8px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                        Age: {patient.age}
-                      </span>
-                      <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                        Gender: {patient.gender}
-                      </span>
-                      <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                        Phone: {patient.phone}
-                      </span>
-                    </div>
-                    <div style={{ marginTop: '4px' }}>
-                      <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                        Services: {patient.services.join(', ')}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePrintQR(patient);
-                      }}
-                      style={{
-                        backgroundColor: '#2563eb',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Print QR
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCampStatus(patient.unique_patient_id);
-                      }}
-                      style={{
-                        backgroundColor: '#4b5563',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Camp Status
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
   const renderDashboardContent = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Summary cards */}
       {activeMenuItem === 'dashboard' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-          {/* Total Camps */}
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Total Camps</h3>
             <p style={summaryCardValueBlue}>{filteredData.length}</p>
           </div>
-          {/* Active Clients */}
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Active Clients</h3>
             <p style={summaryCardValueGreen}>{Object.keys(groupedCamps).length}</p>
           </div>
-          {/* Upcoming Camps */}
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Upcoming Camps</h3>
             <p style={summaryCardValueOrange}>
               {filteredData.filter(camp => new Date(camp.start_date) > new Date()).length}
             </p>
           </div>
-          {/* Active Camps */}
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Active Camps</h3>
             <p style={summaryCardValuePurple}>
@@ -470,7 +566,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Camp List */}
       {Object.entries(groupedCamps).map(([clientId, camps], clientIndex) => (
         <div key={clientId} style={clientCardStyle}>
           <div style={clientHeaderStyle}>
@@ -549,7 +644,6 @@ const Dashboard = () => {
                           </div>
                         </div>
 
-                        {/* Show View button only if NOT on dashboard */}
                         {activeMenuItem !== 'dashboard' && (
                           <div style={{ marginLeft: '16px' }}>
                             <button onClick={() => handleViewServiceSelection(camp.id)} style={viewButtonStyle}
@@ -585,7 +679,6 @@ const Dashboard = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
-      {/* Sidebar */}
       <div style={{ width: '256px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: '1px solid #e5e7eb' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Camp Manager</h2>
@@ -608,7 +701,6 @@ const Dashboard = () => {
         </nav>
       </div>
 
-      {/* Main */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{getHeaderTitle()}</h1>
@@ -658,13 +750,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* CSS animation */}
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
 
-// 🧩 Styles (to keep render code cleaner)
 const summaryCardStyle = {
   backgroundColor: 'white', borderRadius: '8px', padding: '24px', border: '1px solid #e5e7eb',
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'

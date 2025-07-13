@@ -17,7 +17,35 @@ import Dashboard from './components/Dashboard';
 import ViewServiceSelection from './components/ViewServiceSelection';
 import TechnicalDashboard from './components/TechnicialDashboard.js'; // ✅ Explicit .js
 import PatientTechnicianDashboard from './components/PatientTechnicianDashboard';
+
+// Service Form Components
 import AudiometryForm from './components/AudiometryForm'; // ✅ Explicit .js
+import ECGForm from './components/ECGForm';
+import XrayForm from './components/XrayForm';
+import PFTForm from './components/PFTForm';
+import OptometryForm from './components/OptometryForm';
+import DoctorConsultationForm from './components/DoctorConsultationForm';
+import PathologyForm from './components/PathologyForm';
+import DentalConsultationForm from './components/DentalConsultationForm';
+import VitalsForm from './components/VitalsForm';
+import Form7 from './components/Form7';
+import BMDForm from './components/BMDForm';
+import TetanusVaccineForm from './components/TetanusVaccineForm';
+import TyphoidVaccineForm from './components/TyphoidVaccineForm';
+import CoordinatorForm from './components/CoordinatorForm';
+import CBCForm from './components/CBCForm';
+import CompleteHemogramForm from './components/CompleteHemogramForm';
+import HemoglobinForm from './components/HemoglobinForm';
+import UrineRoutineForm from './components/UrineRoutineForm';
+import StoolExaminationForm from './components/StoolExaminationForm';
+import LipidProfileForm from './components/LipidProfileForm';
+import KidneyProfileForm from './components/KidneyProfileForm';
+import LFTForm from './components/LFTForm';
+import KFTForm from './components/KFTForm';
+import RandomBloodGlucoseForm from './components/RandomBloodGlucoseForm';
+import BloodGroupingForm from './components/BloodGroupingForm';
+import OnsiteDashboard from './components/OnsiteDashboard';
+
 export const AppContext = createContext();
 
 function App() {
@@ -41,7 +69,7 @@ function App() {
     if (storedType) setLoginType(storedType);
   }, []);
 
-  const handleLogin = (type, id) => {
+const handleLogin = (type, id) => {
   setLoginType(type);
   setCompanyId(id);
 
@@ -50,10 +78,12 @@ function App() {
 
   if (type === 'Coordinator') {
     navigate('/dashboard');
+  } else if (type === 'OnsiteCoordinator') {
+    navigate('/onsite-dashboard');
   } else if (type === 'Customer') {
     navigate('/customer-dashboard');
   } else if (type === 'Technician') {
-    navigate('/technical-dashboard'); // ✅ ADD THIS
+    navigate('/technical-dashboard');
   }
 };
 
@@ -135,7 +165,10 @@ function App() {
           )}
 
           <Routes>
+            {/* Authentication Routes */}
             <Route path="/login" element={<CoordinatorLogin onLogin={handleLogin} />} />
+            
+            {/* Main Application Routes */}
             <Route path="/camp-details" element={<CampDetails onNext={handleCampDetailsNext} />} />
             <Route 
               path="/service-selection" 
@@ -164,16 +197,51 @@ function App() {
                 />
               } 
             />
+            <Route 
+              path="/onsite-dashboard" 
+              element={<ProtectedRoute element={<OnsiteDashboard />} isAuthenticated={isAuthenticated} />} 
+            />
             <Route path="/cost-summary" element={<CostSummaryScreen />} />
             <Route path="/simple-cost-calculation" element={<SimpleCostCalculation username={username} />} />
+            
+            {/* Dashboard Routes */}
             <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} isAuthenticated={isAuthenticated} />} />
+            
             <Route path="/customer-dashboard" element={<ProtectedRoute element={<CustomerDashboard />} isAuthenticated={isAuthenticated} />} />
             <Route path="/newdashboard" element={<NewDashboard />} />
-            <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/view-serviceselection/:campId" element={<ViewServiceSelection />} />
             <Route path="/technical-dashboard" element={<TechnicalDashboard />} />
             <Route path="/patient-dashboard" element={<PatientTechnicianDashboard />} />
+            
+            {/* Service Form Routes */}
             <Route path="/audiometry" element={<AudiometryForm />} />
+            <Route path="/ecg" element={<ECGForm />} />
+            <Route path="/xray" element={<XrayForm />} />
+            <Route path="/pft" element={<PFTForm />} />
+            <Route path="/optometry" element={<OptometryForm />} />
+            <Route path="/doctor-consultation" element={<DoctorConsultationForm />} />
+            <Route path="/pathology" element={<PathologyForm />} />
+            <Route path="/dental-consultation" element={<DentalConsultationForm />} />
+            <Route path="/vitals" element={<VitalsForm />} />
+            <Route path="/form7" element={<Form7 />} />
+            <Route path="/bmd" element={<BMDForm />} />
+            <Route path="/tetanus-vaccine" element={<TetanusVaccineForm />} />
+            <Route path="/typhoid-vaccine" element={<TyphoidVaccineForm />} />
+            <Route path="/coordinator" element={<CoordinatorForm />} />
+            <Route path="/cbc" element={<CBCForm />} />
+            <Route path="/complete-hemogram" element={<CompleteHemogramForm />} />
+            <Route path="/hemoglobin" element={<HemoglobinForm />} />
+            <Route path="/urine-routine" element={<UrineRoutineForm />} />
+            <Route path="/stool-examination" element={<StoolExaminationForm />} />
+            <Route path="/lipid-profile" element={<LipidProfileForm />} />
+            <Route path="/kidney-profile" element={<KidneyProfileForm />} />
+            <Route path="/lft" element={<LFTForm />} />
+            <Route path="/kft" element={<KFTForm />} />
+            <Route path="/random-blood-glucose" element={<RandomBloodGlucoseForm />} />
+            <Route path="/blood-grouping" element={<BloodGroupingForm />} />
+            
+            {/* Default Route */}
+            <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
 
           <Outlet />

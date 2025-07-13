@@ -86,15 +86,29 @@ export const loginAsTechnician = async (email, password) => {
 
 
 // ✅ LOGIN: Coordinator (hardcoded)
+// ✅ LOGIN: Coordinator (updated to handle both types)
 export const loginAsCoordinator = async (username, password) => {
+  // Regular coordinator credentials
   const coordinatorCredentials = {
     username: "campcalculator@123",
-    password: "camp15042002",
+    password: "camp15042002"
   };
 
-  if (username === coordinatorCredentials.username && password === coordinatorCredentials.password) {
+  // Onsite coordinator credentials
+  const onsiteCoordinatorCredentials = {
+    username: "onsite@campcalculator.com",
+    password: "onsite12345"
+  };
+
+  if (username === coordinatorCredentials.username && 
+      password === coordinatorCredentials.password) {
     return { role: "Coordinator", username };
-  } else {
+  } 
+  else if (username === onsiteCoordinatorCredentials.username && 
+           password === onsiteCoordinatorCredentials.password) {
+    return { role: "OnsiteCoordinator", username };
+  } 
+  else {
     throw new Error("Invalid coordinator credentials.");
   }
 };

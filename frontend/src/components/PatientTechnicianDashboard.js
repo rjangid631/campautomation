@@ -10,6 +10,7 @@ function PatientTechnicianDashboard() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!packageId || !technicianId) {
@@ -35,6 +36,55 @@ function PatientTechnicianDashboard() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filteredPatients = patients.filter(patient =>
+    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.unique_patient_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getServiceRoute = (service) => {
+    const serviceRoutes = {
+      'Audiometry': '/audiometry',
+      'ECG': '/ecg',
+      'X-ray': '/xray',
+      'PFT': '/pft',
+      'Optometry': '/optometry',
+      'Doctor Consultation': '/doctor-consultation',
+      'Pathology': '/pathology',
+      'Dental Consultation': '/dental-consultation',
+      'Vitals': '/vitals',
+      'Form 7': '/form7',
+      'BMD': '/bmd',
+      'Tetanus Vaccine': '/tetanus-vaccine',
+      'Typhoid Vaccine': '/typhoid-vaccine',
+      'Coordinator': '/coordinator',
+      'CBC': '/cbc',
+      'Complete Hemogram': '/complete-hemogram',
+      'Hemoglobin': '/hemoglobin',
+      'Urine Routine': '/urine-routine',
+      'Stool Examination': '/stool-examination',
+      'Lipid Profile': '/lipid-profile',
+      'Kidney Profile': '/kidney-profile',
+      'LFT': '/lft',
+      'KFT': '/kft',
+      'Random Blood Glucose': '/random-blood-glucose',
+      'Blood Grouping': '/blood-grouping'
+    };
+    return serviceRoutes[service] || null;
+  };
+
+  const handleServiceClick = (service, patient) => {
+    const route = getServiceRoute(service);
+    if (route) {
+      navigate(route, {
+        state: {
+          patientId: patient.unique_patient_id,
+          patientName: patient.name,
+          technicianId: technicianId
+        }
+      });
     }
   };
 
@@ -75,9 +125,19 @@ function PatientTechnicianDashboard() {
           </button>
         </div>
 
-        {patients.length === 0 ? (
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search patients by name or ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {filteredPatients.length === 0 ? (
           <div className="bg-white border border-gray-300 p-6 rounded text-center text-gray-600">
-            No patients found for this package.
+            {searchTerm ? "No patients found matching your search." : "No patients found for this package."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -92,7 +152,7 @@ function PatientTechnicianDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {patients.map((patient, index) => (
+                {filteredPatients.map((patient, index) => (
                   <tr key={patient.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 border-b">{index + 1}</td>
                     <td className="px-4 py-3 border-b font-medium text-gray-900">{patient.name}</td>
@@ -103,17 +163,11 @@ function PatientTechnicianDashboard() {
                           <span
                             key={i}
                             className={`text-xs px-2 py-1 rounded cursor-pointer ${
-                              service === 'Audiometry' 
+                              getServiceRoute(service)
                                 ? 'bg-green-200 text-green-900 hover:bg-green-300' 
                                 : 'bg-blue-200 text-blue-900'
                             }`}
-                            onClick={() => service === 'Audiometry' && navigate('/audiometry', {
-                              state: {
-                                patientId: patient.unique_patient_id,
-                                patientName: patient.name,
-                                technicianId: technicianId
-                              }
-                            })}
+                            onClick={() => handleServiceClick(service, patient)}
                           >
                             {service}
                           </span>

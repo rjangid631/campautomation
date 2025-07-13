@@ -43,20 +43,26 @@ function CoordinatorLogin({ onLogin }) {
     }));
   };
 
-  const handleCoordinatorLogin = async (e) => {
-    e.preventDefault();
-    const { username, password } = formData;
+const handleCoordinatorLogin = async (e) => {
+  e.preventDefault();
+  const { username, password } = formData;
 
-    try {
-      const { role, username: user } = await loginAsCoordinator(username, password);
-      localStorage.setItem("role", role);
-      localStorage.setItem("username", user);
-      onLogin(role);
-      navigate("/dashboard");
-    } catch (error) {
-      setErrorMessage(error.message);
+  try {
+    const { role, username: user } = await loginAsCoordinator(username, password);
+    localStorage.setItem("role", role);
+    localStorage.setItem("username", user);
+    onLogin(role);
+    
+    // Redirect based on role
+    if (role === "OnsiteCoordinator") {
+      navigate("/onsite-dashboard"); // Simplified dashboard
+    } else {
+      navigate("/dashboard"); // Full dashboard
     }
-  };
+  } catch (error) {
+    setErrorMessage(error.message);
+  }
+};
 
   const handleCustomerLogin = async (e) => {
     e.preventDefault();
