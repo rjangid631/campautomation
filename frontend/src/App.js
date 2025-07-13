@@ -17,6 +17,7 @@ import Dashboard from './components/Dashboard';
 import ViewServiceSelection from './components/ViewServiceSelection';
 import TechnicalDashboard from './components/TechnicialDashboard.js'; // ✅ Explicit .js
 import PatientTechnicianDashboard from './components/PatientTechnicianDashboard';
+import AudiometryForm from './components/AudiometryForm'; // ✅ Explicit .js
 export const AppContext = createContext();
 
 function App() {
@@ -172,6 +173,7 @@ function App() {
             <Route path="/view-serviceselection/:campId" element={<ViewServiceSelection />} />
             <Route path="/technical-dashboard" element={<TechnicalDashboard />} />
             <Route path="/patient-dashboard" element={<PatientTechnicianDashboard />} />
+            <Route path="/audiometry" element={<AudiometryForm />} />
           </Routes>
 
           <Outlet />

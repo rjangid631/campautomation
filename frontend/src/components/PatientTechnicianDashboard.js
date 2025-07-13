@@ -99,12 +99,23 @@ function PatientTechnicianDashboard() {
                     <td className="px-4 py-3 border-b font-mono text-sm">{patient.unique_patient_id}</td>
                     <td className="px-4 py-3 border-b">
                       <div className="flex flex-wrap gap-1">
-                        {patient.services.split(", ").map((s, i) => (
+                        {patient.services.split(", ").map((service, i) => (
                           <span
                             key={i}
-                            className="bg-blue-200 text-blue-900 text-xs px-2 py-1 rounded"
+                            className={`text-xs px-2 py-1 rounded cursor-pointer ${
+                              service === 'Audiometry' 
+                                ? 'bg-green-200 text-green-900 hover:bg-green-300' 
+                                : 'bg-blue-200 text-blue-900'
+                            }`}
+                            onClick={() => service === 'Audiometry' && navigate('/audiometry', {
+                              state: {
+                                patientId: patient.unique_patient_id,
+                                patientName: patient.name,
+                                technicianId: technicianId
+                              }
+                            })}
                           >
-                            {s}
+                            {service}
                           </span>
                         ))}
                       </div>
