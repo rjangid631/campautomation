@@ -151,15 +151,21 @@ function TechnicalDashboard() {
     try {
       setPatientsLoading(true);
       setPatientsError(null);
-      
+
       const technicianId = technicianInfo.id;
-      
+      const campId = selectedCamp?.camp?.id;  // ✅ Get campId from selectedCamp
+
+      if (!technicianId || !packageId || !campId) {
+        throw new Error("Missing required parameters (technicianId, packageId, or campId)");
+      }
+
       const response = await fetch(
-        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}`
+        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch patients data");
+        const errorData = await response.json();
+        throw new Error(errorData?.error || "Failed to fetch patients data");
       }
 
       const data = await response.json();
@@ -171,6 +177,7 @@ function TechnicalDashboard() {
       setPatientsLoading(false);
     }
   };
+
 
   const handleCampSelect = (camp) => {
     setSelectedCamp(camp);
