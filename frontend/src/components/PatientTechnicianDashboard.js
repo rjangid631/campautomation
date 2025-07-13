@@ -25,7 +25,7 @@ function PatientTechnicianDashboard() {
   const fetchPatients = async () => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}`
+        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch patients.");
