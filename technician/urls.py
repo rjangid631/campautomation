@@ -9,10 +9,12 @@ from technician.Views.technicianlogin import technician_login
 from technician.Views.getassigned import get_assigned_patients
 from technician.Views.mark_service import mark_service_done
 from technician.Views.assigntechnician import assign_technicians, assign_technicians_to_package
+from technician.Views.vitalsviewset import VitalsViewSet
 
 router = DefaultRouter()
 router.register(r'audiometry', AudiometryViewSet)
 router.register(r'optometry', OptometryViewSet)  # ✅ Register Optometry
+router.register(r'vitals', VitalsViewSet)  # ✅ Register VitalsViewSet
 
 urlpatterns = [
     path('', include(router.urls)),

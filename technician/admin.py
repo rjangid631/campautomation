@@ -3,6 +3,10 @@ from technician.Models.audiometry import Audiometry
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
+from django.contrib import admin
+from django.utils.html import format_html
+from technician.Models.optometry import Optometry 
+from technician.Models.vitals import Vitals
 
 
 @admin.register(TechnicianServiceAssignment)
@@ -44,10 +48,7 @@ class AudiometryAdmin(admin.ModelAdmin):
     pdf_report_link.allow_tags = True
     pdf_report_link.short_description = "PDF Report"
 
-
-from django.contrib import admin
-from django.utils.html import format_html
-from technician.Models.optometry import Optometry  # Adjust path if needed
+ # Adjust path if needed
 
 @admin.register(Optometry)
 class OptometryAdmin(admin.ModelAdmin):
@@ -63,6 +64,29 @@ class OptometryAdmin(admin.ModelAdmin):
         'pdf_report_link',
     )
     search_fields = ('patient__patient_name',)
+    list_filter = ('patient__gender',)
+
+    def pdf_report_link(self, obj):
+        if obj.pdf_report:
+            return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
+        return "No report"
+
+    pdf_report_link.short_description = "PDF Report"
+
+@admin.register(Vitals)
+class VitalsAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'patient',
+        'age',
+        'gender',
+        'height',
+        'weight',
+        'bp',
+        'pulse',
+        'pdf_report_link',
+    )
+    search_fields = ('patient__patient_name', 'patient__unique_patient_id')
     list_filter = ('patient__gender',)
 
     def pdf_report_link(self, obj):
