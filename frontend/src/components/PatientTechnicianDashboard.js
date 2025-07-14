@@ -45,38 +45,45 @@ function PatientTechnicianDashboard() {
   );
 
   const getServiceRoute = (service) => {
+    const normalized = service.trim().toLowerCase();
+
     const serviceRoutes = {
-      'Audiometry': '/audiometry',
-      'ECG': '/ecg',
-      'X-ray': '/xray',
-      'PFT': '/pft',
-      'Optometry': '/optometry',
-      'Doctor Consultation': '/doctor-consultation',
-      'Pathology': '/pathology',
-      'Dental Consultation': '/dental-consultation',
-      'Vitals': '/vitals',
-      'Form 7': '/form7',
-      'BMD': '/bmd',
-      'Tetanus Vaccine': '/tetanus-vaccine',
-      'Typhoid Vaccine': '/typhoid-vaccine',
-      'Coordinator': '/coordinator',
-      'CBC': '/cbc',
-      'Complete Hemogram': '/complete-hemogram',
-      'Hemoglobin': '/hemoglobin',
-      'Urine Routine': '/urine-routine',
-      'Stool Examination': '/stool-examination',
-      'Lipid Profile': '/lipid-profile',
-      'Kidney Profile': '/kidney-profile',
-      'LFT': '/lft',
-      'KFT': '/kft',
-      'Random Blood Glucose': '/random-blood-glucose',
-      'Blood Grouping': '/blood-grouping'
+      'audiometry': '/audiometry',
+      'ecg': '/ecg',
+      'x-ray': '/xray',
+      'pft': '/pft',
+      'optometry': '/optometry',
+      'doctor consultation': '/doctor-consultation',
+      'pathology': '/pathology',
+      'dental consultation': '/dental-consultation',
+      'vitals': '/vitals',
+      'form 7': '/form7',
+      'bmd': '/bmd',
+      'tetanus vaccine': '/tetanus-vaccine',
+      'typhoid vaccine': '/typhoid-vaccine',
+      'coordinator': '/coordinator',
+      'cbc': '/cbc',
+      'complete hemogram': '/complete-hemogram',
+      'hemoglobin': '/hemoglobin',
+      'urine routine': '/urine-routine',
+      'stool examination': '/stool-examination',
+      'lipid profile': '/lipid-profile',
+      'kidney profile': '/kidney-profile',
+      'lft': '/lft',
+      'kft': '/kft',
+      'random blood glucose': '/random-blood-glucose',
+      'blood grouping': '/blood-grouping'
     };
-    return serviceRoutes[service] || null;
+
+    return serviceRoutes[normalized] || null;
   };
 
+
   const handleServiceClick = (service, patient) => {
-    const route = getServiceRoute(service);
+    const trimmedService = service.trim();
+    const route = getServiceRoute(trimmedService);
+    console.log("Clicked service:", trimmedService, "Route:", route); // Optional debug
+
     if (route) {
       navigate(route, {
         state: {
@@ -159,19 +166,24 @@ function PatientTechnicianDashboard() {
                     <td className="px-4 py-3 border-b font-mono text-sm">{patient.unique_patient_id}</td>
                     <td className="px-4 py-3 border-b">
                       <div className="flex flex-wrap gap-1">
-                        {patient.services.split(", ").map((service, i) => (
-                          <span
-                            key={i}
-                            className={`text-xs px-2 py-1 rounded cursor-pointer ${
-                              getServiceRoute(service)
-                                ? 'bg-green-200 text-green-900 hover:bg-green-300' 
-                                : 'bg-blue-200 text-blue-900'
-                            }`}
-                            onClick={() => handleServiceClick(service, patient)}
-                          >
-                            {service}
-                          </span>
-                        ))}
+                        {patient.services.split(",").map((service, i) => {
+                          const trimmedService = service.trim();
+                          const route = getServiceRoute(trimmedService);
+                          return (
+                            <span
+                              key={i}
+                              title={route ? "" : "Form not available"}
+                              className={`text-xs px-2 py-1 rounded cursor-pointer ${
+                                route
+                                  ? 'bg-green-200 text-green-900 hover:bg-green-300'
+                                  : 'bg-blue-200 text-blue-900'
+                              }`}
+                              onClick={() => handleServiceClick(trimmedService, patient)}
+                            >
+                              {trimmedService}
+                            </span>
+                          );
+                        })}
                       </div>
                     </td>
                     <td className="px-4 py-3 border-b">
