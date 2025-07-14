@@ -26,3 +26,27 @@ class IsAssignedTechnicianForAudiometry(permissions.BasePermission):
             camp=camp,
             package=package
         ).exists()
+
+class IsAssignedTechnicianForOptometry(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        technician = getattr(request.user, 'technician', None)
+        if technician is None:
+            return False
+
+        try:
+            optometry_service = Service.objects.get(name__iexact="Optometry")
+        except Service.DoesNotExist:
+            return False
+
+        try:
+            camp = obj.patient.excel_upload.camp
+            package = obj.patient.package
+        except AttributeError:
+            return False
+
+        return TechnicianServiceAssignment.objects.filter(
+            technician=technician,
+            service=optometry_service,
+            camp=camp,
+            package=package
+        ).exists()
