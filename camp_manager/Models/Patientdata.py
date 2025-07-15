@@ -17,6 +17,7 @@ class PatientData(models.Model):
     checked_in = models.BooleanField(default=False)
     qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     pdf_slip = models.FileField(upload_to='pdf_slips/', null=True, blank=True)
+    test_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.patient_name} ({self.unique_patient_id})"

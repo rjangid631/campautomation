@@ -1,5 +1,7 @@
 from django.contrib import admin
 from technician.Models.audiometry import Audiometry
+from technician.Models.doctorconsultation import DoctorConsultation
+from technician.Models.doctors import Doctor
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
@@ -95,6 +97,30 @@ class VitalsAdmin(admin.ModelAdmin):
         return "No report"
 
     pdf_report_link.short_description = "PDF Report"
+
+@admin.register(DoctorConsultation)
+class DoctorConsultationAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'patient',
+        'doctor',
+        'fitness_status',
+        'created_at',
+        'pdf_report_link',
+    )
+    search_fields = ('patient__patient_name', 'patient__unique_patient_id', 'doctor__name')
+    list_filter = ('fitness_status', 'patient__gender', 'doctor')
+
+    def pdf_report_link(self, obj):
+        if obj.pdf_report:
+            return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
+        return "No report available"
+
+    pdf_report_link.short_description = "PDF Report"
+
+@admin.register(Doctor)
+class DoctorAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'designation', 'user')
 
 
 admin.site.register(Technician, TechnicianAdmin)
