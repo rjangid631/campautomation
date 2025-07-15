@@ -6,13 +6,15 @@ import { FaCalendarAlt } from 'react-icons/fa';
 import { AppContext } from '../App';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
 // Code written by Shyam on 2025-07-01
 const CampDetails = ({ onNext }) => {
   const { companyId, loginType } = useContext(AppContext) || {};
-  const clientIdFromContext = companyId || localStorage.getItem('clientId'); // Remove parseInt
+  const clientIdFromContext = companyId || localStorage.getItem('clientId');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clients, setClients] = useState([]);
   const [clientDetails, setClientDetails] = useState(null);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
 
   const [camps, setCamps] = useState([]);
   const [campLocation, setCampLocation] = useState('');
@@ -24,81 +26,143 @@ const CampDetails = ({ onNext }) => {
   const [endDate, setEndDate] = useState(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate(); // <-- ADD THIS LINE
-// Code written by Shyam on 2025-07-01
-  // Fetch all clients if Camp Manager is logged in
+  const navigate = useNavigate();
+
+  // Fetch all clients - ONLY for Coordinator login type
   useEffect(() => {
+    console.log('🔍 CLIENT FETCH EFFECT TRIGGERED');
+    console.log('Current loginType:', loginType);
+    console.log('Current loginType type:', typeof loginType);
+    
+    if (loginType !== 'Coordinator') {
+      console.log('❌ Not coordinator, skipping client fetch. LoginType:', loginType);
+      return;
+    }
+
     const token = localStorage.getItem('token');
+    console.log('📋 Token exists:', !!token);
+    console.log('📋 Token value:', token ? token.substring(0, 20) + '...' : 'No token');
+    
     if (!token) {
+      console.log('❌ No token found');
       setError('You are not logged in. Please log in to continue.');
       setClients([]);
       return;
     }
+
+    setIsLoadingClients(true);
+    console.log('🚀 Starting client fetch for coordinator...');
+    console.log('🌐 API URL:', 'http://127.0.0.1:8000/api/clients/');
+
     axios.get('http://127.0.0.1:8000/api/clients/', {
       headers: {
-        Authorization: `Token ${token}`, // <-- CHANGE HERE
+        Authorization: `Token ${token}`,
       },
     })
       .then(res => {
+        console.log('✅ CLIENT FETCH SUCCESS');
+        console.log('📊 Response status:', res.status);
+        console.log('📊 Response data:', res.data);
+        console.log('📊 Response data type:', typeof res.data);
+        console.log('📊 Response data length:', res.data ? res.data.length : 'No length');
+        
+        if (Array.isArray(res.data)) {
+          console.log('✅ Data is array with', res.data.length, 'items');
+          res.data.forEach((client, index) => {
+            console.log(`👤 Client ${index + 1}:`, {
+              id: client.id,
+              client_id: client.client_id,
+              name: client.name,
+              email: client.email
+            });
+          });
+        } else {
+          console.log('❌ Data is not an array:', res.data);
+        }
+        
         setClients(res.data);
+        setError(''); // Clear any previous errors
       })
       .catch(err => {
+        console.log('❌ CLIENT FETCH ERROR');
+        console.error('Full error object:', err);
+        console.error('Error response:', err.response);
+        console.error('Error status:', err.response?.status);
+        console.error('Error data:', err.response?.data);
+        
         if (err.response && err.response.status === 401) {
           setError('Session expired or unauthorized. Please log in again.');
+          console.log('❌ 401 Unauthorized error');
         } else {
-          setError('Error fetching clients.');
+          setError('Error fetching clients: ' + (err.message || 'Unknown error'));
+          console.log('❌ Other error:', err.message);
         }
         setClients([]);
-        console.error('Error fetching clients:', err);
+      })
+      .finally(() => {
+        console.log('🏁 Client fetch completed, setting loading to false');
+        setIsLoadingClients(false);
       });
-  }, []);
+  }, [loginType]); // Only depend on loginType
 
-
-
-  // Fetch selected client details
+  // Fetch selected client details when a client is selected
   useEffect(() => {
-    if (selectedClientId) {
-      axios.get(`http://127.0.0.1:8000/api/clients/${selectedClientId}/`)
-        .then(res => setClientDetails(res.data))
-        .catch(err => console.error('Error fetching client details:', err));
+    if (selectedClientId && loginType === 'Coordinator') {
+      console.log('Fetching details for selected client:', selectedClientId);
+      
+      const token = localStorage.getItem('token');
+      axios.get(`http://127.0.0.1:8000/api/clients/${selectedClientId}/`, {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      })
+        .then(res => {
+          console.log('Client details fetched:', res.data);
+          setClientDetails(res.data);
+        })
+        .catch(err => {
+          console.error('Error fetching client details:', err);
+          setClientDetails(null);
+        });
     } else {
       setClientDetails(null);
     }
-  }, [selectedClientId]);
+  }, [selectedClientId, loginType]);
 
-  // Use selected client id if manager, otherwise use context/localStorage
+  // Use selected client id if coordinator, otherwise use context/localStorage
   const clientId = loginType === 'Coordinator'
-    ? (selectedClientId ? parseInt(selectedClientId) : null)
+    ? selectedClientId
     : clientIdFromContext;
 
   // Fetch client details for logged-in client (not Coordinator)
   useEffect(() => {
-    if (loginType !== 'Coordinator' && clientId) {
-      // If clientId is not a number, find the numeric id from clients list
-      const numericId = isNaN(Number(clientId))
-        ? (clients.find(c => c.client_id === clientId)?.id)
-        : clientId;
-
-      if (!numericId) return;
-
-      axios.get(`http://127.0.0.1:8000/api/clients/${numericId}/`, {
+    if (loginType !== 'Coordinator' && clientIdFromContext) {
+      console.log('Fetching client details for non-coordinator login:', clientIdFromContext);
+      
+      const token = localStorage.getItem('token');
+      // Try to find the client by client_id first
+      axios.get(`http://127.0.0.1:8000/api/clients/`, {
         headers: {
-          Authorization: `Token ${localStorage.getItem('token')}`,
+          Authorization: `Token ${token}`,
         },
       })
         .then(res => {
-          setClientDetails(res.data);
-          console.log('Fetched clientDetails for client login:', res.data);
+          const clientObj = res.data.find(c => c.client_id === clientIdFromContext);
+          if (clientObj) {
+            setClientDetails(clientObj);
+            console.log('Found client details:', clientObj);
+          } else {
+            setError('Client not found.');
+          }
         })
         .catch(err => {
+          console.error('Error fetching client details for client login:', err);
           setClientDetails(null);
           setError('Failed to fetch client details.');
-          console.error('Error fetching client details for client login:', err);
         });
     }
-  }, [loginType, clientId, clients]);
+  }, [loginType, clientIdFromContext]);
 
-  // Code written by Shyam on 2025-07-01
   const handleAddCamp = () => {
     if (
       campLocation &&
@@ -121,6 +185,7 @@ const CampDetails = ({ onNext }) => {
       };
       setCamps([...camps, newCamp]);
 
+      // Clear form fields
       setCampLocation('');
       setCampDistrict('');
       setCampState('');
@@ -133,7 +198,7 @@ const CampDetails = ({ onNext }) => {
       setError('Please fill out all fields before adding a camp.');
     }
   };
-// Code written by Shyam on 2025-07-01
+
   const handleSubmit = async () => {
     console.log('handleSubmit called');
     console.log('loginType:', loginType);
@@ -141,15 +206,19 @@ const CampDetails = ({ onNext }) => {
     console.log('camps:', camps);
     console.log('clientDetails:', clientDetails);
 
-    if (!clientId || camps.length === 0) {
-      setError('Missing client ID or no camp added.');
+    // Validation
+    if (loginType === 'Coordinator' && !selectedClientId) {
+      setError('Please select a client before submitting.');
       return;
     }
 
-    // For client login, ensure clientDetails is loaded
-    if (loginType !== 'Coordinator' && !clientDetails) {
+    if (!clientId || camps.length === 0) {
+      setError('Missing client selection or no camps added.');
+      return;
+    }
+
+    if (!clientDetails) {
       setError('Client details are still loading. Please wait a moment and try again.');
-      console.warn('Client details not loaded yet.');
       return;
     }
 
@@ -157,26 +226,9 @@ const CampDetails = ({ onNext }) => {
 
     try {
       const createdCampIds = [];
+      const clientCode = clientDetails.client_id;
 
-      // Get client code for both Coordinator and Client logins
-      let clientCode = null;
-      if (loginType === 'Coordinator') {
-        const clientObj = clients.find(
-          c => c.id === (selectedClientId ? parseInt(selectedClientId) : clientId)
-        );
-        clientCode = clientObj ? clientObj.client_id : null;
-        console.log('Coordinator clientObj:', clientObj, 'clientCode:', clientCode);
-      } else {
-        // For client login, get code from clientDetails
-        clientCode = clientDetails ? clientDetails.client_id : null;
-        console.log('Client login clientCode:', clientCode);
-      }
-
-      if (!clientCode) {
-        setError('Client code not found.');
-        setIsSubmitting(false);
-        return;
-      }
+      console.log('Using client code:', clientCode);
 
       for (const camp of camps) {
         const campData = {
@@ -208,41 +260,62 @@ const CampDetails = ({ onNext }) => {
       navigate('/service-selection');
     } catch (err) {
       console.error('Error submitting camp data:', err);
-      setError('Failed to submit camp data.');
+      setError('Failed to submit camp data. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
-// Code written by Shyam on 2025-07-01
+
   return (
     <div className="bg-gray-100 min-h-screen p-6">
       <h2 className="text-3xl font-semibold mb-6">Camp Details</h2>
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
-      {/* Only show for Camp Manager */}
+      {/* Only show client selection for Coordinator */}
       {loginType === 'Coordinator' && (
         <div className="mb-6 p-4 bg-white rounded shadow">
           <label className="block mb-2 font-semibold">Select Client:</label>
-          <select
-            className="border p-2 rounded w-full"
-            value={selectedClientId}
-            onChange={e => setSelectedClientId(e.target.value)}
-          >
-            <option value="">-- Select Client --</option>
-            {clients.map(client => (
-              <option key={client.id} value={client.id}>
-                {client.name} ({client.email})
-              </option>
-            ))}
-          </select>
+          
+          {isLoadingClients ? (
+            <p className="text-gray-500">Loading clients...</p>
+          ) : (
+            <select
+              className="border p-2 rounded w-full"
+              value={selectedClientId}
+              onChange={e => setSelectedClientId(e.target.value)}
+            >
+              <option value="">-- Select Client --</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.name} ({client.email})
+                </option>
+              ))}
+            </select>
+          )}
+          
+          {clients.length === 0 && !isLoadingClients && (
+            <p className="text-gray-500 mt-2">No clients available</p>
+          )}
+          
           {clientDetails && (
-            <div className="mt-4">
-              <h4 className="font-bold mb-2">Client Details</h4>
+            <div className="mt-4 bg-gray-50 p-3 rounded">
+              <h4 className="font-bold mb-2">Selected Client Details</h4>
               <p><b>Name:</b> {clientDetails.name}</p>
               <p><b>Email:</b> {clientDetails.email}</p>
               <p><b>Contact:</b> {clientDetails.contact_number}</p>
+              <p><b>Client ID:</b> {clientDetails.client_id}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Show current client details for non-coordinator */}
+      {loginType !== 'Coordinator' && clientDetails && (
+        <div className="mb-6 p-4 bg-white rounded shadow">
+          <h4 className="font-bold mb-2">Client Details</h4>
+          <p><b>Name:</b> {clientDetails.name}</p>
+          <p><b>Email:</b> {clientDetails.email}</p>
+          <p><b>Contact:</b> {clientDetails.contact_number}</p>
         </div>
       )}
 
@@ -317,7 +390,7 @@ const CampDetails = ({ onNext }) => {
         </button>
       </div>
 
-      <h4 className="text-xl font-semibold mt-6 mb-4">Camps Added</h4>
+      <h4 className="text-xl font-semibold mt-6 mb-4">Camps Added ({camps.length})</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {camps.map((camp, index) => (
           <div key={index} className="bg-white p-4 rounded-lg shadow-md">
@@ -330,6 +403,7 @@ const CampDetails = ({ onNext }) => {
           </div>
         ))}
       </div>
+      
       <button
         className={`bg-green-600 text-white px-4 py-2 mt-6 rounded-lg shadow-md hover:bg-green-700 transition duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleSubmit}
