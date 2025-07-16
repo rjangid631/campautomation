@@ -11,15 +11,27 @@ function OptometryForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [formData, setFormData] = useState({
     patient_unique_id: "",
+    // Vision fields
     far_vision_right: "",
     far_vision_left: "",
     near_vision_right: "",
     near_vision_left: "",
+    // Refraction (Right Eye)
+    spherical_right: "",
+    cylindrical_right: "",
+    axis_right: "",
+    add_right: "",
+    // Refraction (Left Eye)
+    spherical_left: "",
+    cylindrical_left: "",
+    axis_left: "",
+    add_left: "",
+    // Color Vision
     color_vision_normal: false,
-    color_vision_other: ""
+    color_vision_other: "",
+    color_vision_remark: ""
   });
 
   // Common vision measurement options
@@ -42,16 +54,62 @@ function OptometryForm() {
 
   const nearVisionOptions = [
     { value: "", display: "Select Near Vision" },
-    { value: "N6", display: "N6 (Normal)" },
-    { value: "N8", display: "N8" },
-    { value: "N10", display: "N10" },
-    { value: "N12", display: "N12" },
-    { value: "N14", display: "N14" },
-    { value: "N18", display: "N18" },
-    { value: "N24", display: "N24" },
-    { value: "N36", display: "N36" },
-    { value: "N48", display: "N48" },
-    { value: "N60", display: "N60" }
+    { value: "N/6", display: "N/6 (Normal)" },
+    { value: "N/8", display: "N/8" },
+    { value: "N/10", display: "N/10" },
+    { value: "N/12", display: "N/12" },
+    { value: "N/14", display: "N/14" },
+    { value: "N/18", display: "N/18" },
+    { value: "N/24", display: "N/24" },
+    { value: "N/36", display: "N/36" },
+    { value: "N/48", display: "N/48" },
+    { value: "N/60", display: "N/60" }
+  ];
+
+  // Spherical power options
+  const sphericalOptions = [
+    { value: "", display: "Select Spherical Power" },
+    { value: "Plano", display: "Plano" },
+    ...Array.from({ length: 60 }, (_, i) => {
+      const value = ((i + 1) * 0.25).toFixed(2);
+      return { value: `+${value}`, display: `+${value}` };
+    }),
+    ...Array.from({ length: 60 }, (_, i) => {
+      const value = ((i + 1) * 0.25).toFixed(2);
+      return { value: `-${value}`, display: `-${value}` };
+    })
+  ];
+
+  // Cylindrical power options
+  const cylindricalOptions = [
+    { value: "", display: "Select Cylindrical Power" },
+    { value: "Plano", display: "Plano" },
+    ...Array.from({ length: 24 }, (_, i) => {
+      const value = ((i + 1) * 0.25).toFixed(2);
+      return { value: `+${value}`, display: `+${value}` };
+    }),
+    ...Array.from({ length: 24 }, (_, i) => {
+      const value = ((i + 1) * 0.25).toFixed(2);
+      return { value: `-${value}`, display: `-${value}` };
+    })
+  ];
+
+  // Axis options (1-180 degrees)
+  const axisOptions = [
+    { value: "", display: "Select Axis" },
+    ...Array.from({ length: 180 }, (_, i) => {
+      const value = i + 1;
+      return { value: value.toString(), display: `${value}°` };
+    })
+  ];
+
+  // Add power options
+  const addOptions = [
+    { value: "", display: "Select Add Power" },
+    ...Array.from({ length: 12 }, (_, i) => {
+      const value = ((i + 1) * 0.25).toFixed(2);
+      return { value: `+${value}`, display: `+${value}` };
+    })
   ];
 
   useEffect(() => {
@@ -252,6 +310,132 @@ function OptometryForm() {
             </div>
           </div>
 
+          {/* Refraction - Right Eye */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Refraction - Right Eye</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Spherical</label>
+                <select
+                  value={formData.spherical_right}
+                  onChange={(e) => handleInputChange("spherical_right", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {sphericalOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Cylindrical</label>
+                <select
+                  value={formData.cylindrical_right}
+                  onChange={(e) => handleInputChange("cylindrical_right", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {cylindricalOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Axis</label>
+                <select
+                  value={formData.axis_right}
+                  onChange={(e) => handleInputChange("axis_right", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {axisOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Add</label>
+                <select
+                  value={formData.add_right}
+                  onChange={(e) => handleInputChange("add_right", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {addOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Refraction - Left Eye */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Refraction - Left Eye</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Spherical</label>
+                <select
+                  value={formData.spherical_left}
+                  onChange={(e) => handleInputChange("spherical_left", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {sphericalOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Cylindrical</label>
+                <select
+                  value={formData.cylindrical_left}
+                  onChange={(e) => handleInputChange("cylindrical_left", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {cylindricalOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Axis</label>
+                <select
+                  value={formData.axis_left}
+                  onChange={(e) => handleInputChange("axis_left", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {axisOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Add</label>
+                <select
+                  value={formData.add_left}
+                  onChange={(e) => handleInputChange("add_left", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {addOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.display}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Color Vision */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Color Vision Assessment</h2>
@@ -283,6 +467,19 @@ function OptometryForm() {
                   />
                 </div>
               )}
+
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">
+                  Optometrist Remark
+                </label>
+                <textarea
+                  value={formData.color_vision_remark}
+                  onChange={(e) => handleInputChange("color_vision_remark", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="3"
+                  placeholder="Optometrist's remarks on color vision test..."
+                />
+              </div>
             </div>
           </div>
 

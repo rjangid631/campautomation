@@ -1,35 +1,49 @@
 from rest_framework import serializers
 from io import BytesIO
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, Image
-from reportlab.lib.utils import ImageReader
-from django.core.files.base import ContentFile
-from io import BytesIO
 from django.core.files.base import ContentFile
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph,
+    Spacer, Image
+)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 from technician.Models.doctorconsultation import DoctorConsultation
 from camp_manager.Models.Patientdata import PatientData
+from technician.Models.doctors import Doctor
+
+from camp_manager.Serializers.patientdataserializer import PatientDataSerializer
+from technician.serializers.doctor_serializer import DoctorSerializer
+
 
 class DoctorConsultationSerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
+    doctor_id = serializers.IntegerField(write_only=True, required=False)
+    
+    patient = PatientDataSerializer(read_only=True)
+    doctor = DoctorSerializer(read_only=True)
 
     class Meta:
         model = DoctorConsultation
         fields = '__all__'
-        read_only_fields = ['pdf_report', 'patient']
+        read_only_fields = ['pdf_report', 'patient', 'doctor']
 
     def create(self, validated_data):
         unique_id = validated_data.pop('patient_unique_id')
+        doctor_id = validated_data.pop('doctor_id', None)
+
         try:
             patient = PatientData.objects.get(unique_patient_id=unique_id)
         except PatientData.DoesNotExist:
-            raise serializers.ValidationError({"patient_unique_id": "Invalid or not found."})
+            raise serializers.ValidationError({"patient_unique_id": "Patient not found."})
+
+        if doctor_id:
+            try:
+                doctor = Doctor.objects.get(id=doctor_id)
+                validated_data['doctor'] = doctor
+            except Doctor.DoesNotExist:
+                raise serializers.ValidationError({"doctor_id": "Doctor not found."})
 
         validated_data['patient'] = patient
         instance = super().create(validated_data)
@@ -38,6 +52,15 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('patient_unique_id', None)
+        doctor_id = validated_data.pop('doctor_id', None)
+
+        if doctor_id:
+            try:
+                doctor = Doctor.objects.get(id=doctor_id)
+                validated_data['doctor'] = doctor
+            except Doctor.DoesNotExist:
+                raise serializers.ValidationError({"doctor_id": "Doctor not found."})
+
         instance = super().update(instance, validated_data)
         self.generate_pdf(instance)
         return instance
@@ -49,11 +72,10 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         styles = getSampleStyleSheet()
         bold_style = ParagraphStyle(name='Bold', parent=styles['Normal'], fontName='Helvetica-Bold')
 
-        # === Title ===
         elements.append(Paragraph("Doctor Consultation Report", styles['Title']))
         elements.append(Spacer(1, 12))
 
-        # === Patient Info ===
+        # Patient Info
         patient = consultation.patient
         report_time = consultation.created_at.strftime("%d/%m/%Y, %H:%M") if consultation.created_at else "N/A"
         test_date = getattr(patient, "test_date", None)
@@ -78,7 +100,7 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         elements.append(info_table)
         elements.append(Spacer(1, 20))
 
-        # === Consultation Details ===
+        # Consultation Details
         fields = [
             ("Has Medical Conditions", consultation.has_medical_conditions),
             ("Medical Conditions", consultation.medical_conditions),
@@ -118,11 +140,11 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         elements.append(consult_table)
         elements.append(Spacer(1, 30))
 
-        # === Doctor Signature + Info (aligned left) ===
+        # Doctor Section
         if consultation.doctor:
             doctor = consultation.doctor
 
-            # Signature image
+            # Signature
             if doctor.signature and doctor.signature.path:
                 try:
                     img = Image(doctor.signature.path, width=150, height=50)
@@ -133,18 +155,16 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
             else:
                 elements.append(Paragraph("Signature not available", styles['Normal']))
 
-            # Doctor name
             elements.append(Spacer(1, 12))
             elements.append(Paragraph(f"<b>Doctor Name:</b> {doctor.name}", styles['Normal']))
 
-            # Doctor designation
             if doctor.designation:
                 for line in doctor.designation.replace("<br>", "\n").split("\n"):
                     elements.append(Paragraph(line.strip(), styles['Normal']))
         else:
             elements.append(Paragraph("Doctor details not available", styles['Normal']))
 
-        # === Finalize PDF ===
+        # Save PDF
         doc.build(elements)
         buffer.seek(0)
 

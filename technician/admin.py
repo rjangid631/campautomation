@@ -2,6 +2,7 @@ from django.contrib import admin
 from technician.Models.audiometry import Audiometry
 from technician.Models.doctorconsultation import DoctorConsultation
 from technician.Models.doctors import Doctor
+from technician.Models.optometrists import Optometrist
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
@@ -123,5 +124,9 @@ class DoctorAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'designation', 'user')
 
 
+@admin.register(Optometrist)
+class OptometristAdmin(admin.ModelAdmin):
+    list_display = ['name', 'designation', 'user']
+    
 admin.site.register(Technician, TechnicianAdmin)
 admin.site.register(ServiceStatus)

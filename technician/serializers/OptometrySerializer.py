@@ -1,14 +1,13 @@
 from rest_framework import serializers
 from io import BytesIO
-from reportlab.pdfgen import canvas
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import mm
-from reportlab.platypus import Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from django.core.files.base import ContentFile
-
 from technician.Models.optometry import Optometry
 from camp_manager.Models.Patientdata import PatientData
+import os
 
 class OptometrySerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
@@ -26,6 +25,15 @@ class OptometrySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"patient_unique_id": "Invalid or not found."})
 
         validated_data['patient'] = patient
+
+        existing = Optometry.objects.filter(patient=patient).first()
+        if existing:
+            for attr, value in validated_data.items():
+                setattr(existing, attr, value)
+            existing.save()
+            self.generate_pdf(existing)
+            return existing
+
         instance = super().create(validated_data)
         self.generate_pdf(instance)
         return instance
@@ -37,49 +45,136 @@ class OptometrySerializer(serializers.ModelSerializer):
         return instance
 
     def generate_pdf(self, optometry):
+        page_width = A4[0]
+        usable_width = page_width - 80
         buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=A4)
-        width, height = A4
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=50, bottomMargin=50)
+        elements = []
+        styles = getSampleStyleSheet()
+        bold_style = ParagraphStyle(name='Bold', parent=styles['Normal'], fontName='Helvetica-Bold')
 
-        # Table for patient info
-        data = [
-            ["Patient Name:", optometry.patient.patient_name, "Patient ID:", optometry.patient.unique_patient_id],
-            ["Age:", str(optometry.patient.age), "Gender:", optometry.patient.gender],
+        # Title
+        elements.append(Paragraph("Optometry Report", styles['Title']))
+        elements.append(Spacer(1, 12))
+
+        # Patient Info
+        patient = optometry.patient
+        test_date = getattr(patient, "test_date", None)
+        formatted_test_date = test_date.strftime("%d/%m/%Y") if test_date else "N/A"
+        report_time = optometry.created_at.strftime("%d/%m/%Y, %H:%M") if optometry.created_at else "N/A"
+
+        patient_info_data = [
+            ['Patient Name:', patient.patient_name, 'XRAi ID:', patient.unique_patient_id],
+            ['Patient Age:', str(patient.age), 'Patient ID:', patient.patient_excel_id or "N/A"],
+            ['Gender:', patient.gender, 'Report Date/Time:', report_time],
+            ['Test Date:', formatted_test_date, 'Referral Dr:', 'N/A'],
         ]
 
-        table = Table(data, colWidths=[40*mm, 55*mm, 40*mm, 55*mm])
-        table.setStyle(TableStyle([
-            ("BOX", (0, 0), (-1, -1), 1, colors.black),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        info_table = Table(patient_info_data, colWidths=[
+            0.20 * usable_width, 0.30 * usable_width,
+            0.20 * usable_width, 0.30 * usable_width
+        ])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('PADDING', (0, 0), (-1, -1), 6),
         ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 20))
 
-        table.wrapOn(p, width, height)
-        table.drawOn(p, 30*mm, height - 100*mm)
+        # Visual Acuity Section
+        elements.append(Paragraph("Visual Activity", styles['Heading2']))
+        elements.append(Spacer(1, 10))
 
-        # Vision and color details
-        y = height - 140*mm
-        p.setFont("Helvetica", 10)
+        acuity_data = [
+            ['Eye', 'Distance (Vision)', 'Reading (Vision)', 'Spherical', 'Cylindrical', 'Axis', 'Add'],
+            ['Right Eye',
+             optometry.far_vision_right or 'N/A',
+             optometry.near_vision_right or 'N/A',
+             optometry.spherical_right or 'N/A',
+             optometry.cylindrical_right or 'N/A',
+             optometry.axis_right or 'N/A',
+             optometry.add_right or 'N/A'],
 
-        p.drawString(30*mm, y, f"Far Vision Right: {optometry.far_vision_right}")
-        y -= 12
-        p.drawString(30*mm, y, f"Far Vision Left: {optometry.far_vision_left}")
-        y -= 12
-        p.drawString(30*mm, y, f"Near Vision Right: {optometry.near_vision_right}")
-        y -= 12
-        p.drawString(30*mm, y, f"Near Vision Left: {optometry.near_vision_left}")
-        y -= 12
-        p.drawString(30*mm, y, f"Color Vision Normal: {'Yes' if optometry.color_vision_normal else 'No'}")
-        y -= 12
-        p.drawString(30*mm, y, f"Other Color Vision Issues: {optometry.color_vision_other or 'N/A'}")
+            ['Left Eye',
+             optometry.far_vision_left or 'N/A',
+             optometry.near_vision_left or 'N/A',
+             optometry.spherical_left or 'N/A',
+             optometry.cylindrical_left or 'N/A',
+             optometry.axis_left or 'N/A',
+             optometry.add_left or 'N/A'],
+        ]
 
-        p.showPage()
-        p.save()
+        acuity_table = Table(acuity_data, colWidths=[
+            0.16 * usable_width,  # Eye
+            0.16 * usable_width,  # Distance
+            0.16 * usable_width,  # Reading
+            0.14 * usable_width,  # Spherical
+            0.14 * usable_width,  # Cylindrical
+            0.12 * usable_width,  # Axis
+            0.12 * usable_width   # Add
+        ])
+        acuity_table.setStyle(TableStyle([
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.lightgrey]),
+        ]))
+        elements.append(acuity_table)
+        elements.append(Spacer(1, 20))
 
+        # === Color Vision Check (Ishihara Test) ===
+        if optometry.color_vision_remark:
+            # ✅ Use Optometrist remark as main statement
+            color_vision_text = f"Color vision check (Ishihara test): {optometry.color_vision_remark}"
+        else:
+            if optometry.color_vision_normal:
+                color_vision_text = "Color vision check (Ishihara test): Normal vision in both eyes."
+            else:
+                color_vision_text = f"Color vision check (Ishihara test): Issue noted: {optometry.color_vision_other or 'N/A'}"
+
+        elements.append(Paragraph(color_vision_text, styles['Normal']))
+        elements.append(Spacer(1, 12))
+
+        # Narrative Summary
+        summary = f"""<b>Visual Activity:</b><br/>
+        Distance (Far): {optometry.far_vision_right or 'N/A'} vision in right eye – {optometry.near_vision_right or 'N/A'} near.<br/>
+        Distance (Far): {optometry.far_vision_left or 'N/A'} vision in left eye – {optometry.near_vision_left or 'N/A'} near."""
+        elements.append(Paragraph(summary, styles['Normal']))
+        elements.append(Spacer(1, 30))
+
+        # Optometrist Signature
+        elements.append(Spacer(1, 30))
+        elements.append(Paragraph("<b>Verified by:</b>", styles['Heading3']))
+        elements.append(Spacer(1, 8))
+
+        opto = getattr(optometry, 'optometrist', None)
+        if opto:
+            if opto.signature and hasattr(opto.signature, "path") and os.path.exists(opto.signature.path):
+                try:
+                    img = Image(opto.signature.path, width=120, height=40)
+                    img.hAlign = 'LEFT'
+                    elements.append(img)
+                except Exception:
+                    elements.append(Paragraph("Signature could not be loaded.", styles['Italic']))
+            else:
+                elements.append(Paragraph("Signature not available", styles['Normal']))
+
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph(f"<b>{opto.name or 'N/A'}</b>", styles['Normal']))
+            elements.append(Paragraph(opto.designation or "Optometrist", styles['Normal']))
+        else:
+            elements.append(Paragraph("Optometrist: N/A", styles['Normal']))
+
+        # Save PDF
+        doc.build(elements)
         buffer.seek(0)
         optometry.pdf_report.save(
             f"optometry_{optometry.patient.unique_patient_id}.pdf",

@@ -2,7 +2,9 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from technician.Views.audiometryviewset import AudiometryViewSet
+from technician.Views.doctor_viewset import DoctorViewSet
 from technician.Views.doctorconsultationviewset import DoctorConsultationViewSet
+from technician.Views.optometristviewset import OptometristViewSet
 from technician.Views.optometryviewset import OptometryViewSet  # ✅ Import new viewset
 from technician.Views.getassignedtech import get_technician_assignments
 from technician.Views.technicains import get_all_technicians
@@ -17,6 +19,8 @@ router.register(r'audiometry', AudiometryViewSet)
 router.register(r'optometry', OptometryViewSet)  # ✅ Register Optometry
 router.register(r'vitals', VitalsViewSet)  # ✅ Register VitalsViewSet
 router.register(r'doctor-consultation', DoctorConsultationViewSet, basename='doctor-consultation') # ✅ Register DoctorConsultationViewSet
+router.register(r'doctors', DoctorViewSet, basename='doctor') # ✅ Register DoctorViewSet
+router.register(r'optometrists', OptometristViewSet) # ✅ Register OptometristViewSet
 
 urlpatterns = [
     path('', include(router.urls)),
