@@ -9,10 +9,24 @@ const OnsiteDashboard = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('dashboard');
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [patients, setPatients] = useState([]);
+  const [originalPatients, setOriginalPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Color constants
+  const COLORS = {
+    white: '#ffffff',
+    lightGrey: '#f8f9fa',
+    mediumGrey: '#e1e5e9',
+    darkGrey: '#6c757d',
+    lightText: '#8e9aaf',
+    mediumText: '#6b7280',
+    darkText: '#1f2937',
+    aquaBlue: '#17a2b8'
+  };
 
   // API endpoints
   const apiEndpoints = {
@@ -54,9 +68,11 @@ const OnsiteDashboard = () => {
     try {
       const response = await axios.get(apiEndpoints.packagePatients(campId, packageId));
       setPatients(response.data);
+      setOriginalPatients(response.data);
     } catch (error) {
       console.error('Error fetching package patients:', error);
       setPatients([]);
+      setOriginalPatients([]);
     } finally {
       setLoadingPatients(false);
     }
@@ -66,12 +82,69 @@ const OnsiteDashboard = () => {
     setSelectedCamp(camp);
     setSelectedPackage(null);
     setPatients([]);
+    setOriginalPatients([]);
+    setSearchTerm('');
     fetchPackages(camp.id);
   };
 
   const handlePackageClick = (packageItem) => {
     setSelectedPackage(packageItem);
+    setSearchTerm('');
     fetchPackagePatients(selectedCamp.id, packageItem.id);
+  };
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    
+    if (term === '') {
+      setPatients(originalPatients);
+    } else {
+      const filtered = originalPatients.filter(patient => 
+        patient.name.toLowerCase().includes(term) ||
+        patient.unique_patient_id.toLowerCase().includes(term) ||
+        patient.phone.includes(term) ||
+        patient.services.some(service => service.toLowerCase().includes(term))
+      );
+      setPatients(filtered);
+    }
+  };
+
+const handlePrintQR = (patient) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Patient Details - ${patient.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .patient-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; }
+            .qr-code { max-width: 200px; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="patient-card">
+            <h2>Patient Details</h2>
+            <p><strong>Name:</strong> ${patient.name}</p>
+            <p><strong>Patient ID:</strong> ${patient.unique_patient_id}</p>
+            <p><strong>Age:</strong> ${patient.age}</p>
+            <p><strong>Gender:</strong> ${patient.gender}</p>
+            <p><strong>Phone:</strong> ${patient.phone}</p>
+            <p><strong>Services:</strong> ${patient.services.join(', ')}</p>
+            <div>
+              <strong>QR Code:</strong><br>
+              <img src="${patient.qr_code_url}" alt="QR Code" class="qr-code">
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+  };
+
+  const handleCampStatus = (patientId) => {
+    // Add camp status logic here
+    console.log('Camp status for patient:', patientId);
   };
 
   const formatDate = (dateString) => {
@@ -173,39 +246,127 @@ const OnsiteDashboard = () => {
           </div>
         )}
 
-        {/* Patients section */}
+        {/* Enhanced Patients section with search functionality */}
         {selectedPackage && (
-          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-              Patients for Package: {selectedPackage.name}
-            </h3>
+          <div style={{ marginTop: '32px', borderTop: `1px solid ${COLORS.mediumGrey}`, paddingTop: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: COLORS.darkText }}>
+                Patients for Package: {selectedPackage.name}
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '8px', width: '300px' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="Search patients..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 32px',
+                      border: `1px solid ${COLORS.mediumGrey}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: COLORS.lightText
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setPatients(originalPatients);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: COLORS.lightGrey,
+                      color: COLORS.mediumText,
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
             {loadingPatients ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={spinnerStyle}></div>
-                <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading patients...</p>
+                <p style={{ marginTop: '12px', color: COLORS.mediumText }}>Loading patients...</p>
               </div>
             ) : patients.length === 0 ? (
-              <p style={{ color: '#6b7280' }}>No patients found for this package.</p>
+              <div style={{ 
+                backgroundColor: COLORS.lightGrey, 
+                padding: '24px', 
+                borderRadius: '8px', 
+                textAlign: 'center',
+                border: `1px dashed ${COLORS.mediumGrey}`
+              }}>
+                <p style={{ color: COLORS.mediumText, marginBottom: '8px' }}>
+                  {searchTerm ? 'No matching patients found' : 'No patients found for this package'}
+                </p>
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setPatients(originalPatients);
+                    }}
+                    style={{
+                      backgroundColor: COLORS.lightGrey,
+                      color: COLORS.darkText,
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {patients.map(patient => (
                   <div key={patient.id} style={{
-                    border: '1px solid #e5e7eb',
+                    border: `1px solid ${COLORS.mediumGrey}`,
                     borderRadius: '8px',
                     padding: '16px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    backgroundColor: 'white'
+                    backgroundColor: COLORS.white,
+                    transition: 'all 0.2s'
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        <p style={{ margin: 0, fontWeight: '600', fontSize: '16px' }}>
+                        <p style={{ margin: 0, fontWeight: '600', fontSize: '16px', color: COLORS.darkText }}>
                           {patient.name}
                         </p>
                         <span style={{
-                          backgroundColor: '#e5e7eb',
-                          color: '#374151',
+                          backgroundColor: COLORS.mediumGrey,
+                          color: COLORS.darkGrey,
                           padding: '2px 8px',
                           borderRadius: '4px',
                           fontSize: '12px',
@@ -214,6 +375,44 @@ const OnsiteDashboard = () => {
                           ID: {patient.unique_patient_id}
                         </span>
                       </div>
+                      <div style={{ marginTop: '8px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
+                          Age: {patient.age}
+                        </span>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
+                          Gender: {patient.gender}
+                        </span>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
+                          Phone: {patient.phone}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '4px' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
+                          Services: {patient.services.join(', ')}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePrintQR(patient);
+                        }}
+                        style={{
+                          backgroundColor: COLORS.aquaBlue,
+                          color: COLORS.white,
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          cursor: 'pointer',
+                          fontWeight: '500',
+                          fontSize: '14px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        Print QR
+                      </button>
+                      
                     </div>
                   </div>
                 ))}
@@ -319,6 +518,7 @@ const OnsiteDashboard = () => {
       setSelectedPackage(null);
       setPatients([]);
       setPackages([]);
+      setSearchTerm('');
     }
   };
 

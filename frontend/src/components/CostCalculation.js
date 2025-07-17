@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getServiceCosts,submitCostDetails } from './api';
+import { getServiceCosts, submitCostDetails } from './api';
 
 const defaultCostValues = {
   travel: 0,
@@ -32,7 +32,6 @@ const serviceCalculationRules = {
     getReporting: (reporting, totalCase) => reporting * totalCase,
     getIncentive: (incentive, days) => incentive * days,
   },
- 
   'PFT': {
     getSalary: (salary, days) => salary * days,
     getConsumables: (consumables, totalCase) => consumables * totalCase,
@@ -87,11 +86,9 @@ const serviceCalculationRules = {
     getReporting: (reporting, totalCase) => reporting * totalCase,
     getIncentive: (incentive, days) => incentive * days,
   },
-
-  
 };
 
-function CostCalculation({ caseData, onSubmit,companyId }) {
+function CostCalculation({ caseData, onSubmit, companyId }) {
   const [costDetails, setCostDetails] = useState({});
   const [initialized, setInitialized] = useState(false);
 
@@ -122,21 +119,30 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
       fetchServiceCosts();
     }
   }, [initialized]);
-  
 
   // Initialize the cost details with case data
   useEffect(() => {
-    if (initialized) {
+    if (initialized && caseData) {
       const initialDetails = {};
-      Object.keys(caseData).forEach(service => {
-        const { totalCase = 0, reportTypeCost = 0, numberOfDays = 0 } = caseData[service] || {};
+      
+      // Convert caseData array to object with service_name as key
+      const caseDataObj = caseData.reduce((acc, item) => {
+        acc[item.service_name] = {
+          totalCase: item.total_case,
+          reportTypeCost: item.report_type_cost,
+          numberOfDays: item.number_of_days
+        };
+        return acc;
+      }, {});
+      
+      Object.keys(caseDataObj).forEach(service => {
+        const { totalCase = 0, reportTypeCost = 0, numberOfDays = 0 } = caseDataObj[service] || {};
         initialDetails[service] = {
           ...defaultCostValues,
           ...costDetails[service],
           reportTypeCost,
           totalCase,
           numberOfDays,
-          tPrice: ['CBC', 'Complete Hemogram','Hemoglobin','Urine Routine','Stool Examination','Lipid Profile','Kidney Profile','LFT','KFT','Random Blood Glucose','Blood Grouping'].includes(service) ? costDetails[service]?.reporting +reportTypeCost|| 0 : undefined,
         };
       });
       setCostDetails(initialDetails);
@@ -152,87 +158,49 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
       },
     }));
   };
-  const defaultPrices = {
-    'CBC': 20,
-    'Complete Hemogram': 40,
-    'Hemoglobin': 60,
-    'Urine Routine': 90,
-    'Stool Examination': 100,
-    'Lipid Profile': 30,
-    'Kidney Profile': 50,
-    'LFT': 70,
-    'KFT': 80,
-    'Random Blood Glucose': 45,
-    'Blood Grouping': 65
-  };
 
   const calculateAllDetails = useCallback(() => {
     const details = {};
- 
-    Object.keys(caseData).forEach(testType => {
-      const { totalCase = 0, numberOfDays = 0, reportTypeCost = 0 } = caseData[testType] || {};
-      const rules = serviceCalculationRules[testType] || serviceCalculationRules['default'];
-  
-      if (Object.keys(defaultPrices).includes(testType)) {
-        const defaultPrice = defaultPrices[testType];
-        const tPrice = costDetails[testType]?.tPrice || defaultPrice; // Ensure tPrice is valid
-        details[testType] = {
-          salary: 0,
-          incentive: 0,
-          consumables: 0,
-          reporting: tPrice, // Use reporting as the total price
-          misc: 0,
-          equipment: 0,
-          travel: 0,
-          stay: 0,
-          food: 0,
-          reportTypeCost,
-          overhead: 0,
-          tPrice,
-          unitPrice: tPrice
-        };
-      } else {
-        const salary = rules.getSalary(costDetails[testType]?.salary || 0, testType === 'Form 7' ? totalCase : numberOfDays);
-        const consumables = rules.getConsumables(costDetails[testType]?.consumables || 0, totalCase);
-        const reporting = rules.getReporting(costDetails[testType]?.reporting || 0, totalCase);
-        const incentive = rules.getIncentive(costDetails[testType]?.incentive || 0, numberOfDays);
-        const misc = costDetails[testType]?.misc || 0;
-        const equipment = costDetails[testType]?.equipment || 0;
-        const travel = costDetails[testType]?.travel || 0;
-        const stay = costDetails[testType]?.stay || 0;
-        const food = costDetails[testType]?.food || 0;
+    
+    if (!caseData) return details;
 
-        const overhead = (salary + incentive + misc + equipment + reportTypeCost + consumables + reporting + travel + stay + food) * 1.5;
-        const tPrice = overhead * 1.3;
+    caseData.forEach(item => {
+      const testType = item.service_name;
+      const { total_case: totalCase = 0, number_of_days: numberOfDays = 0, report_type_cost: reportTypeCost = 0 } = item;
+      const rules = serviceCalculationRules[testType] || serviceCalculationRules['X-ray']; // Default to X-ray rules
 
-      
-        details[testType] = {
-          salary,
-          incentive,
-          consumables,
-          reporting,
-          misc,
-          equipment,
-          travel,
-          stay,
-          food,
-          reportTypeCost,
-          overhead,
-          tPrice,
-          unitPrice:
-            testType === "vitals" || testType === "optometry" || testType === "audiometry"
-              ? totalCase < 100
-                ? tPrice / totalCase // If totalCase < 100, use total cases
-                : tPrice / 100       // If totalCase >= 100, divide by 100
-              : totalCase
-              ? tPrice / totalCase   // For other test types, calculate normally
-              : 0,                   // If totalCase is 0, return 0
-        };
-        
-      }
+      const salary = rules.getSalary(costDetails[testType]?.salary || 0, testType === 'Form 7' ? totalCase : numberOfDays);
+      const consumables = rules.getConsumables(costDetails[testType]?.consumables || 0, totalCase);
+      const reporting = rules.getReporting(costDetails[testType]?.reporting || 0, totalCase);
+      const incentive = rules.getIncentive(costDetails[testType]?.incentive || 0, numberOfDays);
+      const misc = costDetails[testType]?.misc || 0;
+      const equipment = costDetails[testType]?.equipment || 0;
+      const travel = costDetails[testType]?.travel || 0;
+      const stay = costDetails[testType]?.stay || 0;
+      const food = costDetails[testType]?.food || 0;
+
+      const overhead = (salary + incentive + misc + equipment + reportTypeCost + consumables + reporting + travel + stay + food) * 1.5;
+      const tPrice = overhead * 1.3;
+
+      details[testType] = {
+        salary,
+        incentive,
+        consumables,
+        reporting,
+        misc,
+        equipment,
+        travel,
+        stay,
+        food,
+        reportTypeCost,
+        overhead,
+        tPrice,
+        unitPrice: totalCase ? tPrice / totalCase : 0,
+      };
     });
+    
     return details;
-  }, [caseData, costDetails,serviceCalculationRules]);
+  }, [caseData, costDetails]);
 
   const allDetails = calculateAllDetails();
 
@@ -249,8 +217,7 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
       console.error('Error submitting cost details:', error);
     }
   };
-  
-  
+
   return (
     <div className="p-4">
       <h2 className="text-2xl mb-4">Cost Calculation</h2>
@@ -263,11 +230,11 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
               <th className="px-6 py-3">Stay</th>
               <th className="px-6 py-3">Food</th>
               <th className="px-6 py-3">Total Cost</th>
-              
             </tr>
           </thead>
           <tbody>
-            {Object.keys(allDetails).map(service => {
+            {caseData && caseData.map(item => {
+              const service = item.service_name;
               const details = allDetails[service];
               return (
                 <tr key={service}>
@@ -275,7 +242,7 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
                   <td className="px-6 py-4">
                     <input
                       type="number"
-                      value={costDetails[service]?.travel }
+                      value={costDetails[service]?.travel || 0}
                       onChange={e => handleChange(service, 'travel', +e.target.value)}
                       className="p-2 border"
                     />
@@ -283,7 +250,7 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
                   <td className="px-6 py-4">
                     <input
                       type="number"
-                      value={costDetails[service]?.stay }
+                      value={costDetails[service]?.stay || 0}
                       onChange={e => handleChange(service, 'stay', +e.target.value)}
                       className="p-2 border"
                     />
@@ -291,23 +258,15 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
                   <td className="px-6 py-4">
                     <input
                       type="number"
-                      value={costDetails[service]?.food }
+                      value={costDetails[service]?.food || 0}
                       onChange={e => handleChange(service, 'food', +e.target.value)}
                       className="p-2 border"
                     />
                   </td>
-               <td className="px-6 py-4">
-  {['CBC', 'Complete Hemogram', 'Hemoglobin', 'Urine Routine', 'Stool Examination', 'Lipid Profile', 'Kidney Profile', 'LFT', 'KFT', 'Random Blood Glucose', 'Blood Grouping'].includes(service) ? (
-    <input
-      type="number"
-      value={costDetails[service]?.tPrice || defaultPrices[service]} // Use costDetails or fallback to defaultPrices
-      onChange={e => handleChange(service, 'tPrice', +e.target.value)}
-      className="p-2 border"
-    />
-  ) : (
-    details?.tPrice?.toFixed(2) // Ensure details exist before accessing tPrice
-  )}
-</td>    </tr>
+                  <td className="px-6 py-4">
+                    {details?.tPrice?.toFixed(2)}
+                  </td>
+                </tr>
               );
             })}
           </tbody>
@@ -325,7 +284,4 @@ function CostCalculation({ caseData, onSubmit,companyId }) {
   );
 }
 
-export default CostCalculation;
-
-
-
+export default CostCalculation; 

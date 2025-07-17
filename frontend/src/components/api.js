@@ -253,4 +253,154 @@ export const submitCostSummary = async (data) => {
   }
 };
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      Authorization: `Token ${token}`,
+    },
+  };
+};
+
+// API handlers object
+export const apiHandlers = {
+  // Client Dashboard API
+  getClientDashboard: async (clientId) => {
+    try {
+      const response = await axios.get(
+       `${BASE_URL}/api/client-dashboard/?client_id=${clientId}` ,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client dashboard:', error);
+      throw error;
+    }
+  },
+
+  // Camp Manager API - Get all camps
+  getCamps: async (clientId) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/camps/${clientId}/`,
+        getAuthHeaders()
+      );
+      
+      // Filter camps by client ID and ready_to_go status
+      const filteredCamps = response.data.filter(camp => 
+        camp.client === clientId && camp.ready_to_go === true
+      );
+      
+      return filteredCamps;
+    } catch (error) {
+      console.error('Error fetching camps:', error);
+      throw error;
+    }
+  },
+
+  // Get specific camp details
+  getCampDetails: async (campId) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/camp-details/${campId}/`,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching camp details:', error);
+      throw error;
+    }
+  },
+
+  // Invoice History API
+  getInvoiceHistory: async (campId) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/invoice-history/${campId}/`,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching invoice history:', error);
+      throw error;
+    }
+  },
+
+  // Reports API
+  getReports: async (campId) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/reports/${campId}/`,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      throw error;
+    }
+  },
+
+  // Create new camp
+  createCamp: async (campData) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/campmanager/camps/`,
+        campData,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error creating camp:', error);
+      throw error;
+    }
+  },
+
+  // Update camp
+  updateCamp: async (campId, campData) => {
+    try {
+      const response = await axios.put(
+        `${BASE_URL}/campmanager/camps/${campId}/`,
+        campData,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating camp:', error);
+      throw error;
+    }
+  },
+
+  // Delete camp
+  deleteCamp: async (campId) => {
+    try {
+      const response = await axios.delete(
+        `${BASE_URL}/campmanager/camps/${campId}/`,
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting camp:', error);
+      throw error;
+    }
+  },
+
+  // Mark camp as ready to go
+  markCampReady: async (campId) => {
+    try {
+      const response = await axios.patch(
+        `${BASE_URL}/campmanager/camps/${campId}/`,
+        { ready_to_go: true },
+        getAuthHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error marking camp as ready:', error);
+      throw error;
+    }
+  }
+};
+
+
+
+
 export default api;

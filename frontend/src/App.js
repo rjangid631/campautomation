@@ -45,9 +45,8 @@ import KFTForm from './components/KFTForm';
 import RandomBloodGlucoseForm from './components/RandomBloodGlucoseForm';
 import BloodGroupingForm from './components/BloodGroupingForm';
 import OnsiteDashboard from './components/OnsiteDashboard';
-
+import StatusTracking from './components/StatusTracking';
 export const AppContext = createContext();
-
 function App() {
   const [loginType, setLoginType] = useState(null);
   const [companyId, setCompanyId] = useState(null);
@@ -56,7 +55,6 @@ function App() {
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [caseData, setCaseData] = useState({});
   const [costDetails, setCostDetails] = useState({});
-  const [authError, setAuthError] = useState(null);
 
   const navigate = useNavigate();
   const isAuthenticated = !!loginType;
@@ -239,7 +237,7 @@ const handleLogin = (type, id) => {
             <Route path="/kft" element={<KFTForm />} />
             <Route path="/random-blood-glucose" element={<RandomBloodGlucoseForm />} />
             <Route path="/blood-grouping" element={<BloodGroupingForm />} />
-            
+            <Route path="/status-tracking" element={<StatusTracking />} />
             {/* Default Route */}
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>

@@ -9,6 +9,20 @@ const apiEndpoints = {
   patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`
 };
 
+// Color constants
+const COLORS = {
+  aquaBlue: '#0cc0df',
+  grassGreen: '#7ed957',
+  darkGrey: '#3c3b3f',
+  vividPurple: '#9440dd',
+  white: '#ffffff',
+  lightGrey: '#f3f4f6',
+  mediumGrey: '#e5e7eb',
+  darkText: '#1f2937',
+  mediumText: '#6b7280',
+  lightText: '#9ca3af'
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
@@ -175,12 +189,12 @@ const Dashboard = () => {
   };
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', color: 'text-blue-600' },
-    { id: 'add-camp', label: 'Add New Camp', color: 'text-green-600' },
-    { id: 'view-camp', label: 'View Camp', color: 'text-purple-600' },
-    { id: 'upload-report', label: 'Upload Report', color: 'text-orange-600' },
-    { id: 'camp-progress', label: 'Camp Progress', color: 'text-indigo-600' },
-    { id: 'logout', label: 'Log Out', color: 'text-red-600' }
+    { id: 'dashboard', label: 'Dashboard', color: COLORS.aquaBlue },
+    { id: 'add-camp', label: 'Add New Camp', color: COLORS.grassGreen },
+    { id: 'view-camp', label: 'View Camp', color: COLORS.vividPurple },
+    { id: 'upload-report', label: 'Upload Report', color: '#ea580c' },
+    { id: 'camp-progress', label: 'Camp Progress', color: COLORS.vividPurple },
+    { id: 'logout', label: 'Log Out', color: '#dc2626' }
   ];
 
   const handleMenuClick = (menuId) => {
@@ -220,9 +234,9 @@ const Dashboard = () => {
     const today = new Date();
     const start = new Date(startDate);
     const end = new Date(endDate);
-    if (today < start) return { status: 'Upcoming', color: 'bg-blue-100 text-blue-800' };
-    else if (today >= start && today <= end) return { status: 'Active', color: 'bg-green-100 text-green-800' };
-    else return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
+    if (today < start) return { status: 'Upcoming', color: `${COLORS.aquaBlue}20`, textColor: COLORS.aquaBlue };
+    else if (today >= start && today <= end) return { status: 'Active', color: `${COLORS.grassGreen}20`, textColor: COLORS.grassGreen };
+    else return { status: 'Completed', color: `${COLORS.darkGrey}20`, textColor: COLORS.darkGrey };
   };
 
   const filteredData = Array.isArray(data)
@@ -243,10 +257,10 @@ const Dashboard = () => {
 
     return (
       <div>
-        <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600' }}>Camps Ready to Go</h2>
+        <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600', color: COLORS.darkText }}>Camps Ready to Go</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {readyCamps.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: COLORS.mediumText }}>
               <p>No camps are marked ready to go.</p>
             </div>
           )}
@@ -256,21 +270,21 @@ const Dashboard = () => {
               onClick={() => handleCampClick(camp)}
               style={{
                 padding: '16px',
-                border: '1px solid #e5e7eb',
+                border: `1px solid ${COLORS.mediumGrey}`,
                 borderRadius: '8px',
                 cursor: 'pointer',
-                backgroundColor: selectedCamp?.id === camp.id ? '#eff6ff' : 'white',
+                backgroundColor: selectedCamp?.id === camp.id ? `${COLORS.aquaBlue}10` : COLORS.white,
                 transition: 'all 0.2s',
                 boxShadow: selectedCamp?.id === camp.id ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: COLORS.darkText }}>
                 {camp.location} (ID: {camp.id})
               </h3>
-              <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+              <p style={{ margin: '4px 0 0 0', color: COLORS.mediumText, fontSize: '14px' }}>
                 {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
               </p>
-              <p style={{ margin: '4px 0 0 0', color: '#9ca3af', fontSize: '12px' }}>
+              <p style={{ margin: '4px 0 0 0', color: COLORS.lightText, fontSize: '12px' }}>
                 Client: {camp.client}
               </p>
             </div>
@@ -278,25 +292,25 @@ const Dashboard = () => {
         </div>
 
         {selectedCamp && (
-          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+          <div style={{ marginTop: '32px', borderTop: `1px solid ${COLORS.mediumGrey}`, paddingTop: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: COLORS.darkText }}>
               Packages for Camp: {selectedCamp.location} (ID: {selectedCamp.id})
             </h3>
             {loadingPackages ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={spinnerStyle}></div>
-                <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading packages...</p>
+                <p style={{ marginTop: '12px', color: COLORS.mediumText }}>Loading packages...</p>
               </div>
             ) : packages.length === 0 ? (
-              <p style={{ color: '#6b7280' }}>No packages found for this camp.</p>
+              <p style={{ color: COLORS.mediumText }}>No packages found for this camp.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {packages.map(packageItem => (
                   <div key={packageItem.id} style={{
-                    border: '1px solid #e5e7eb',
+                    border: `1px solid ${COLORS.mediumGrey}`,
                     borderRadius: '8px',
                     padding: '16px',
-                    backgroundColor: selectedPackage?.id === packageItem.id ? '#eff6ff' : 'white',
+                    backgroundColor: selectedPackage?.id === packageItem.id ? `${COLORS.aquaBlue}10` : COLORS.white,
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
@@ -304,10 +318,10 @@ const Dashboard = () => {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
+                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: COLORS.darkText }}>
                           {packageItem.name}
                         </h4>
-                        <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                        <p style={{ margin: '4px 0 0 0', color: COLORS.mediumText, fontSize: '14px' }}>
                           {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
                         </p>
                       </div>
@@ -318,8 +332,8 @@ const Dashboard = () => {
                             handlePackageClick(packageItem);
                           }}
                           style={{
-                            backgroundColor: selectedPackage?.id === packageItem.id ? '#1d4ed8' : '#2563eb',
-                            color: 'white',
+                            backgroundColor: selectedPackage?.id === packageItem.id ? COLORS.aquaBlue : COLORS.grassGreen,
+                            color: COLORS.white,
                             border: 'none',
                             borderRadius: '6px',
                             padding: '8px 16px',
@@ -340,9 +354,9 @@ const Dashboard = () => {
         )}
 
         {selectedPackage && (
-          <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+          <div style={{ marginTop: '32px', borderTop: `1px solid ${COLORS.mediumGrey}`, paddingTop: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: COLORS.darkText }}>
                 Patients for Package: {selectedPackage.name}
               </h3>
               
@@ -356,7 +370,7 @@ const Dashboard = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px 8px 32px',
-                      border: '1px solid #e5e7eb',
+                      border: `1px solid ${COLORS.mediumGrey}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
@@ -369,7 +383,7 @@ const Dashboard = () => {
                     left: '10px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#9ca3af'
+                    color: COLORS.lightText
                   }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -384,8 +398,8 @@ const Dashboard = () => {
                     }}
                     style={{
                       padding: '8px 12px',
-                      backgroundColor: '#f3f4f6',
-                      color: '#6b7280',
+                      backgroundColor: COLORS.lightGrey,
+                      color: COLORS.mediumText,
                       border: 'none',
                       borderRadius: '6px',
                       cursor: 'pointer',
@@ -405,17 +419,17 @@ const Dashboard = () => {
             {loadingPatients ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div style={spinnerStyle}></div>
-                <p style={{ marginTop: '12px', color: '#6b7280' }}>Loading patients...</p>
+                <p style={{ marginTop: '12px', color: COLORS.mediumText }}>Loading patients...</p>
               </div>
             ) : patients.length === 0 ? (
               <div style={{ 
-                backgroundColor: '#f9fafb', 
+                backgroundColor: COLORS.lightGrey, 
                 padding: '24px', 
                 borderRadius: '8px', 
                 textAlign: 'center',
-                border: '1px dashed #e5e7eb'
+                border: `1px dashed ${COLORS.mediumGrey}`
               }}>
-                <p style={{ color: '#6b7280', marginBottom: '8px' }}>
+                <p style={{ color: COLORS.mediumText, marginBottom: '8px' }}>
                   {searchTerm ? 'No matching patients found' : 'No patients found for this package'}
                 </p>
                 {searchTerm && (
@@ -425,8 +439,8 @@ const Dashboard = () => {
                       setPatients(originalPatients);
                     }}
                     style={{
-                      backgroundColor: '#f3f4f6',
-                      color: '#4b5563',
+                      backgroundColor: COLORS.lightGrey,
+                      color: COLORS.darkText,
                       border: 'none',
                       borderRadius: '6px',
                       padding: '6px 12px',
@@ -442,23 +456,23 @@ const Dashboard = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {patients.map(patient => (
                   <div key={patient.id} style={{
-                    border: '1px solid #e5e7eb',
+                    border: `1px solid ${COLORS.mediumGrey}`,
                     borderRadius: '8px',
                     padding: '16px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    backgroundColor: 'white',
+                    backgroundColor: COLORS.white,
                     transition: 'all 0.2s'
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        <p style={{ margin: 0, fontWeight: '600', fontSize: '16px', color: '#1f2937' }}>
+                        <p style={{ margin: 0, fontWeight: '600', fontSize: '16px', color: COLORS.darkText }}>
                           {patient.name}
                         </p>
                         <span style={{
-                          backgroundColor: '#e5e7eb',
-                          color: '#374151',
+                          backgroundColor: COLORS.mediumGrey,
+                          color: COLORS.darkGrey,
                           padding: '2px 8px',
                           borderRadius: '4px',
                           fontSize: '12px',
@@ -468,18 +482,18 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <div style={{ marginTop: '8px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
                           Age: {patient.age}
                         </span>
-                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
                           Gender: {patient.gender}
                         </span>
-                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
                           Phone: {patient.phone}
                         </span>
                       </div>
                       <div style={{ marginTop: '4px' }}>
-                        <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '14px', color: COLORS.mediumText }}>
                           Services: {patient.services.join(', ')}
                         </span>
                       </div>
@@ -491,8 +505,8 @@ const Dashboard = () => {
                           handlePrintQR(patient);
                         }}
                         style={{
-                          backgroundColor: '#2563eb',
-                          color: 'white',
+                          backgroundColor: COLORS.aquaBlue,
+                          color: COLORS.white,
                           border: 'none',
                           borderRadius: '6px',
                           padding: '8px 16px',
@@ -504,25 +518,7 @@ const Dashboard = () => {
                       >
                         Print QR
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCampStatus(patient.unique_patient_id);
-                        }}
-                        style={{
-                          backgroundColor: '#4b5563',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '8px 16px',
-                          cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '14px',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        Camp Status
-                      </button>
+                      
                     </div>
                   </div>
                 ))}
@@ -540,21 +536,21 @@ const Dashboard = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' }}>
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Total Camps</h3>
-            <p style={summaryCardValueBlue}>{filteredData.length}</p>
+            <p style={{ ...summaryCardValue, color: COLORS.aquaBlue }}>{filteredData.length}</p>
           </div>
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Active Clients</h3>
-            <p style={summaryCardValueGreen}>{Object.keys(groupedCamps).length}</p>
+            <p style={{ ...summaryCardValue, color: COLORS.grassGreen }}>{Object.keys(groupedCamps).length}</p>
           </div>
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Upcoming Camps</h3>
-            <p style={summaryCardValueOrange}>
+            <p style={{ ...summaryCardValue, color: COLORS.vividPurple }}>
               {filteredData.filter(camp => new Date(camp.start_date) > new Date()).length}
             </p>
           </div>
           <div style={summaryCardStyle}>
             <h3 style={summaryCardTitle}>Active Camps</h3>
-            <p style={summaryCardValuePurple}>
+            <p style={{ ...summaryCardValue, color: COLORS.darkGrey }}>
               {Array.isArray(data) ? data.filter(camp => {
                 const today = new Date();
                 const start = new Date(camp.start_date);
@@ -568,7 +564,7 @@ const Dashboard = () => {
 
       {Object.entries(groupedCamps).map(([clientId, camps], clientIndex) => (
         <div key={clientId} style={clientCardStyle}>
-          <div style={clientHeaderStyle}>
+          <div style={{ ...clientHeaderStyle, background: `linear-gradient(to right, ${COLORS.aquaBlue}, ${COLORS.grassGreen})` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={clientTitleStyle}>Client: {clientId}</h2>
@@ -577,8 +573,8 @@ const Dashboard = () => {
               <button
                 onClick={() => handleDetailsToggle(clientIndex)}
                 style={toggleButtonStyle}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#eff6ff'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                onMouseEnter={(e) => e.target.style.backgroundColor = `${COLORS.aquaBlue}20`}
+                onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.white}
               >
                 {expandedIndex === clientIndex ? 'Hide Camps' : 'Show Camps'}
               </button>
@@ -600,10 +596,8 @@ const Dashboard = () => {
                             <h3 style={campLocationStyle}>{camp.location}</h3>
                             <span style={{
                               ...statusBadgeStyle,
-                              backgroundColor: status.status === 'Upcoming' ? '#dbeafe' :
-                                status.status === 'Active' ? '#dcfce7' : '#f3f4f6',
-                              color: status.status === 'Upcoming' ? '#1e40af' :
-                                status.status === 'Active' ? '#166534' : '#374151'
+                              backgroundColor: status.color,
+                              color: status.textColor
                             }}>{status.status}</span>
                             <span
                               style={{
@@ -611,8 +605,8 @@ const Dashboard = () => {
                                 borderRadius: '12px',
                                 fontSize: '12px',
                                 fontWeight: '500',
-                                backgroundColor: camp.ready_to_go ? '#bbf7d0' : '#fee2e2',
-                                color: camp.ready_to_go ? '#166534' : '#b91c1c',
+                                backgroundColor: camp.ready_to_go ? `${COLORS.grassGreen}20` : '#fee2e2',
+                                color: camp.ready_to_go ? COLORS.grassGreen : '#b91c1c',
                                 cursor: 'not-allowed'
                               }}
                               title="Ready to Go status and Excel upload are only available in View Camp"
@@ -620,7 +614,7 @@ const Dashboard = () => {
                               Ready to Go: {camp.ready_to_go ? 'Yes' : 'No'}
                             </span>
                             {!camp.ready_to_go && (
-                              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                              <div style={{ fontSize: '11px', color: COLORS.lightText, marginTop: '2px' }}>
                                 Upload Excel and mark Ready to Go from View Camp only
                               </div>
                             )}
@@ -647,8 +641,8 @@ const Dashboard = () => {
                         {activeMenuItem !== 'dashboard' && (
                           <div style={{ marginLeft: '16px' }}>
                             <button onClick={() => handleViewServiceSelection(camp.id)} style={viewButtonStyle}
-                              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-                              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}>
+                              onMouseEnter={(e) => e.target.style.backgroundColor = COLORS.aquaBlue}
+                              onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.grassGreen}>
                               View
                             </button>
                           </div>
@@ -678,11 +672,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
-      <div style={{ width: '256px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: '1px solid #e5e7eb' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Camp Manager</h2>
-          <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px', margin: '4px 0 0 0' }}>Admin Dashboard</p>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: COLORS.lightGrey }}>
+      <div style={{ width: '256px', backgroundColor: COLORS.white, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: `1px solid ${COLORS.mediumGrey}` }}>
+        <div style={{ padding: '24px', borderBottom: `1px solid ${COLORS.mediumGrey}` }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: COLORS.darkText, margin: 0 }}>Camp Manager</h2>
+          <p style={{ fontSize: '14px', color: COLORS.mediumText, marginTop: '4px', margin: '4px 0 0 0' }}>Admin Dashboard</p>
         </div>
         <nav style={{ marginTop: '24px' }}>
           {menuItems.map((item) => (
@@ -690,22 +684,51 @@ const Dashboard = () => {
               width: '100%', textAlign: 'left', padding: '12px 24px',
               fontSize: '18px', fontWeight: '500', transition: 'all 0.2s',
               border: 'none', cursor: 'pointer',
-              backgroundColor: activeMenuItem === item.id ? '#eff6ff' : 'transparent',
-              borderRight: activeMenuItem === item.id ? '4px solid #3b82f6' : 'none',
-              color: {
-                'text-blue-600': '#2563eb', 'text-green-600': '#16a34a', 'text-purple-600': '#9333ea',
-                'text-orange-600': '#ea580c', 'text-indigo-600': '#4f46e5', 'text-red-600': '#dc2626'
-              }[item.color]
+              backgroundColor: activeMenuItem === item.id ? `${item.color}20` : 'transparent',
+              borderRight: activeMenuItem === item.id ? `4px solid ${item.color}` : 'none',
+              color: item.color
             }}>{item.label}</button>
           ))}
         </nav>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>{getHeaderTitle()}</h1>
-          <p style={{ color: '#6b7280', marginTop: '4px', margin: '4px 0 0 0' }}>{getHeaderDescription()}</p>
-        </div>
+        <div style={{ 
+                  backgroundColor: COLORS.white, 
+                  padding: '16px 24px', 
+                  borderBottom: `1px solid ${COLORS.mediumGrey}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: COLORS.darkText, margin: 0 }}>{getHeaderTitle()}</h1>
+                    <p style={{ color: COLORS.mediumText, marginTop: '4px', margin: '4px 0 0 0' }}>{getHeaderDescription()}</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/status-tracking')}
+                    style={{
+                      backgroundColor: COLORS.aquaBlue,
+                      color: COLORS.white,
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      height: 'fit-content'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Status Tracking
+                  </button>
+                </div>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           {activeMenuItem === 'camp-progress' ? (
@@ -734,18 +757,32 @@ const Dashboard = () => {
                 <div style={{ textAlign: 'center' }}>
                   <div style={emptyStateIcon}></div>
                   <p style={loadingTextStyle}>No camp data available</p>
-                  <p style={{ fontSize: '14px', color: '#9ca3af' }}>Start by adding a new camp</p>
+                  <p style={{ fontSize: '14px', color: COLORS.lightText }}>Start by adding a new camp</p>
                 </div>
               </div>
             )
           ) : (
-            <div style={loaderContainerStyle}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={emptyStateIcon}></div>
-                <p style={loadingTextStyle}>Feature Coming Soon</p>
-                <p style={{ fontSize: '14px', color: '#9ca3af' }}>This feature is under development</p>
-              </div>
-            </div>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <input
+                type="text"
+                placeholder="Enter feature link"
+                className="px-4 py-2 w-64 rounded-xl text-sm focus:outline-none shadow-md"
+                style={{
+                  backgroundColor: `${COLORS.white}cc`,
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  color: COLORS.darkText
+                }}
+              />
+              <button
+                className="px-5 py-2 rounded-xl text-white font-semibold shadow-md transition-transform transform hover:scale-105"
+                style={{
+                  background: `linear-gradient(135deg, ${COLORS.aquaBlue} 0%, ${COLORS.grassGreen} 100%)`,
+                }}
+                onClick={() => alert("Upload triggered")}
+              >
+                Upload
+              </button>
+          </div>
           )}
         </div>
       </div>
@@ -755,18 +792,38 @@ const Dashboard = () => {
   );
 };
 
+// Style constants
 const summaryCardStyle = {
-  backgroundColor: 'white', borderRadius: '8px', padding: '24px', border: '1px solid #e5e7eb',
+  backgroundColor: COLORS.white, 
+  borderRadius: '8px', 
+  padding: '24px', 
+  border: `1px solid ${COLORS.mediumGrey}`,
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
 };
-const summaryCardTitle = { fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: 0 };
-const summaryCardValueBlue = { fontSize: '24px', fontWeight: 'bold', color: '#2563eb', marginTop: '8px' };
-const summaryCardValueGreen = { ...summaryCardValueBlue, color: '#16a34a' };
-const summaryCardValueOrange = { ...summaryCardValueBlue, color: '#ea580c' };
-const summaryCardValuePurple = { ...summaryCardValueBlue, color: '#9333ea' };
 
-const clientCardStyle = { backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' };
-const clientHeaderStyle = { background: 'linear-gradient(to right, #3b82f6, #2563eb)', padding: '16px 24px' };
+const summaryCardTitle = { 
+  fontSize: '14px', 
+  fontWeight: '500', 
+  color: COLORS.mediumText, 
+  margin: 0 
+};
+
+const summaryCardValue = { 
+  fontSize: '24px', 
+  fontWeight: 'bold', 
+  marginTop: '8px' 
+};
+
+const clientCardStyle = { 
+  backgroundColor: COLORS.white, 
+  borderRadius: '8px', 
+  border: `1px solid ${COLORS.mediumGrey}`, 
+  overflow: 'hidden' 
+};
+
+const clientHeaderStyle = { 
+  padding: '16px 24px' 
+};
 const clientTitleStyle = { fontSize: '20px', fontWeight: 'bold', color: 'white', margin: 0 };
 const clientSubTextStyle = { color: '#bfdbfe', marginTop: '4px', margin: '4px 0 0 0' };
 
