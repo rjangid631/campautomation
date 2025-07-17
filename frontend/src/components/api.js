@@ -282,14 +282,12 @@ export const apiHandlers = {
   getCamps: async (clientId) => {
     try {
       const response = await axios.get(
-        `${BASE_URL}/camps/${clientId}/`,
+        `${BASE_URL}/api/camps/?client_id=${clientId}`,
         getAuthHeaders()
       );
-      
-      // Filter camps by client ID and ready_to_go status
-      const filteredCamps = response.data.filter(camp => 
-        camp.client === clientId && camp.ready_to_go === true
-      );
+
+      // Now response.data is an array
+      const filteredCamps = response.data.filter(camp => camp.ready_to_go === true);
       
       return filteredCamps;
     } catch (error) {
