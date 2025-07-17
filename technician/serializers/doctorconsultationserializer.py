@@ -2,12 +2,10 @@ from rest_framework import serializers
 from io import BytesIO
 from django.core.files.base import ContentFile
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph,
-    Spacer, Image
-)
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+import os
 
 from technician.Models.doctorconsultation import DoctorConsultation
 from camp_manager.Models.Patientdata import PatientData
@@ -19,7 +17,6 @@ from technician.serializers.doctor_serializer import DoctorSerializer
 
 class DoctorConsultationSerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
-    doctor_id = serializers.IntegerField(write_only=True, required=False)
     
     patient = PatientDataSerializer(read_only=True)
     doctor = DoctorSerializer(read_only=True)
@@ -30,36 +27,36 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         read_only_fields = ['pdf_report', 'patient', 'doctor']
 
     def create(self, validated_data):
+        request = self.context.get('request')
         unique_id = validated_data.pop('patient_unique_id')
-        doctor_id = validated_data.pop('doctor_id', None)
 
         try:
             patient = PatientData.objects.get(unique_patient_id=unique_id)
         except PatientData.DoesNotExist:
             raise serializers.ValidationError({"patient_unique_id": "Patient not found."})
 
-        if doctor_id:
-            try:
-                doctor = Doctor.objects.get(id=doctor_id)
-                validated_data['doctor'] = doctor
-            except Doctor.DoesNotExist:
-                raise serializers.ValidationError({"doctor_id": "Doctor not found."})
+        doctor = getattr(getattr(request.user, 'technician', None), 'doctor_profile', None)
+
+        if not doctor:
+            raise serializers.ValidationError({"doctor": "Doctor profile not found for the current technician user."})
 
         validated_data['patient'] = patient
+        validated_data['doctor'] = doctor
+
         instance = super().create(validated_data)
         self.generate_pdf(instance)
         return instance
 
     def update(self, instance, validated_data):
         validated_data.pop('patient_unique_id', None)
-        doctor_id = validated_data.pop('doctor_id', None)
 
-        if doctor_id:
-            try:
-                doctor = Doctor.objects.get(id=doctor_id)
-                validated_data['doctor'] = doctor
-            except Doctor.DoesNotExist:
-                raise serializers.ValidationError({"doctor_id": "Doctor not found."})
+        request = self.context.get('request')
+        doctor = getattr(getattr(request.user, 'technician', None), 'doctor_profile', None)
+
+        if not doctor:
+            raise serializers.ValidationError({"doctor": "Doctor profile not found for the current technician user."})
+
+        validated_data['doctor'] = doctor
 
         instance = super().update(instance, validated_data)
         self.generate_pdf(instance)
@@ -75,7 +72,6 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         elements.append(Paragraph("Doctor Consultation Report", styles['Title']))
         elements.append(Spacer(1, 12))
 
-        # Patient Info
         patient = consultation.patient
         report_time = consultation.created_at.strftime("%d/%m/%Y, %H:%M") if consultation.created_at else "N/A"
         test_date = getattr(patient, "test_date", None)
@@ -144,8 +140,7 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         if consultation.doctor:
             doctor = consultation.doctor
 
-            # Signature
-            if doctor.signature and doctor.signature.path:
+            if doctor.signature and hasattr(doctor.signature, "path") and os.path.exists(doctor.signature.path):
                 try:
                     img = Image(doctor.signature.path, width=150, height=50)
                     img.hAlign = 'LEFT'
@@ -164,10 +159,8 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         else:
             elements.append(Paragraph("Doctor details not available", styles['Normal']))
 
-        # Save PDF
         doc.build(elements)
         buffer.seek(0)
-
         consultation.pdf_report.save(
             f"consultation_{consultation.patient.unique_patient_id}.pdf",
             ContentFile(buffer.read()),

@@ -51,13 +51,12 @@ class OptometrySerializer(serializers.ModelSerializer):
         doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=50, bottomMargin=50)
         elements = []
         styles = getSampleStyleSheet()
-        bold_style = ParagraphStyle(name='Bold', parent=styles['Normal'], fontName='Helvetica-Bold')
 
         # Title
         elements.append(Paragraph("Optometry Report", styles['Title']))
         elements.append(Spacer(1, 12))
 
-        # Patient Info
+        # Patient Info Table
         patient = optometry.patient
         test_date = getattr(patient, "test_date", None)
         formatted_test_date = test_date.strftime("%d/%m/%Y") if test_date else "N/A"
@@ -85,7 +84,7 @@ class OptometrySerializer(serializers.ModelSerializer):
         elements.append(info_table)
         elements.append(Spacer(1, 20))
 
-        # Visual Acuity Section
+        # Visual Activity Table
         elements.append(Paragraph("Visual Activity", styles['Heading2']))
         elements.append(Spacer(1, 10))
 
@@ -98,7 +97,6 @@ class OptometrySerializer(serializers.ModelSerializer):
              optometry.cylindrical_right or 'N/A',
              optometry.axis_right or 'N/A',
              optometry.add_right or 'N/A'],
-
             ['Left Eye',
              optometry.far_vision_left or 'N/A',
              optometry.near_vision_left or 'N/A',
@@ -109,13 +107,13 @@ class OptometrySerializer(serializers.ModelSerializer):
         ]
 
         acuity_table = Table(acuity_data, colWidths=[
-            0.16 * usable_width,  # Eye
-            0.16 * usable_width,  # Distance
-            0.16 * usable_width,  # Reading
-            0.14 * usable_width,  # Spherical
-            0.14 * usable_width,  # Cylindrical
-            0.12 * usable_width,  # Axis
-            0.12 * usable_width   # Add
+            0.16 * usable_width,
+            0.16 * usable_width,
+            0.16 * usable_width,
+            0.14 * usable_width,
+            0.14 * usable_width,
+            0.12 * usable_width,
+            0.12 * usable_width,
         ])
         acuity_table.setStyle(TableStyle([
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
@@ -130,27 +128,25 @@ class OptometrySerializer(serializers.ModelSerializer):
         elements.append(acuity_table)
         elements.append(Spacer(1, 20))
 
-        # === Color Vision Check (Ishihara Test) ===
+        # Color Vision Check
         if optometry.color_vision_remark:
-            # ✅ Use Optometrist remark as main statement
             color_vision_text = f"Color vision check (Ishihara test): {optometry.color_vision_remark}"
+        elif optometry.color_vision_normal:
+            color_vision_text = "Color vision check (Ishihara test): Normal vision in both eyes."
         else:
-            if optometry.color_vision_normal:
-                color_vision_text = "Color vision check (Ishihara test): Normal vision in both eyes."
-            else:
-                color_vision_text = f"Color vision check (Ishihara test): Issue noted: {optometry.color_vision_other or 'N/A'}"
+            color_vision_text = f"Color vision check (Ishihara test): Issue noted: {optometry.color_vision_other or 'N/A'}"
 
         elements.append(Paragraph(color_vision_text, styles['Normal']))
         elements.append(Spacer(1, 12))
 
-        # Narrative Summary
+        # Summary
         summary = f"""<b>Visual Activity:</b><br/>
-        Distance (Far): {optometry.far_vision_right or 'N/A'} vision in right eye – {optometry.near_vision_right or 'N/A'} near.<br/>
-        Distance (Far): {optometry.far_vision_left or 'N/A'} vision in left eye – {optometry.near_vision_left or 'N/A'} near."""
+        Distance (Far): {optometry.far_vision_right or 'N/A'} right – {optometry.near_vision_right or 'N/A'} near.<br/>
+        Distance (Far): {optometry.far_vision_left or 'N/A'} left – {optometry.near_vision_left or 'N/A'} near."""
         elements.append(Paragraph(summary, styles['Normal']))
         elements.append(Spacer(1, 30))
 
-        # Optometrist Signature
+        # Signature Block
         elements.append(Spacer(1, 30))
         elements.append(Paragraph("<b>Verified by:</b>", styles['Heading3']))
         elements.append(Spacer(1, 8))

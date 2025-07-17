@@ -1,3 +1,5 @@
+# technician/apps.py
+
 from django.apps import AppConfig
 
 class TechnicianConfig(AppConfig):

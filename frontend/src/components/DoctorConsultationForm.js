@@ -45,76 +45,50 @@ const DoctorConsultationForm = () => {
   const API_BASE_URL = 'http://127.0.0.1:8000/api/technician/doctor-consultation/';
 
   useEffect(() => {
-    if (!patientId) {
-      console.warn('Patient ID not available yet, skipping fetch.');
-      return;
-    }
+    if (!patientId) return;
 
     const fetchInitialData = async () => {
       try {
         setInitialLoading(true);
 
-        // Fetch consultations
-        const response = await fetch(API_BASE_URL, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch consultation data');
-        }
-
+        const response = await fetch(API_BASE_URL);
         const consultations = await response.json();
-        const existingConsultation = consultations.find(
-          c => c.patient_unique_id === patientId || (c.patient && c.patient.unique_patient_id === patientId)
+
+        const existing = consultations.find(
+          c => c.patient_unique_id === patientId || (c.patient?.unique_patient_id === patientId)
         );
 
-        if (existingConsultation) {
-          const p = existingConsultation.patient;
-
-          if (p) {
-            setPatient({
-              patient_name: p.patient_name || patientName || 'N/A',
-              unique_patient_id: p.unique_patient_id || patientId,
-              patient_excel_id: p.patient_excel_id || patientId,
-              age: p.age || 'N/A',
-              gender: p.gender || 'N/A',
-              phone: p.contact_number || 'N/A'
-            });
-          } else {
-            setPatient({
-              patient_name: patientName || 'N/A',
-              unique_patient_id: patientId,
-              patient_excel_id: patientId,
-              age: 'N/A',
-              gender: 'N/A',
-              phone: 'N/A'
-            });
-          }
+        if (existing) {
+          const p = existing.patient;
+          setPatient({
+            patient_name: p?.patient_name || patientName || 'N/A',
+            unique_patient_id: p?.unique_patient_id || patientId,
+            patient_excel_id: p?.patient_excel_id || patientId,
+            age: p?.age || 'N/A',
+            gender: p?.gender || 'N/A',
+            phone: p?.contact_number || 'N/A'
+          });
 
           setFormData(prev => ({
             ...prev,
             patient_unique_id: patientId,
-            doctor: existingConsultation.doctor || null,
-            has_medical_conditions: existingConsultation.has_medical_conditions || 'No',
-            medical_conditions: existingConsultation.medical_conditions || '',
-            has_medications: existingConsultation.has_medications || 'No',
-            medications: existingConsultation.medications || '',
-            has_allergies: existingConsultation.has_allergies || 'No',
-            allergies: existingConsultation.allergies || '',
-            chief_complaint: existingConsultation.chief_complaint || '',
-            history: existingConsultation.history || '',
-            diagnostic_tests: existingConsultation.diagnostic_tests || '',
-            advice: existingConsultation.advice || '',
-            fitness_status: existingConsultation.fitness_status || 'FIT',
-            unfit_reason: existingConsultation.unfit_reason || ''
+            doctor: existing.doctor?.id || null,
+            has_medical_conditions: existing.has_medical_conditions || 'No',
+            medical_conditions: existing.medical_conditions || '',
+            has_medications: existing.has_medications || 'No',
+            medications: existing.medications || '',
+            has_allergies: existing.has_allergies || 'No',
+            allergies: existing.allergies || '',
+            chief_complaint: existing.chief_complaint || '',
+            history: existing.history || '',
+            diagnostic_tests: existing.diagnostic_tests || '',
+            advice: existing.advice || '',
+            fitness_status: existing.fitness_status || 'FIT',
+            unfit_reason: existing.unfit_reason || ''
           }));
         } else {
-          // No existing consultation found
           setPatient({
-            patient_name: patientName || 'N/A',
+            patient_name: patientName,
             unique_patient_id: patientId,
             patient_excel_id: patientId,
             age: 'N/A',
@@ -123,49 +97,16 @@ const DoctorConsultationForm = () => {
           });
         }
 
-        // Fetch doctors
-        try {
-          const doctorResponse = await fetch('http://127.0.0.1:8000/api/technician/doctors/', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (doctorResponse.ok) {
-            const doctorData = await doctorResponse.json();
-            const selectedDoctor = Array.isArray(doctorData) ? doctorData[0] : doctorData;
-
-            setDoctor(selectedDoctor);
-            setFormData(prev => ({
-              ...prev,
-              doctor: selectedDoctor?.id || 1
-            }));
-          }
-        } catch (doctorError) {
-          console.error('Doctor fetch failed:', doctorError);
-          setDoctor({
-            id: 1,
-            name: 'Dr. [Default]',
-            designation: 'Medical Officer',
-            signature: null
-          });
-          setFormData(prev => ({
-            ...prev,
-            doctor: 1
-          }));
+        const doctorRes = await fetch('http://127.0.0.1:8000/api/technician/doctors/');
+        if (doctorRes.ok) {
+          const doctors = await doctorRes.json();
+          const selectedDoctor = Array.isArray(doctors) ? doctors[0] : doctors;
+          setDoctor(selectedDoctor);
+          setFormData(prev => ({ ...prev, doctor: selectedDoctor?.id || null }));
         }
-      } catch (error) {
-        console.error('Error fetching consultation data:', error);
-        setError('Failed to load consultation data. Please try again.');
-        setPatient({
-          patient_name: patientName || 'N/A',
-          unique_patient_id: patientId,
-          patient_excel_id: patientId,
-          age: 'N/A',
-          gender: 'N/A',
-          phone: 'N/A'
-        });
+      } catch (err) {
+        console.error('Init fetch error:', err);
+        setError('Failed to fetch consultation or doctor details.');
       } finally {
         setInitialLoading(false);
       }
@@ -173,7 +114,7 @@ const DoctorConsultationForm = () => {
 
     fetchInitialData();
   }, [patientId, patientName]);
-    
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -189,43 +130,30 @@ const DoctorConsultationForm = () => {
     setSuccess(false);
 
     try {
+      const payload = {
+        ...formData,
+        doctor_id: formData.doctor, // ✅ Set expected backend key
+      };
+      delete payload.doctor; // remove unused frontend field
+
       const response = await fetch(API_BASE_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
+      console.log("Submitting payload:", payload);
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || data.error || 'Failed to submit consultation');
+        throw new Error(result.detail || result.message || 'Failed to submit consultation');
       }
 
       setSuccess(true);
-
-      setFormData({
-        patient_unique_id: patientId || '',
-        doctor: doctor?.id || 1,
-        has_medical_conditions: 'No',
-        medical_conditions: '',
-        has_medications: 'No',
-        medications: '',
-        has_allergies: 'No',
-        allergies: '',
-        chief_complaint: '',
-        history: '',
-        diagnostic_tests: '',
-        advice: '',
-        fitness_status: 'FIT',
-        unfit_reason: ''
-      });
-
-      setTimeout(() => setSuccess(false), 5000);
+      setTimeout(() => setSuccess(false), 4000);
     } catch (err) {
-      console.error('Error submitting consultation:', err);
-      setError(err.message || 'Failed to submit consultation. Please try again.');
+      console.error('Submission error:', err);
+      setError(err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -235,10 +163,12 @@ const DoctorConsultationForm = () => {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading consultation form...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-600 text-center">
+          <div className="mb-4">
+            <div className="h-10 w-10 mx-auto rounded-full border-b-2 border-blue-600 animate-spin"></div>
+          </div>
+          <p>Loading doctor consultation form...</p>
         </div>
       </div>
     );
