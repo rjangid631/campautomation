@@ -29,6 +29,18 @@ class AudiometrySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"patient_unique_id": "Invalid or not found."})
 
         validated_data['patient'] = patient
+
+        # ✅ Check if audiometry already exists for this patient
+        existing_audiometry = Audiometry.objects.filter(patient=patient).first()
+        if existing_audiometry:
+            # Update existing record instead of creating new
+            for attr, value in validated_data.items():
+                setattr(existing_audiometry, attr, value)
+            existing_audiometry.save()
+            self.generate_pdf(existing_audiometry)
+            return existing_audiometry
+
+        # Else create new
         audiometry = super().create(validated_data)
         self.generate_pdf(audiometry)
         return audiometry

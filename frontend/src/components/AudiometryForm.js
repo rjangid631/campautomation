@@ -5,7 +5,7 @@ function AudiometryForm() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { patientId, patientName, technicianId } = location.state || {};
+  const { patientId, patientName, technicianId, serviceId } = location.state || {};
 
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -79,8 +79,7 @@ function AudiometryForm() {
         }
       });
 
-      console.log("Submitting data:", submitData); // ✅ Debug if needed
-
+      // 1. Submit audiometry data
       const res = await fetch("http://127.0.0.1:8000/api/technician/audiometry/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,14 +88,32 @@ function AudiometryForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data?.patient_unique_id || data.message || "Failed to save data");
+        throw new Error(data?.patient_unique_id || data.message || "Failed to save audiometry data");
       }
 
-      setSuccess("Audiometry data saved successfully!");
+      console.log("✅ Audiometry data submitted");
 
-      setTimeout(() => {
-        navigate(-1);
-      }, 2000);
+      // 2. Mark service as completed using serviceId
+      const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          technician_id: technicianId,
+          service_id: serviceId
+        }),
+      });
+
+      if (!completeRes.ok) {
+        const data = await completeRes.json();
+        throw new Error(data?.message || "Failed to mark service as completed");
+      }
+
+      console.log("✅ Service marked as completed");
+
+      setSuccess("Audiometry saved and service marked as completed!");
+      setTimeout(() => navigate(-1), 2000);
+
     } catch (err) {
       setError(err.message || "Error submitting form");
     } finally {

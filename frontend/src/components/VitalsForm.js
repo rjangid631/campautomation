@@ -1,3 +1,4 @@
+// Updated VitalsForm with service completion logic
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -5,7 +6,7 @@ function VitalsForm() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { patientId, patientName, technicianId } = location.state || {};
+  const { patientId, patientName, technicianId, serviceId } = location.state || {};
 
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,15 +48,12 @@ function VitalsForm() {
     if (formData.height && (parseFloat(formData.height) < 50 || parseFloat(formData.height) > 300)) {
       errors.push("Height should be between 50 and 300 cm");
     }
-
     if (formData.weight && (parseFloat(formData.weight) < 1 || parseFloat(formData.weight) > 500)) {
       errors.push("Weight should be between 1 and 500 kg");
     }
-
     if (formData.bp && !/^\d{2,3}\/\d{2,3}$/.test(formData.bp)) {
       errors.push("Blood pressure should be in format like 120/80");
     }
-
     if (formData.pulse && (parseInt(formData.pulse) < 30 || parseInt(formData.pulse) > 300)) {
       errors.push("Pulse should be between 30 and 300 bpm");
     }
@@ -88,8 +86,7 @@ function VitalsForm() {
       if (submitData.weight) submitData.weight = parseFloat(submitData.weight);
       if (submitData.pulse) submitData.pulse = parseInt(submitData.pulse);
 
-      console.log("Submitting data:", submitData);
-
+      // 1. Submit vitals data
       const res = await fetch("http://127.0.0.1:8000/api/technician/vitals/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,14 +95,31 @@ function VitalsForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data?.patient_unique_id || data.message || "Failed to save data");
+        throw new Error(data?.message || "Failed to save vitals data");
       }
 
-      setSuccess("Vitals data saved successfully! PDF report has been generated.");
+      console.log("✅ Vitals data submitted");
 
-      setTimeout(() => {
-        navigate(-1);
-      }, 2000);
+      // 2. Mark service as completed
+      const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: patientId,
+          technician_id: technicianId,
+          service_id: serviceId,
+        }),
+      });
+
+      if (!completeRes.ok) {
+        const data = await completeRes.json();
+        throw new Error(data?.message || "Failed to mark service as completed");
+      }
+
+      console.log("✅ Service marked as completed");
+      setSuccess("Vitals data saved and service marked as completed!");
+      setTimeout(() => navigate(-1), 2000);
+
     } catch (err) {
       setError(err.message || "Error submitting form");
     } finally {

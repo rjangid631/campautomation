@@ -13,6 +13,7 @@ from clients.views.copypriceview import CopyPriceViewSet
 from clients.views.pdfuploadview import PDFUploadView, generate_pdf_view
 from clients.views.clientview import ClientRegisterView
 from clients.views.clientviewset import ClientViewSet
+from clients.views.service_id_lookup import get_service_id_by_name
 from clients.views.serviceviewset import ServiceViewSet
 from clients.views.packageview import PackageViewSet
 
@@ -29,6 +30,7 @@ router.register(r'packages', PackageViewSet)
 router.register(r'clients', ClientViewSet, basename='clients')
 
 urlpatterns = [
+    path('service-id/', get_service_id_by_name, name='get-service-id'),
     path('', include(router.urls)),
     path('login/', ClientLoginView.as_view(), name='client-login'),
     path('register/', ClientRegisterView.as_view(), name='client-register'),

@@ -18,6 +18,7 @@ class Package(models.Model):
         related_name='assigned_packages',
         blank=True
     )
+    is_completed = models.BooleanField(default=False)
 
     def clean(self):
         if self.end_date < self.start_date:

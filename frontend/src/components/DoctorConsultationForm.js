@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   User,
@@ -12,11 +12,13 @@ import {
 
 const DoctorConsultationForm = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = location.state || {};
 
   const patientId = state?.patientId || '';
   const patientName = state?.patientName || '';
   const technicianId = state?.technicianId || '';
+  const serviceId = state?.serviceId || '';
 
   const [patient, setPatient] = useState(null);
   const [doctor, setDoctor] = useState(null);
@@ -24,10 +26,11 @@ const DoctorConsultationForm = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [existingConsultationId, setExistingConsultationId] = useState(null);
 
   const [formData, setFormData] = useState({
     patient_unique_id: patientId || '',
-    doctor: null,
     has_medical_conditions: 'No',
     medical_conditions: '',
     has_medications: 'No',
@@ -45,12 +48,17 @@ const DoctorConsultationForm = () => {
   const API_BASE_URL = 'http://127.0.0.1:8000/api/technician/doctor-consultation/';
 
   useEffect(() => {
-    if (!patientId) return;
+    if (!patientId || !patientName) {
+      setError("Missing patient information. Please go back and try again.");
+      setInitialLoading(false);
+      return;
+    }
 
     const fetchInitialData = async () => {
       try {
         setInitialLoading(true);
 
+        // Fetch existing consultations
         const response = await fetch(API_BASE_URL);
         const consultations = await response.json();
 
@@ -59,6 +67,9 @@ const DoctorConsultationForm = () => {
         );
 
         if (existing) {
+          setIsEditing(true);
+          setExistingConsultationId(existing.id);
+          
           const p = existing.patient;
           setPatient({
             patient_name: p?.patient_name || patientName || 'N/A',
@@ -72,7 +83,6 @@ const DoctorConsultationForm = () => {
           setFormData(prev => ({
             ...prev,
             patient_unique_id: patientId,
-            doctor: existing.doctor?.id || null,
             has_medical_conditions: existing.has_medical_conditions || 'No',
             medical_conditions: existing.medical_conditions || '',
             has_medications: existing.has_medications || 'No',
@@ -97,12 +107,12 @@ const DoctorConsultationForm = () => {
           });
         }
 
+        // Fetch doctor information
         const doctorRes = await fetch('http://127.0.0.1:8000/api/technician/doctors/');
         if (doctorRes.ok) {
           const doctors = await doctorRes.json();
           const selectedDoctor = Array.isArray(doctors) ? doctors[0] : doctors;
           setDoctor(selectedDoctor);
-          setFormData(prev => ({ ...prev, doctor: selectedDoctor?.id || null }));
         }
       } catch (err) {
         console.error('Init fetch error:', err);
@@ -130,27 +140,105 @@ const DoctorConsultationForm = () => {
     setSuccess(false);
 
     try {
-      const payload = {
-        ...formData,
-        doctor_id: formData.doctor, // ✅ Set expected backend key
-      };
-      delete payload.doctor; // remove unused frontend field
+      // Prepare submission data - remove empty strings for optional fields
+      const submitData = { ...formData };
+      
+      // Fields that should remain as-is (required or have default values)
+      const requiredFields = [
+        'patient_unique_id', 
+        'has_medical_conditions', 
+        'has_medications', 
+        'has_allergies', 
+        'fitness_status'
+      ];
 
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      // Convert empty strings to empty string (not null) for optional text fields
+      // The serializer will handle empty strings appropriately
+      Object.keys(submitData).forEach((key) => {
+        if (!requiredFields.includes(key)) {
+          if (submitData[key] === null || submitData[key] === undefined) {
+            submitData[key] = '';
+          }
+        }
       });
-      console.log("Submitting payload:", payload);
 
-      const result = await response.json();
+      // Special handling for conditional fields
+      if (submitData.has_medical_conditions === 'No') {
+        submitData.medical_conditions = '';
+      }
+      if (submitData.has_medications === 'No') {
+        submitData.medications = '';
+      }
+      if (submitData.has_allergies === 'No') {
+        submitData.allergies = '';
+      }
+      if (submitData.fitness_status === 'FIT') {
+        submitData.unfit_reason = '';
+      }
+
+      console.log("Submitting consultation payload:", submitData);
+
+      // 1. Submit or Update Doctor Consultation Data
+      const method = isEditing ? 'PUT' : 'POST';
+      const url = isEditing ? `${API_BASE_URL}${existingConsultationId}/` : API_BASE_URL;
+
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submitData),
+      });
 
       if (!response.ok) {
-        throw new Error(result.detail || result.message || 'Failed to submit consultation');
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        
+        // Handle validation errors
+        if (errorData.patient_unique_id) {
+          throw new Error(errorData.patient_unique_id[0] || errorData.patient_unique_id);
+        }
+        if (errorData.doctor) {
+          throw new Error(errorData.doctor[0] || errorData.doctor);
+        }
+        if (errorData.detail) {
+          throw new Error(errorData.detail);
+        }
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+        
+        throw new Error('Failed to submit consultation');
+      }
+
+      const result = await response.json();
+      console.log(`✅ Doctor consultation ${isEditing ? 'updated' : 'created'} successfully:`, result);
+
+      // 2. Mark Service as Completed (if serviceId and technicianId are provided)
+      if (serviceId && technicianId) {
+        const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patient_id: patientId,
+            technician_id: technicianId,
+            service_id: serviceId,
+          }),
+        });
+
+        if (!completeRes.ok) {
+          const completeData = await completeRes.json();
+          throw new Error(completeData?.message || "Failed to mark service as completed");
+        }
+
+        console.log("✅ Service marked as completed");
       }
 
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 4000);
+      
+      // Navigate back after successful submission
+      setTimeout(() => {
+        navigate(-1);
+      }, 2000);
+
     } catch (err) {
       console.error('Submission error:', err);
       setError(err.message || 'Something went wrong.');
@@ -159,7 +247,29 @@ const DoctorConsultationForm = () => {
     }
   };
 
-  const handleBack = () => window.history.back();
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  // Error state for missing patient information
+  if (!patientId || !patientName) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-red-50 border border-red-300 p-6 rounded mb-6">
+            <p className="text-red-800 font-semibold">Error</p>
+            <p className="text-red-600">Missing patient information. Please go back and select a patient.</p>
+            <button
+              onClick={handleBack}
+              className="mt-4 bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+            >
+              ← Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (initialLoading) {
     return (
@@ -181,24 +291,26 @@ const DoctorConsultationForm = () => {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Doctor Consultation Form</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {isEditing ? 'Edit Doctor Consultation' : 'Doctor Consultation Form'}
+              </h1>
               <p className="text-gray-600">
-                Consulting for: {patient?.patient_name || patientName || 'Loading...'}
-                {patientId && (
-                  <span className="ml-4 text-sm text-gray-500">
-                    ID: {patientId}
-                  </span>
-                )}
+                Patient: {patient?.patient_name || patientName} | ID: {patientId}
                 {technicianId && (
                   <span className="ml-4 text-sm text-gray-500">
                     Technician ID: {technicianId}
+                  </span>
+                )}
+                {serviceId && (
+                  <span className="ml-4 text-sm text-gray-500">
+                    Service ID: {serviceId}
                   </span>
                 )}
               </p>
             </div>
             <button 
               onClick={handleBack}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               <ArrowLeft size={16} />
               Back
@@ -210,7 +322,10 @@ const DoctorConsultationForm = () => {
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
             <CheckCircle className="text-green-600" size={20} />
-            <span className="text-green-800">Consultation submitted successfully!</span>
+            <span className="text-green-800">
+              Consultation {isEditing ? 'updated' : 'submitted'} successfully!
+              {serviceId && " Service marked as completed."}
+            </span>
           </div>
         )}
 
@@ -302,6 +417,7 @@ const DoctorConsultationForm = () => {
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={formData.has_medical_conditions === 'No'}
+                  placeholder="Specify medical conditions..."
                 />
               </div>
 
@@ -342,6 +458,7 @@ const DoctorConsultationForm = () => {
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={formData.has_medications === 'No'}
+                  placeholder="Specify current medications..."
                 />
               </div>
 
@@ -382,6 +499,7 @@ const DoctorConsultationForm = () => {
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={formData.has_allergies === 'No'}
+                  placeholder="Specify allergies..."
                 />
               </div>
             </div>
@@ -538,14 +656,16 @@ const DoctorConsultationForm = () => {
 
           {/* Submit Button */}
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <button
-              onClick={handleSubmit}
-              disabled={loading || !formData.patient_unique_id}
-              className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-              {loading ? 'Submitting...' : 'Submit Consultation'}
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !formData.patient_unique_id}
+                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+                {loading ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Consultation' : 'Submit Consultation')}
+              </button>
+            </div>
           </div>
         </div>
       </div>

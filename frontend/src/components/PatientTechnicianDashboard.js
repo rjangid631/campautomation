@@ -18,7 +18,6 @@ function PatientTechnicianDashboard() {
       setLoading(false);
       return;
     }
-
     fetchPatients();
   }, [packageId, technicianId]);
 
@@ -78,21 +77,50 @@ function PatientTechnicianDashboard() {
     return serviceRoutes[normalized] || null;
   };
 
-
-  const handleServiceClick = (service, patient) => {
-    const trimmedService = service.trim();
-    const route = getServiceRoute(trimmedService);
-    console.log("Clicked service:", trimmedService, "Route:", route); // Optional debug
-
-    if (route) {
-      navigate(route, {
-        state: {
-          patientId: patient.unique_patient_id,
-          patientName: patient.name,
-          technicianId: technicianId
-        }
-      });
+  const fetchServiceIdByName = async (serviceName) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/service-id/?name=${encodeURIComponent(serviceName)}`);
+      if (!response.ok) {
+        console.error("❌ Failed to fetch service ID for:", serviceName);
+        return null;
+      }
+      const data = await response.json();
+      return data.id;
+    } catch (err) {
+      console.error("❌ Error fetching service ID:", err);
+      return null;
     }
+  };
+
+  const handleServiceClick = async (serviceName, patient) => {
+    const trimmedService = serviceName.trim();
+    const route = getServiceRoute(trimmedService);
+
+    if (!route) {
+      alert(`No route defined for service: "${trimmedService}"`);
+      return;
+    }
+
+    const serviceId = await fetchServiceIdByName(trimmedService);
+    if (!serviceId) {
+      alert(`Service ID not found for: "${trimmedService}"`);
+      return;
+    }
+
+    console.log("🔁 Navigating to form with:", {
+      patientId: patient.unique_patient_id,
+      technicianId,
+      serviceId
+    });
+
+    navigate(route, {
+      state: {
+        patientId: patient.unique_patient_id,
+        patientName: patient.name,
+        technicianId: technicianId,
+        serviceId: serviceId
+      }
+    });
   };
 
   const generateQRCode = (patientId) =>

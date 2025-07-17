@@ -13,7 +13,7 @@ FINDING_CHOICES = [
 ]
 
 class Audiometry(models.Model):
-    patient = models.OneToOneField(PatientData, on_delete=models.CASCADE, related_name='audiometry')
+    patient = models.ForeignKey(PatientData, on_delete=models.CASCADE, related_name='audiometries')
 
     # Left Air Conduction (in dB at different frequencies)
     left_air_250 = models.IntegerField(null=True, blank=True)
