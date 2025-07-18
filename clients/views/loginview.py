@@ -30,7 +30,7 @@ class ClientLoginView(APIView):
             response_data = {
                 "access": str(access),
                 "refresh": str(refresh),
-                "login_type": client.login_type.lower() if client.login_type else "client",
+                "login_type": client.login_type or "Client",
                 "name": client.name,
                 "client_id": client.client_id or "",
                 "user_id": client.id,

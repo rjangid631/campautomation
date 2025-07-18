@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getServiceCosts, submitCostDetails } from './api';
+import { useLocation } from 'react-router-dom';
 
 const defaultCostValues = {
   travel: 0,
@@ -8,280 +9,206 @@ const defaultCostValues = {
 };
 
 const serviceCalculationRules = {
-  'X-ray': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Coordinator': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'ECG': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Form 7': {
-    getSalary: (salary, totalCase) => salary * totalCase,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'PFT': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Audiometry': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Optometry': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Doctor Consultation': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Dental Consultation': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Vitals': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'BMD': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Tetanus Vaccine': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
-  'Typhoid Vaccine': {
-    getSalary: (salary, days) => salary * days,
-    getConsumables: (consumables, totalCase) => consumables * totalCase,
-    getReporting: (reporting, totalCase) => reporting * totalCase,
-    getIncentive: (incentive, days) => incentive * days,
-  },
+  'X-ray':          { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Coordinator':    { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'ECG':            { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Form 7':         { getSalary: (s,t)=>s*t, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'PFT':            { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Audiometry':     { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Optometry':      { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Doctor Consultation': { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Dental Consultation': { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Vitals':         { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'BMD':            { getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Tetanus Vaccine':{ getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
+  'Typhoid Vaccine':{ getSalary: (s,d)=>s*d, getConsumables:(c,t)=>c*t, getReporting:(r,t)=>r*t, getIncentive:(i,d)=>i*d },
 };
 
-function CostCalculation({ caseData, onSubmit, companyId }) {
-  const [costDetails, setCostDetails] = useState({});
-  const [initialized, setInitialized] = useState(false);
+const defaultPrices = {
+  'CBC': 20, 'Complete Hemogram': 40, 'Hemoglobin': 60, 'Urine Routine': 90,
+  'Stool Examination': 100, 'Lipid Profile': 30, 'Kidney Profile': 50,
+  'LFT': 70, 'KFT': 80, 'Random Blood Glucose': 45, 'Blood Grouping': 65,
+};
 
-  // Fetch service costs and initialize costDetails
+function CostCalculation({ onSubmit }) {
+  const { state } = useLocation();
+  const { caseData = {}, companyId = '' } = state || {};
+
+  const [costDetails, setCostDetails]   = useState({});
+  const [initialized, setInitialized]   = useState(false);
+  const [detailsInit, setDetailsInit]   = useState(false);
+
+  // 1️⃣ Fetch master cost list once
   useEffect(() => {
-    const fetchServiceCosts = async () => {
+    (async () => {
       try {
-        const costData = await getServiceCosts();
-        const formattedCostData = costData.reduce((acc, cost) => {
-          acc[cost.test_type_name] = {
-            salary: parseFloat(cost.salary),
-            incentive: parseFloat(cost.incentive),
-            misc: parseFloat(cost.misc),
-            equipment: parseFloat(cost.equipment),
-            consumables: parseFloat(cost.consumables),
-            reporting: parseFloat(cost.reporting),
+        const list = await getServiceCosts();
+        const map = list.reduce((acc, c) => {
+          acc[c.test_type_name] = {
+            salary:     +c.salary,
+            incentive:  +c.incentive,
+            misc:       +c.misc,
+            equipment:  +c.equipment,
+            consumables:+c.consumables,
+            reporting:  +c.reporting,
           };
           return acc;
         }, {});
-        setCostDetails(formattedCostData);
+        setCostDetails(map);
         setInitialized(true);
-      } catch (error) {
-        console.error('Error fetching service costs:', error);
-      }
-    };
-  
-    if (!initialized) {
-      fetchServiceCosts();
-    }
-  }, [initialized]);
+      } catch (e) { console.error(e); }
+    })();
+  }, []);
 
-  // Initialize the cost details with case data
+  // 2️⃣ Merge with caseData only once
   useEffect(() => {
-    if (initialized && caseData) {
-      const initialDetails = {};
-      
-      // Convert caseData array to object with service_name as key
-      const caseDataObj = caseData.reduce((acc, item) => {
-        acc[item.service_name] = {
-          totalCase: item.total_case,
-          reportTypeCost: item.report_type_cost,
-          numberOfDays: item.number_of_days
-        };
-        return acc;
-      }, {});
-      
-      Object.keys(caseDataObj).forEach(service => {
-        const { totalCase = 0, reportTypeCost = 0, numberOfDays = 0 } = caseDataObj[service] || {};
-        initialDetails[service] = {
-          ...defaultCostValues,
-          ...costDetails[service],
-          reportTypeCost,
-          totalCase,
-          numberOfDays,
-        };
-      });
-      setCostDetails(initialDetails);
-    }
-  }, [caseData, initialized]);
+    if (!initialized || detailsInit || !caseData) return;
 
-  const handleChange = (service, field, value) => {
-    setCostDetails(prev => ({
-      ...prev,
-      [service]: {
-        ...prev[service],
-        [field]: value,
-      },
-    }));
-  };
-
-  const calculateAllDetails = useCallback(() => {
-    const details = {};
-    
-    if (!caseData) return details;
-
-    caseData.forEach(item => {
-      const testType = item.service_name;
-      const { total_case: totalCase = 0, number_of_days: numberOfDays = 0, report_type_cost: reportTypeCost = 0 } = item;
-      const rules = serviceCalculationRules[testType] || serviceCalculationRules['X-ray']; // Default to X-ray rules
-
-      const salary = rules.getSalary(costDetails[testType]?.salary || 0, testType === 'Form 7' ? totalCase : numberOfDays);
-      const consumables = rules.getConsumables(costDetails[testType]?.consumables || 0, totalCase);
-      const reporting = rules.getReporting(costDetails[testType]?.reporting || 0, totalCase);
-      const incentive = rules.getIncentive(costDetails[testType]?.incentive || 0, numberOfDays);
-      const misc = costDetails[testType]?.misc || 0;
-      const equipment = costDetails[testType]?.equipment || 0;
-      const travel = costDetails[testType]?.travel || 0;
-      const stay = costDetails[testType]?.stay || 0;
-      const food = costDetails[testType]?.food || 0;
-
-      const overhead = (salary + incentive + misc + equipment + reportTypeCost + consumables + reporting + travel + stay + food) * 1.5;
-      const tPrice = overhead * 1.3;
-
-      details[testType] = {
-        salary,
-        incentive,
-        consumables,
-        reporting,
-        misc,
-        equipment,
-        travel,
-        stay,
-        food,
+    const merged = {};
+    Object.entries(caseData).forEach(([key, data]) => {
+      const { packageId, totalCase = 0, numberOfDays = 0, reportTypeCost = 0 } = data;
+      const service = key.split('__')[1];        // key = "58__X-ray__0"
+      merged[key] = {
+        ...defaultCostValues,
+        ...costDetails[service],
         reportTypeCost,
-        overhead,
-        tPrice,
-        unitPrice: totalCase ? tPrice / totalCase : 0,
+        totalCase,
+        numberOfDays,
+        tPrice: defaultPrices[service]
+          ? (costDetails[service]?.reporting || 0) + reportTypeCost
+          : undefined,
       };
     });
-    
-    return details;
-  }, [caseData, costDetails]);
+    setCostDetails(merged);
+    setDetailsInit(true);
+  }, [caseData, costDetails, initialized, detailsInit]);
+
+  const handleChange = (serviceKey, field, value) =>
+    setCostDetails(prev => ({ ...prev, [serviceKey]: { ...prev[serviceKey], [field]: +value } }));
+
+  // 3️⃣ Calculate grouped by real packageId
+  const calculateAllDetails = useCallback(() => {
+    if (!detailsInit || !caseData) return {};
+
+    const grouped = {};
+    Object.entries(caseData).forEach(([serviceKey, data]) => {
+      const { packageId, totalCase, numberOfDays, reportTypeCost } = data;
+      const service = serviceKey.split('__')[1];
+      const rules = serviceCalculationRules[service];
+
+      if (!grouped[packageId]) grouped[packageId] = {};
+
+      if (defaultPrices[service]) {
+        const tPrice = costDetails[serviceKey]?.tPrice || defaultPrices[service];
+        grouped[packageId][service] = {
+          salary:0, incentive:0, consumables:0, reporting:tPrice, misc:0, equipment:0,
+          travel:0, stay:0, food:0, reportTypeCost, overhead:0,
+          tPrice, unitPrice: tPrice / (totalCase || 1)
+        };
+      } else if (costDetails[serviceKey] && rules) {
+        const { salary, incentive, misc, equipment, consumables, reporting, travel, stay, food } = costDetails[serviceKey];
+        const s = rules.getSalary(salary || 0, service === 'Form 7' ? totalCase : numberOfDays);
+        const c = rules.getConsumables(consumables || 0, totalCase);
+        const r = rules.getReporting(reporting || 0, totalCase);
+        const i = rules.getIncentive(incentive || 0, numberOfDays);
+        const overhead = (s + i + misc + equipment + reportTypeCost + c + r + travel + stay + food) * 1.5;
+        const tPrice = overhead * 1.3;
+
+        grouped[packageId][service] = {
+          salary:s, incentive:i, consumables:c, reporting:r, misc, equipment,
+          travel, stay, food, reportTypeCost, overhead, tPrice,
+          unitPrice: ['vitals','optometry','audiometry'].includes(service.toLowerCase())
+            ? (totalCase < 100 ? tPrice / totalCase : tPrice / 100)
+            : totalCase ? tPrice / totalCase : 0
+        };
+      }
+    });
+    return grouped;
+  }, [caseData, costDetails, detailsInit]);
 
   const allDetails = calculateAllDetails();
 
+  // 4️⃣ Submit grouped by packageId
   const handleSubmit = async () => {
     try {
-      const finalDetails = calculateAllDetails();
-      await submitCostDetails(companyId, Object.keys(finalDetails).reduce((acc, service) => {
-        const { travel, stay, food, salary, misc, equipment, consumables, reporting } = finalDetails[service];
-        acc[service] = { travel, stay, food, salary, misc, equipment, consumables, reporting };
-        return acc;
-      }, {}));
-      onSubmit(finalDetails);
-    } catch (error) {
-      console.error('Error submitting cost details:', error);
-    }
+      for (const [packageId, services] of Object.entries(allDetails)) {
+        const payload = {};
+        Object.entries(services).forEach(([service, v]) => {
+          payload[service] = {
+            travel: v.travel, stay: v.stay, food: v.food,
+            salary: v.salary, misc: v.misc, equipment: v.equipment,
+            consumables: v.consumables, reporting: v.reporting,
+          };
+        });
+        await submitCostDetails(companyId, payload, packageId);
+      }
+      onSubmit(allDetails);
+    } catch (e) { console.error('Submit error:', e); }
   };
+
+  if (!detailsInit) return <p className="text-center text-blue-600">Loading…</p>;
 
   return (
     <div className="p-4">
       <h2 className="text-2xl mb-4">Cost Calculation</h2>
-      <div className="space-y-4">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-6 py-3">Test Type</th>
-              <th className="px-6 py-3">Travel</th>
-              <th className="px-6 py-3">Stay</th>
-              <th className="px-6 py-3">Food</th>
-              <th className="px-6 py-3">Total Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {caseData && caseData.map(item => {
-              const service = item.service_name;
-              const details = allDetails[service];
-              return (
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead>
+          <tr>
+            <th className="px-6 py-3">Test Type</th>
+            <th className="px-6 py-3">Travel</th>
+            <th className="px-6 py-3">Stay</th>
+            <th className="px-6 py-3">Food</th>
+            <th className="px-6 py-3">Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(allDetails).map(([packageId, services]) => (
+            <React.Fragment key={packageId}>
+              <tr>
+                <td colSpan="5" className="font-bold bg-gray-100 px-6 py-3">
+                  Package ID: {packageId}
+                </td>
+              </tr>
+              {Object.entries(services).map(([service, d]) => (
                 <tr key={service}>
                   <td className="px-6 py-4">{service}</td>
                   <td className="px-6 py-4">
-                    <input
-                      type="number"
-                      value={costDetails[service]?.travel || 0}
-                      onChange={e => handleChange(service, 'travel', +e.target.value)}
-                      className="p-2 border"
-                    />
+                    <input type="number" className="p-2 border w-20"
+                      value={costDetails[`${packageId}__${service}__0`]?.travel ?? 0}
+                      onChange={e=>handleChange(`${packageId}__${service}__0`,'travel',e.target.value)} />
                   </td>
                   <td className="px-6 py-4">
-                    <input
-                      type="number"
-                      value={costDetails[service]?.stay || 0}
-                      onChange={e => handleChange(service, 'stay', +e.target.value)}
-                      className="p-2 border"
-                    />
+                    <input type="number" className="p-2 border w-20"
+                      value={costDetails[`${packageId}__${service}__0`]?.stay ?? 0}
+                      onChange={e=>handleChange(`${packageId}__${service}__0`,'stay',e.target.value)} />
                   </td>
                   <td className="px-6 py-4">
-                    <input
-                      type="number"
-                      value={costDetails[service]?.food || 0}
-                      onChange={e => handleChange(service, 'food', +e.target.value)}
-                      className="p-2 border"
-                    />
+                    <input type="number" className="p-2 border w-20"
+                      value={costDetails[`${packageId}__${service}__0`]?.food ?? 0}
+                      onChange={e=>handleChange(`${packageId}__${service}__0`,'food',e.target.value)} />
                   </td>
                   <td className="px-6 py-4">
-                    {details?.tPrice?.toFixed(2)}
+                    {defaultPrices[service] ? (
+                      <input type="number" className="p-2 border w-20"
+                        value={costDetails[`${packageId}__${service}__0`]?.tPrice ?? defaultPrices[service]}
+                        onChange={e=>handleChange(`${packageId}__${service}__0`,'tPrice',e.target.value)} />
+                    ) : d.tPrice.toFixed(2)
+                    }
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <div className="flex justify-between mt-4">
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center"
-          >
-            Submit
-          </button>
-        </div>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex justify-between mt-4">
+        <button onClick={handleSubmit}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          Submit
+        </button>
       </div>
     </div>
   );
 }
 
-export default CostCalculation; 
+export default CostCalculation;

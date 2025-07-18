@@ -285,9 +285,11 @@ const CampDetails = ({ onNext }) => {
               onChange={e => setSelectedClientId(e.target.value)}
             >
               <option value="">-- Select Client --</option>
-              {clients.map(client => (
+              {clients
+              .filter(client => client.login_type === 'Client') 
+              .map(client => (
                 <option key={client.id} value={client.id}>
-                  {client.name} ({client.email})
+                  {client.name} ({client.email}) - {client.login_type}
                 </option>
               ))}
             </select>

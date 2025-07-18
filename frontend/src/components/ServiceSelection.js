@@ -112,9 +112,7 @@ function ServiceSelection({ userType }) {
       if (!companyId) throw new Error('❌ Client ID missing.');
 
       const campId = localStorage.getItem('campId');
-      if (!campId) throw new Error('❌ Camp ID missing from localStorage. Make sure CampDetails.js saved it correctly.');
-
-      console.log('✅ Using campId:', campId);
+      if (!campId) throw new Error('❌ Camp ID missing from localStorage.');
 
       const invalid = packages.some(pkg =>
         !pkg.name || !pkg.start_date || !pkg.end_date || pkg.services.length === 0
@@ -145,14 +143,42 @@ function ServiceSelection({ userType }) {
       console.log('📦 Sending payload:', JSON.stringify(payload, null, 2));
       const response = await creatservices(payload);
 
-      const returnedData = response.data?.data;
-      if (response.data?.success && returnedData) {
-        console.log('✅ Package save success:', returnedData);
-        handleServiceSelectionNext(payload.packages, companyId);
-      } else {
+      const returnedData = response.data?.data?.packages;
+
+      if (!response.data?.success || !Array.isArray(returnedData)) {
         console.warn("📭 Unexpected backend response:", response.data);
         throw new Error('Invalid backend response or packages missing');
       }
+
+      if (returnedData.length !== packages.length) {
+        throw new Error("Backend did not return expected number of packages");
+      }
+
+      const packagesWithIds = packages.map((pkg, index) => {
+        const backendPkg = returnedData[index];
+        if (!backendPkg?.id) {
+          throw new Error(`Invalid backend response at index ${index}`);
+        }
+
+        return {
+          id: backendPkg.id,
+          name: pkg.name,
+          start_date: pkg.start_date,
+          end_date: pkg.end_date,
+          services: pkg.services,
+          pathologyOptions: pkg.pathologyOptions || []
+        };
+      });
+
+      const flatServices = packagesWithIds.flatMap(pkg =>
+        pkg.services.includes('Pathology')
+          ? [...pkg.services.filter(s => s !== 'Pathology'), ...pkg.pathologyOptions]
+          : pkg.services
+      );
+
+      console.log("✅ Final package list with IDs:", packagesWithIds);
+      handleServiceSelectionNext(packagesWithIds, flatServices);
+
     } catch (err) {
       console.error("❌ Save error:", err);
       alert(err.message || 'Error saving packages');
