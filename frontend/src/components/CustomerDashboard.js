@@ -39,13 +39,18 @@ const CustomerDashboard = () => {
 
   // Load from localStorage
 const rawClientId = localStorage.getItem("clientId");
+console.log("🗃 Raw clientId from localStorage:", rawClientId);
 const finalClientId = rawClientId && !rawClientId.startsWith("CL-") ? `CL-${rawClientId}` : rawClientId;
+console.log("✅ Final clientId used for fetch:", finalClientId);
 
-const clientId = finalClientId; // For API call
-const clientIdString = finalClientId; // For Camps API
+const clientId = localStorage.getItem('clientId') || '';
+console.log("✅ Final clientId used for fetch:", clientId);
+
+const clientIdString = clientId;           // for Camps API
+console.log("🔤 Client ID String:", clientIdString);
 
 console.log("✅ Final clientId used for fetch:", clientId);
-console.log("🔤 Client ID String:", clientIdString);
+
 
 
   useEffect(() => {

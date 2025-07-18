@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from clients.models.client import Client
 from clients.models.camp import Camp
-from clients.Serializersclient.campserializer import CampSerializer
+from clients.serializers.campserializer import CampSerializer
 
 class ClientCampViewSet(viewsets.ModelViewSet):
     serializer_class = CampSerializer

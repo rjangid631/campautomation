@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from clients.models.testdata import TestData
-from clients.Serializersclient.testcasedata import TestCaseDataSerializer
+from clients.serializers.testcasedata import TestCaseDataSerializer
 
 class TestCaseDataViewSet(viewsets.ModelViewSet):
     queryset = TestData.objects.all()

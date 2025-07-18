@@ -2,6 +2,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from technician.Views.audiometryviewset import AudiometryViewSet
+from technician.Views.dental import DentalConsultationViewSet
+from technician.Views.dentistviewset import DentistViewSet
 from technician.Views.doctor_viewset import DoctorViewSet
 from technician.Views.doctorconsultationviewset import DoctorConsultationViewSet
 from technician.Views.optometristviewset import OptometristViewSet
@@ -23,7 +25,8 @@ router.register(r'doctor-consultation', DoctorConsultationViewSet, basename='doc
 router.register(r'doctors', DoctorViewSet, basename='doctor') # ✅ Register DoctorViewSet
 router.register(r'optometrists', OptometristViewSet) # ✅ Register OptometristViewSet
 router.register(r'service-logs', ServiceLogViewSet, basename='service-log')
-
+router.register(r'dental-consultation', DentalConsultationViewSet, basename='dental-consultation')
+router.register(r'dentists', DentistViewSet, basename='dentists')
 
 urlpatterns = [
     path('', include(router.urls)),

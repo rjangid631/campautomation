@@ -69,11 +69,12 @@ const handleCoordinatorLogin = async (e) => {
     const { username, password } = formData;
 
     try {
-      const { role, username: user, clientId, token } = await loginAsCustomer(username, password);
+      const { role, name, clientId } = await loginAsCustomer(username, password);
+
       localStorage.setItem("role", role);
-      localStorage.setItem("username", user);
-      localStorage.setItem("clientId", clientId);
-      localStorage.setItem("token", token);
+      localStorage.setItem("username", name);
+      localStorage.setItem("clientId", clientId); // ✅ Store actual client_id like "CL-ABC123"
+
       onLogin(role, clientId);
       navigate("/customer-dashboard");
     } catch (error) {

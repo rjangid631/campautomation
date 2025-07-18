@@ -10,395 +10,246 @@ const api = axios.create({
   },
 });
 
-// ✅ Attach token for authenticated requests
+// ✅ Attach JWT access token to all requests
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Token ${token}`;
+    const token = localStorage.getItem('access_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   error => Promise.reject(error)
 );
 
+// ✅ Handle 401 errors by refreshing token
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      localStorage.getItem('refresh_token')
+    ) {
+      originalRequest._retry = true;
+      try {
+        const refreshRes = await axios.post(`${BASE_URL}/api/token/refresh/`, {
+          refresh: localStorage.getItem('refresh_token'),
+        });
+
+        const newAccess = refreshRes.data.access;
+        localStorage.setItem('access_token', newAccess);
+
+        api.defaults.headers.common['Authorization'] = `Bearer ${newAccess}`;
+        originalRequest.headers['Authorization'] = `Bearer ${newAccess}`;
+        return api(originalRequest);
+      } catch (err) {
+        console.error("Token refresh failed:", err);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        return Promise.reject(err);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // ✅ LOGIN: Customer
 export const loginAsCustomer = async (email, password) => {
   try {
+    console.log("🚀 Attempting login for:", email);
+
     const response = await fetch(`${BASE_URL}/api/login/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username: email, password }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
     });
+
+    console.log("📡 Login response status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("❌ Login failed:", errorData);
       throw new Error(errorData.detail || 'Login failed');
     }
 
     const data = await response.json();
+    console.log("✅ Login successful. Raw response data:", data);
 
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-    }
+    // Log token info
+    console.log("🔐 Access Token:", data.access);
+    console.log("🔁 Refresh Token:", data.refresh);
 
+    // Log client details
+    console.log("🧾 Role:", data.login_type);
+    console.log("🆔 clientId:", data.client_id);
+    console.log("👤 Name:", data.name);
+    console.log("🧑‍💻 userId:", data.user_id);
+    // ✅ Store tokens
+    localStorage.setItem('access_token', data.access);
+    localStorage.setItem('refresh_token', data.refresh);
+    localStorage.setItem('clientId', data.client_id); 
+    console.log("📦 About to store client_id:", data.client_id);
     return {
-      role: 'Customer',
-      clientId: data.clientId,
-      name: data.username || data.name,
-      token: data.token,
+      role: data.login_type || 'Customer',
+      clientId: data.client_id,
+      name: data.name,
+      userId: data.user_id,
     };
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('🔥 Login error caught:', error);
     throw new Error(error.message || 'Login failed');
   }
 };
 
+
 // ✅ LOGIN: Technician
 export const loginAsTechnician = async (email, password) => {
-  console.log(`[API CALL] Attempting technician login with email: ${email}`);
-
   try {
-    const response = await api.post('technician/login/', {
-      email,
-      password,
-    });
+    const response = await api.post('technician/login/', { email, password });
 
-    console.log(`[API RESPONSE] Status: ${response.status}`, response.data);
+    localStorage.setItem('access_token', response.data.access);
+    localStorage.setItem('refresh_token', response.data.refresh);
 
-    // Construct login info from response
-    const loginInfo = {
+    return {
       role: 'Technician',
       technicianId: response.data.technician_id,
       name: response.data.name,
       email: response.data.email,
     };
-
-    console.log('[LOGIN SUCCESS] Technician Info:', loginInfo);
-    return loginInfo;
-
   } catch (error) {
     const errorMsg = error.response?.data?.message || error.message || 'Technician login failed';
-    console.error('[LOGIN FAILED]', error.response?.data || error.message);
+    console.error('[LOGIN FAILED]', errorMsg);
     throw new Error(errorMsg);
   }
 };
 
-
-// ✅ LOGIN: Coordinator (hardcoded)
-// ✅ LOGIN: Coordinator (updated to handle both types)
+// ✅ LOGIN: Coordinator
 export const loginAsCoordinator = async (username, password) => {
-  // Regular coordinator credentials
-  const coordinatorCredentials = {
-    username: "campcalculator@123",
-    password: "camp15042002"
+  const creds = {
+    coordinator: { username: "campcalculator@123", password: "camp15042002" },
+    onsite: { username: "onsite@campcalculator.com", password: "onsite12345" },
   };
 
-  // Onsite coordinator credentials
-  const onsiteCoordinatorCredentials = {
-    username: "onsite@campcalculator.com",
-    password: "onsite12345"
-  };
-
-  if (username === coordinatorCredentials.username && 
-      password === coordinatorCredentials.password) {
+  if (username === creds.coordinator.username && password === creds.coordinator.password) {
     return { role: "Coordinator", username };
-  } 
-  else if (username === onsiteCoordinatorCredentials.username && 
-           password === onsiteCoordinatorCredentials.password) {
+  } else if (username === creds.onsite.username && password === creds.onsite.password) {
     return { role: "OnsiteCoordinator", username };
-  } 
-  else {
+  } else {
     throw new Error("Invalid coordinator credentials.");
   }
 };
 
-// ✅ REGISTER
-export const signupUser = async ({
-  client_id,
-  name,
-  email,
-  password,
-  contact_number,
-  gst_number,
-  pan_card,
-  district,
-  state,
-  pin_code,
-  landmark
-}) => {
-  try {
-    await api.post('register/', {
-      client_id,
-      name,
-      email,
-      password,
-      contact_number,
-      gst_number,
-      pan_card,
-      district,
-      state,
-      pin_code,
-      landmark,
-    });
+// ✅ LOGOUT
+export const logout = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+};
 
+// ✅ REGISTER
+export const signupUser = async (userData) => {
+  try {
+    await api.post('register/', userData);
     return "Signup successful! You can now log in.";
   } catch (error) {
     console.error("Signup error:", error.response?.data || error.message);
-    throw new Error(
-      error.response?.data?.detail || error.message || "Signup failed"
-    );
+    throw new Error(error.response?.data?.detail || error.message || "Signup failed");
   }
 };
 
 // ✅ CREATE CAMP
 export const createCamp = async (campData) => {
-  try {
-    const response = await api.post('camps/', campData);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating camp:', error.response?.data || error.message);
-    throw error;
-  }
+  const response = await api.post('camps/', campData);
+  return response.data;
 };
 
 // ✅ CREATE SERVICE SELECTION
 export const creatservices = async (data) => {
   try {
     const response = await api.post('serviceselection/', data);
-
-    console.log("🧾 Backend response:", response);
-
-    if (response.status === 201 || response.status === 200) {
-      return response;
-    } else {
-      console.warn("⚠️ Unexpected status:", response.status);
-      return {
-        success: false,
-        error: "Unexpected response status from backend."
-      };
-    }
+    return response;
   } catch (error) {
-    console.error('❌ API Error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
-
     return {
       success: false,
-      error: error.response?.data?.detail || "Backend error occurred."
+      error: error.response?.data?.detail || error.message || "Backend error occurred.",
     };
   }
 };
 
 // ✅ FETCH HARD COPY PRICES
 export const fetchHardCopyPrices = async () => {
-  try {
-    const response = await api.get('copyprice/');
-    return response.data.reduce((acc, service) => {
-      acc[service.name] = parseFloat(service.hard_copy_price);
-      return acc;
-    }, {});
-  } catch (error) {
-    console.error('Error fetching hard copy prices:', error);
-    throw error;
-  }
+  const response = await api.get('copyprice/');
+  return response.data.reduce((acc, service) => {
+    acc[service.name] = parseFloat(service.hard_copy_price);
+    return acc;
+  }, {});
 };
 
 // ✅ SAVE TEST CASE DATA
 export const saveTestCaseData = async (payload) => {
-  try {
-    const response = await api.post('test-case-data/', payload);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error saving test case data:', error.response?.data || error);
-    throw error;
-  }
+  const response = await api.post('test-case-data/', payload);
+  return response.data;
 };
 
 // ✅ GET SERVICE COSTS
 export const getServiceCosts = async () => {
-  try {
-    const response = await api.get('service_costs/');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching service costs:', error);
-    throw error;
-  }
+  const response = await api.get('service_costs/');
+  return response.data;
 };
 
 // ✅ SUBMIT COST DETAILS
 export const submitCostDetails = async (clientId, costDetails) => {
-  try {
-    const response = await api.post('cost_details/', {
-      clientId,
-      costDetails,
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error submitting cost details:', error);
-    throw error;
-  }
+  const response = await api.post('cost_details/', { clientId, costDetails });
+  return response.data;
 };
 
 // ✅ SUBMIT COST SUMMARY
 export const submitCostSummary = async (data) => {
-  try {
-    const response = await api.post('costsummaries/', data);
-    return response.data;
-  } catch (error) {
-    console.error('Error submitting cost summary:', error);
-    throw error;
-  }
+  const response = await api.post('costsummaries/', data);
+  return response.data;
 };
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Token ${token}`,
-    },
-  };
-};
-
-// API handlers object
+// ✅ API HANDLERS OBJECT
 export const apiHandlers = {
-  // Client Dashboard API
   getClientDashboard: async (clientId) => {
-    try {
-      const response = await axios.get(
-       `${BASE_URL}/api/client-dashboard/?client_id=${clientId}` ,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching client dashboard:', error);
-      throw error;
-    }
+    const res = await api.get(`client-dashboard/?client_id=${clientId}`);
+    return res.data;
   },
-
-  // Camp Manager API - Get all camps
   getCamps: async (clientId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/api/camps/?client_id=${clientId}`,
-        getAuthHeaders()
-      );
-
-      // Now response.data is an array
-      const filteredCamps = response.data.filter(camp => camp.ready_to_go === true);
-      
-      return filteredCamps;
-    } catch (error) {
-      console.error('Error fetching camps:', error);
-      throw error;
-    }
+    const res = await api.get(`camps/?client_id=${clientId}`);
+    return res.data.filter(camp => camp.ready_to_go === true);
   },
-
-  // Get specific camp details
   getCampDetails: async (campId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/camp-details/${campId}/`,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching camp details:', error);
-      throw error;
-    }
+    const res = await api.get(`${BASE_URL}/camp-details/${campId}/`);
+    return res.data;
   },
-
-  // Invoice History API
   getInvoiceHistory: async (campId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/invoice-history/${campId}/`,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching invoice history:', error);
-      throw error;
-    }
+    const res = await api.get(`${BASE_URL}/invoice-history/${campId}/`);
+    return res.data;
   },
-
-  // Reports API
   getReports: async (campId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_URL}/reports/${campId}/`,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-      throw error;
-    }
+    const res = await api.get(`${BASE_URL}/reports/${campId}/`);
+    return res.data;
   },
-
-  // Create new camp
   createCamp: async (campData) => {
-    try {
-      const response = await axios.post(
-        `${BASE_URL}/campmanager/camps/`,
-        campData,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error creating camp:', error);
-      throw error;
-    }
+    const res = await api.post(`${BASE_URL}/campmanager/camps/`, campData);
+    return res.data;
   },
-
-  // Update camp
-  updateCamp: async (campId, campData) => {
-    try {
-      const response = await axios.put(
-        `${BASE_URL}/campmanager/camps/${campId}/`,
-        campData,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error updating camp:', error);
-      throw error;
-    }
+  updateCamp: async (campId, data) => {
+    const res = await api.put(`${BASE_URL}/campmanager/camps/${campId}/`, data);
+    return res.data;
   },
-
-  // Delete camp
   deleteCamp: async (campId) => {
-    try {
-      const response = await axios.delete(
-        `${BASE_URL}/campmanager/camps/${campId}/`,
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting camp:', error);
-      throw error;
-    }
+    const res = await api.delete(`${BASE_URL}/campmanager/camps/${campId}/`);
+    return res.data;
   },
-
-  // Mark camp as ready to go
   markCampReady: async (campId) => {
-    try {
-      const response = await axios.patch(
-        `${BASE_URL}/campmanager/camps/${campId}/`,
-        { ready_to_go: true },
-        getAuthHeaders()
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error marking camp as ready:', error);
-      throw error;
-    }
-  }
+    const res = await api.patch(`${BASE_URL}/campmanager/camps/${campId}/`, {
+      ready_to_go: true,
+    });
+    return res.data;
+  },
 };
-
-
-
 
 export default api;

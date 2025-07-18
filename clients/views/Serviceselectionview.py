@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 import traceback
 from clients.models.serviceselection import ServiceSelection
-from clients.Serializersclient.serviceselectionserializer import ServiceSelectionSerializer
+from clients.serializers.serviceselectionserializer import ServiceSelectionSerializer
 
 class ServiceSelectionViewSet(viewsets.ModelViewSet):
     queryset = ServiceSelection.objects.all()

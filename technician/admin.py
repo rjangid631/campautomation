@@ -1,17 +1,20 @@
 from django.contrib import admin
+from django.utils.html import format_html
+
 from technician.Models.audiometry import Audiometry
+from technician.Models.dentist import Dentist
 from technician.Models.doctorconsultation import DoctorConsultation
 from technician.Models.doctors import Doctor
 from technician.Models.optometrists import Optometrist
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
-from django.contrib import admin
-from django.utils.html import format_html
-from technician.Models.optometry import Optometry 
+from technician.Models.optometry import Optometry
 from technician.Models.vitals import Vitals
+from technician.Models.dentalconsultation import DentalConsultation  # ✅ Import dental model
 
 
+# === Technician Service Assignment ===
 @admin.register(TechnicianServiceAssignment)
 class TechnicianServiceAssignmentAdmin(admin.ModelAdmin):
     list_display = ('technician', 'service', 'camp')
@@ -19,26 +22,45 @@ class TechnicianServiceAssignmentAdmin(admin.ModelAdmin):
     list_filter = ('camp', 'service')
 
 
+# === Technician ===
+@admin.register(Technician)
 class TechnicianAdmin(admin.ModelAdmin):
-    list_display = ['email', 'name', 'contact_number', 'is_active', 'is_staff']
-    search_fields = ['email', 'name', 'contact_number']
+    list_display = ['get_email', 'get_name', 'get_contact', 'get_is_active', 'get_is_staff']
+    search_fields = ['user__email', 'user__name', 'user__contact_number']
 
-    def save_model(self, request, obj, form, change):
-        password = form.cleaned_data.get('password')
-        if password and not password.startswith('pbkdf2_'):
-            obj.set_password(password)
-        super().save_model(request, obj, form, change)
+    def get_email(self, obj):
+        return obj.user.email if obj.user else "No user assigned"
+    get_email.short_description = 'Email'
+
+    def get_name(self, obj):
+        return obj.user.name if obj.user else "No user assigned"
+    get_name.short_description = 'Name'
+
+    def get_contact(self, obj):
+        return obj.user.contact_number if obj.user else "—"
+    get_contact.short_description = 'Contact Number'
+
+    def get_is_active(self, obj):
+        return obj.user.is_active if obj.user else False
+    get_is_active.boolean = True
+    get_is_active.short_description = 'Is Active'
+
+    def get_is_staff(self, obj):
+        return obj.user.is_staff if obj.user else False
+    get_is_staff.boolean = True
+    get_is_staff.short_description = 'Is Staff'
 
 
+
+admin.site.register(ServiceStatus)
+
+
+# === Audiometry ===
 @admin.register(Audiometry)
 class AudiometryAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'patient',
-        'age',
-        'gender',
-        'left_ear_finding',
-        'right_ear_finding',
+        'id', 'patient', 'age', 'gender',
+        'left_ear_finding', 'right_ear_finding',
         'pdf_report_link',
     )
     search_fields = ('patient__patient_name',)
@@ -46,24 +68,18 @@ class AudiometryAdmin(admin.ModelAdmin):
 
     def pdf_report_link(self, obj):
         if obj.pdf_report:
-            return f"<a href='{obj.pdf_report.url}' target='_blank'>Download</a>"
+            return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
         return "No report"
-    pdf_report_link.allow_tags = True
     pdf_report_link.short_description = "PDF Report"
 
- # Adjust path if needed
 
+# === Optometry ===
 @admin.register(Optometry)
 class OptometryAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'patient',
-        'age',
-        'gender',
-        'far_vision_right',
-        'far_vision_left',
-        'near_vision_right',
-        'near_vision_left',
+        'id', 'patient', 'age', 'gender',
+        'far_vision_right', 'far_vision_left',
+        'near_vision_right', 'near_vision_left',
         'pdf_report_link',
     )
     search_fields = ('patient__patient_name',)
@@ -73,20 +89,15 @@ class OptometryAdmin(admin.ModelAdmin):
         if obj.pdf_report:
             return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
         return "No report"
-
     pdf_report_link.short_description = "PDF Report"
 
+
+# === Vitals ===
 @admin.register(Vitals)
 class VitalsAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'patient',
-        'age',
-        'gender',
-        'height',
-        'weight',
-        'bp',
-        'pulse',
+        'id', 'patient', 'age', 'gender',
+        'height', 'weight', 'bp', 'pulse',
         'pdf_report_link',
     )
     search_fields = ('patient__patient_name', 'patient__unique_patient_id')
@@ -96,18 +107,15 @@ class VitalsAdmin(admin.ModelAdmin):
         if obj.pdf_report:
             return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
         return "No report"
-
     pdf_report_link.short_description = "PDF Report"
 
+
+# === Doctor Consultation ===
 @admin.register(DoctorConsultation)
 class DoctorConsultationAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
-        'patient',
-        'doctor',
-        'fitness_status',
-        'created_at',
-        'pdf_report_link',
+        'id', 'patient', 'doctor', 'fitness_status',
+        'created_at', 'pdf_report_link',
     )
     search_fields = ('patient__patient_name', 'patient__unique_patient_id', 'doctor__name')
     list_filter = ('fitness_status', 'patient__gender', 'doctor')
@@ -116,17 +124,39 @@ class DoctorConsultationAdmin(admin.ModelAdmin):
         if obj.pdf_report:
             return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
         return "No report available"
-
     pdf_report_link.short_description = "PDF Report"
 
+
+# === Dental Consultation ===
+@admin.register(DentalConsultation)
+class DentalConsultationAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'patient', 'screening_date', 'pdf_report_link'
+    )
+    search_fields = ('patient__patient_name', 'patient__unique_patient_id')
+    list_filter = ('patient__gender',)
+
+    def pdf_report_link(self, obj):
+        if obj.pdf_report:
+            return format_html("<a href='{}' target='_blank'>Download</a>", obj.pdf_report.url)
+        return "No report"
+    pdf_report_link.short_description = "PDF Report"
+
+
+# === Doctors ===
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'designation', 'user')
 
 
+# === Optometrists ===
 @admin.register(Optometrist)
 class OptometristAdmin(admin.ModelAdmin):
     list_display = ['name', 'designation', 'user']
-    
-admin.site.register(Technician, TechnicianAdmin)
-admin.site.register(ServiceStatus)
+
+# === Dentists ===
+@admin.register(Dentist)
+class DentistAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'designation', 'technician', 'user')
+    search_fields = ('name', 'designation', 'technician__name', 'user__email')
+    list_filter = ('designation',)

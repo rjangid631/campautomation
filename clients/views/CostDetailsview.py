@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 from rest_framework import viewsets, status
-from clients.Serializersclient.costdetails import CostDetailsSerializer
+from clients.serializers.costdetails import CostDetailsSerializer
 from clients.models.costdetails import CostDetails
 from clients.models.client import Client
 

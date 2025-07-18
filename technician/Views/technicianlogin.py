@@ -15,19 +15,19 @@ def technician_login(request):
     logger.info(f"Login attempt for technician email: {email}")
 
     try:
-        technician = Technician.objects.get(email=email)
-        logger.info(f"Technician found: {technician.email}")
+        technician = Technician.objects.get(user__email=email)
+        logger.info(f"Technician found: {technician.user.email}")
 
-        if check_password(password, technician.password):
-            logger.info(f"Password matched for technician: {technician.email}")
+        if technician.user.check_password(password):
+            logger.info(f"Password matched for technician: {technician.user.email}")
             return Response({
                 "status": "success",
                 "technician_id": technician.id,
-                "name": technician.name,
-                "email": technician.email
+                "name": technician.user.name,
+                "email": technician.user.email
             })
         else:
-            logger.warning(f"Invalid password for technician: {technician.email}")
+            logger.warning(f"Invalid password for technician: {technician.user.email}")
             return Response({"status": "error", "message": "Invalid password"}, status=401)
 
     except Technician.DoesNotExist:

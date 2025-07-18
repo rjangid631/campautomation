@@ -1,4 +1,4 @@
-from clients.Serializersclient.Service import ServiceSerializer
+from clients.serializers.Service import ServiceSerializer
 from clients.models.service import Service
 from rest_framework.response import Response
 from rest_framework.views import APIView

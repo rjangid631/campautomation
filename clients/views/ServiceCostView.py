@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from clients.Serializersclient.servicecost import ServiceCostSerializer
+from clients.serializers.servicecost import ServiceCostSerializer
 from clients.models.discountcoupon import DiscountCoupon
 from clients.models.servicecost import ServiceCost
 from rest_framework import viewsets

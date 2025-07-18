@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 
 from clients.models.client import Client
-from clients.Serializersclient.clientserializer import ClientSerializer
+from clients.serializers.clientserializer import ClientSerializer
 
 class ClientRegisterView(generics.CreateAPIView):
     queryset = Client.objects.all()

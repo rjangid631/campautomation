@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,8 @@ SECRET_KEY = 'django-insecure-2oigi42&ryd)lj@xqu&nw3elqgihaq&e3&ax9ccf=j76^krw2i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.1.22']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
+
 
 
 # Application definition
@@ -74,6 +76,53 @@ TEMPLATES = [
     },
 ]
 
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,  # Ensures logs appear in terminal
+        },
+    },
+
+    'formatters': {
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',  # You can change to INFO in production
+    },
+
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',  # or DEBUG for more logs
+            'propagate': True,
+        },
+        'clients': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'users': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+
+
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -111,7 +160,7 @@ AUTH_USER_MODEL = 'clients.Client'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # 👈 okay for open API

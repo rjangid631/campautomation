@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from clients.models.client import Client
-from clients.Serializersclient.clientdashboardserializer import ClientDashboardSerializer
+from clients.serializers.clientdashboardserializer import ClientDashboardSerializer
 
 class ClientDashboardView(APIView):
     authentication_classes = []  # 🚫 Disable authentication

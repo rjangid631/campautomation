@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from clients.models.package import Package
-from clients.Serializersclient.packageserializer import PackageSerializer
+from clients.serializers.packageserializer import PackageSerializer
 
 class PackageViewSet(viewsets.ModelViewSet):
     queryset = Package.objects.all()

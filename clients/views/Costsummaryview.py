@@ -1,4 +1,4 @@
-from clients.Serializersclient.costsummary import CostSummarySerializer
+from clients.serializers.costsummary import CostSummarySerializer
 from clients.models.costsummary import CostSummary
 from rest_framework import viewsets
 

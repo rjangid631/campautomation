@@ -37,6 +37,7 @@ class Client(BaseUser):
         ('Technician', 'Technician'),
         ('Doctor', 'Doctor'),
         ('Optometrist', 'Optometrist'),
+        ('Dentist', 'Dentist'),
     )
     login_type = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Client')
 

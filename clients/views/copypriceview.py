@@ -1,4 +1,4 @@
-from clients.Serializersclient.copyprice import CopyPriceSerializer
+from clients.serializers.copyprice import CopyPriceSerializer
 from clients.models.copyprice import CopyPrice
 from rest_framework import viewsets
 

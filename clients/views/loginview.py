@@ -1,33 +1,42 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from django.contrib.auth import authenticate
-from clients.models import Client
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny
+from clients.models import Client
 
 class ClientLoginView(APIView):
-    permission_classes = [AllowAny]  # Public login endpoint
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get("username")
+        username = request.data.get("email") or request.data.get("username")
         password = request.data.get("password")
 
         if not username or not password:
-            return Response({"detail": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Username and password are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            # Use custom authentication logic since `Client` is custom user
             client = Client.objects.get(email=username)
 
-            if not client.check_password(password):  # ✅ use check_password method
+            if not client.check_password(password):
                 return Response({"detail": "Invalid password"}, status=status.HTTP_401_UNAUTHORIZED)
 
-            return Response({
-                "role": client.login_type.lower(),  # 'client' or 'coordinator'
-                "username": client.name,
-                "clientId": client.client_id,
-                "id": client.id
-            }, status=status.HTTP_200_OK)
+            refresh = RefreshToken.for_user(client)
+            access = refresh.access_token
+
+            response_data = {
+                "access": str(access),
+                "refresh": str(refresh),
+                "login_type": client.login_type.lower() if client.login_type else "client",
+                "name": client.name,
+                "client_id": client.client_id or "",
+                "user_id": client.id,
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Client.DoesNotExist:
             return Response({"detail": "Client not found"}, status=status.HTTP_404_NOT_FOUND)

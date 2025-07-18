@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from clients.models.client import Client
-from clients.Serializersclient.clientserializer import ClientSerializer
+from clients.serializers.clientserializer import ClientSerializer
 
 class ClientViewSet(viewsets.ReadOnlyModelViewSet):  # Only supports GET (list/retrieve)
     queryset = Client.objects.all()

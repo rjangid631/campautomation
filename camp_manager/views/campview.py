@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from clients.models.camp import Camp
 from clients.models.package import Package
 from camp_manager.Models.Patientdata import PatientData
-from clients.Serializersclient.campserializer import CampSerializer
-from clients.Serializersclient.packageserializer import PackageSerializer
+from clients.serializers.campserializer import CampSerializer
+from clients.serializers.packageserializer import PackageSerializer
 from camp_manager.Serializers.patientdataserializer import PatientDataSerializer
 
 
