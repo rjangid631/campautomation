@@ -9,8 +9,10 @@ class TechnicianServiceAssignment(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     camp = models.ForeignKey(Camp, on_delete=models.CASCADE)
     package = models.ForeignKey(Package, on_delete=models.CASCADE, null=True, blank=True)
+
     class Meta:
-        unique_together = ('technician', 'service', 'camp')  # Avoid duplicate assignments
+        unique_together = ('technician', 'service', 'camp')
 
     def __str__(self):
-        return f"{self.technician.name} - {self.service.name} - {self.camp.location}"
+        tech_name = self.technician.user.name if self.technician.user else f"Tech #{self.technician.id}"
+        return f"{tech_name} - {self.service.name} - {self.camp.location}"

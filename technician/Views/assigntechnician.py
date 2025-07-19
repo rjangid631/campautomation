@@ -64,56 +64,40 @@ def assign_technicians(request):
 
 @api_view(['POST', 'GET'])
 def assign_technicians_to_package(request):
-    """
-    Assign services to multiple technicians in a camp + package.
-
-    Expected input:
-    {
-        "camp_id": 40,
-        "package_id": 19,
-        "assignments": [
-            {
-                "technician_id": 2,
-                "service_ids": [1, 2, 5]
-            },
-            {
-                "technician_id": 3,
-                "service_ids": [1, 3]
-            }
-        ]
-    }
-    """
-    camp_id = request.data.get('camp_id')
-    package_id = request.data.get('package_id')
+    camp_id     = request.data.get('camp_id')
+    package_id  = request.data.get('package_id')
     assignments = request.data.get('assignments', [])
 
     if not (camp_id and package_id and assignments):
         return Response({"error": "Missing required fields."}, status=400)
 
     try:
-        camp = Camp.objects.get(id=camp_id)
+        camp    = Camp.objects.get(id=camp_id)
         package = Package.objects.get(id=package_id)
     except Camp.DoesNotExist:
         return Response({"error": "Camp not found."}, status=404)
     except Package.DoesNotExist:
         return Response({"error": "Package not found."}, status=404)
 
-    # Delete existing assignments for this camp+package
-    TechnicianServiceAssignment.objects.filter(
-        camp=camp,
-        package=package
-    ).delete()
-
     response_data = []
 
     for assign in assignments:
-        tech_id = assign.get("technician_id")
+        tech_id     = assign.get("technician_id")
         service_ids = assign.get("service_ids", [])
+
         try:
             technician = Technician.objects.get(id=tech_id)
         except Technician.DoesNotExist:
             continue
 
+        # 1️⃣  DELETE only this technician's rows for this camp+package
+        TechnicianServiceAssignment.objects.filter(
+            technician=technician,
+            camp=camp,
+            package=package
+        ).delete()
+
+        # 2️⃣  CREATE new rows
         for sid in service_ids:
             try:
                 service = Service.objects.get(id=sid)
@@ -127,9 +111,9 @@ def assign_technicians_to_package(request):
                 continue
 
         response_data.append({
-            "technician_id": technician.id,
-            "technician_name": technician.name,
-            "services": service_ids
+            "technician_id":   technician.id,
+            "technician_name": technician.user.name if technician.user else f"Technician #{technician.id}",
+            "services":        service_ids
         })
 
     return Response({

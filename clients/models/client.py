@@ -23,6 +23,7 @@ class ClientManager(BaseUserManager):
 
 class Client(BaseUser):
     client_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=255, blank=True)
     gst_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     pan_card = models.CharField(max_length=10, unique=True, null=True, blank=True)
     district = models.CharField(max_length=255, null=True, blank=True)
