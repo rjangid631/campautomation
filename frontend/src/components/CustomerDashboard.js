@@ -55,7 +55,8 @@ console.log("✅ Final clientId used for fetch:", clientId);
 
   useEffect(() => {
     const fetchClientDashboard = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
+
 
       if (!token) {
         setError("Unauthorized: Token not found. Please login again.");

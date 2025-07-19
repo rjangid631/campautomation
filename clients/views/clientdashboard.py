@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from clients.models.client import Client
 from clients.serializers.clientdashboardserializer import ClientDashboardSerializer
+from rest_framework.permissions import AllowAny
 
 class ClientDashboardView(APIView):
     authentication_classes = []  # 🚫 Disable authentication
-    permission_classes = []      # 🚫 Disable permissions
+    permission_classes = [AllowAny]      # 🚫 Disable permissions
 
     def get(self, request):
         client_id = request.query_params.get("client_id")

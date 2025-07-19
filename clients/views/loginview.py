@@ -12,6 +12,8 @@ class ClientLoginView(APIView):
         username = request.data.get("email") or request.data.get("username")
         password = request.data.get("password")
 
+        print("🟡 Received login:", username, password)
+
         if not username or not password:
             return Response(
                 {"detail": "Username and password are required."},

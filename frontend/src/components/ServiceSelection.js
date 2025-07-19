@@ -170,11 +170,15 @@ function ServiceSelection({ userType }) {
         };
       });
 
-      const flatServices = packagesWithIds.flatMap(pkg =>
-        pkg.services.includes('Pathology')
-          ? [...pkg.services.filter(s => s !== 'Pathology'), ...pkg.pathologyOptions]
-          : pkg.services
-      );
+      const flatServices = packagesWithIds.flatMap(pkg => {
+      const normalServices = pkg.services.filter(s => s !== 'Pathology');
+      const pathology = pkg.services.includes('Pathology') ? pkg.pathologyOptions : [];
+
+      return [...normalServices, ...pathology].map(service => ({
+        package: pkg.id,  // ⬅ add package ID here
+        service_name: service
+      }));
+    });
 
       console.log("✅ Final package list with IDs:", packagesWithIds);
       handleServiceSelectionNext(packagesWithIds, flatServices);

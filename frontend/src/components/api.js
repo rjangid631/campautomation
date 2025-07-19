@@ -24,6 +24,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   async error => {
+    console.log("🔴 Axios Error Response:", error.response);
     const originalRequest = error.config;
 
     if (
@@ -57,52 +58,40 @@ api.interceptors.response.use(
 
 // ✅ LOGIN: Customer
 export const loginAsCustomer = async (email, password) => {
-  try {
-    console.log("🚀 Attempting login for:", email);
+  const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
-    const response = await fetch(`${BASE_URL}/api/login/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+  try {
+    console.log("📤 Login payload:", { email, password });
+
+    const response = await axios.post(`${BASE_URL}/api/login/`, {
+      email,
+      password,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
-    console.log("📡 Login response status:", response.status);
+    const data = response.data;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("❌ Login failed:", errorData);
-      throw new Error(errorData.detail || 'Login failed');
-    }
-
-    const data = await response.json();
-    console.log("✅ Login successful. Raw response data:", data);
-
-    // Log token info
-    console.log("🔐 Access Token:", data.access);
-    console.log("🔁 Refresh Token:", data.refresh);
-
-    // Log client details
-    console.log("🧾 Role:", data.login_type);
-    console.log("🆔 clientId:", data.client_id);
-    console.log("👤 Name:", data.name);
-    console.log("🧑‍💻 userId:", data.user_id);
     // ✅ Store tokens
     localStorage.setItem('access_token', data.access);
     localStorage.setItem('refresh_token', data.refresh);
-    localStorage.setItem('clientId', data.client_id); 
-    console.log("📦 About to store client_id:", data.client_id);
+    localStorage.setItem('clientId', data.client_id);
+
     return {
       role: data.login_type || 'Customer',
       clientId: data.client_id,
       name: data.name,
       userId: data.user_id,
     };
+
   } catch (error) {
-    console.error('🔥 Login error caught:', error);
-    throw new Error(error.message || 'Login failed');
+    console.error("❌ Login error:", error.response?.data || error.message);
+    const errorData = error.response?.data || {};
+    throw new Error(errorData.detail || 'Login failed');
   }
 };
-
 
 // ✅ LOGIN: Technician
 export const loginAsTechnician = async (email, password) => {

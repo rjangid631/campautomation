@@ -2,26 +2,23 @@ import React, { useState, useEffect, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { fetchHardCopyPrices, saveTestCaseData } from './api';
 import { AppContext } from '../App';
-import { useNavigate } from 'react-router-dom';
 
 function TestCaseInput({ onNext, onBack }) {
   const appCtx = useContext(AppContext);
-  const navigate = useNavigate();
   let companyId = null;
 
   if (appCtx?.companyId && typeof appCtx.companyId === 'string') {
     companyId = appCtx.companyId;
   } else {
-    const storedId = localStorage.getItem('clientId');
-    if (storedId && storedId.startsWith('CL-')) {
+    const storedId = localStorage.getItem("clientId");
+    if (storedId && storedId.startsWith("CL-")) {
       companyId = storedId;
     } else {
-      console.warn('⚠️ Company ID not found or invalid in context/localStorage');
+      console.warn("⚠ Company ID not found or invalid in context/localStorage");
     }
   }
 
   const selectedPackages = appCtx.selectedPackages || [];
-
   const [caseData, setCaseData] = useState({});
   const [errors, setErrors] = useState({});
   const [hardCopyPrices, setHardCopyPrices] = useState({});
@@ -48,22 +45,17 @@ function TestCaseInput({ onNext, onBack }) {
     fetchPrices();
   }, []);
 
-  /* ------------------------------------------------------------------
-   * 1. INITIALISE caseData WITH REAL BACKEND package.id
-   * ------------------------------------------------------------------ */
   useEffect(() => {
     const initial = {};
-    selectedPackages.forEach((pkg) => {
-      const packageId = Number(pkg.id); // ✅ real backend ID
-
+    selectedPackages.forEach(pkg => {
       const serviceList = Array.isArray(pkg.services)
         ? pkg.services
         : Object.keys(pkg.services || {});
 
-      serviceList.forEach((service, serviceIndex) => {
-        const key = `${packageId}__${service}__${serviceIndex}`;
+      serviceList.forEach(service => {
+        const key = `${pkg.packageId}__${service}`;
         initial[key] = {
-          packageId,
+          packageId: pkg.packageId,
           packageName: pkg.package_name,
           service,
           casePerDay: '',
@@ -80,14 +72,19 @@ function TestCaseInput({ onNext, onBack }) {
   const handleChange = (key, field, value) => {
     setCaseData(prev => {
       const updated = { ...prev[key], [field]: value };
+
       const casePerDay = parseInt(updated.casePerDay);
       const numberOfDays = parseInt(updated.numberOfDays);
 
       if (!isNaN(casePerDay) && !isNaN(numberOfDays)) {
         updated.totalCase = casePerDay * numberOfDays;
+
         const threshold = thresholds[updated.service] * numberOfDays;
         if (casePerDay > threshold) {
-          setErrors(prev => ({ ...prev, [key]: `${updated.service} exceeds max allowed: ${threshold}` }));
+          setErrors(prev => ({
+            ...prev,
+            [key]: `${updated.service} exceeds max allowed: ${threshold}`
+          }));
         } else {
           setErrors(prev => ({ ...prev, [key]: '' }));
         }
@@ -95,6 +92,7 @@ function TestCaseInput({ onNext, onBack }) {
         updated.totalCase = 0;
         setErrors(prev => ({ ...prev, [key]: '' }));
       }
+
       return { ...prev, [key]: updated };
     });
   };
@@ -103,61 +101,46 @@ function TestCaseInput({ onNext, onBack }) {
     setCaseData(prev => {
       const updated = { ...prev[key], reportType: value };
       const unitPrice = updated.service === 'CBC' ? 25 : hardCopyPrices[updated.service] || 0;
-      updated.reportTypeCost = value === 'hard copy' ? unitPrice * updated.totalCase : 0;
+      updated.reportTypeCost = value === 'hard copy'
+        ? unitPrice * updated.totalCase
+        : 0;
       return { ...prev, [key]: updated };
     });
   };
 
   const handleNext = async () => {
     if (!companyId) {
-      alert('Company ID is missing. Please go back and complete the previous steps.');
+      alert("Company ID is missing. Please go back and complete the previous steps.");
       return;
     }
 
-    /* --------------------------------------------------------------
-     * 2. BUILD PAYLOAD WITH REAL package.id
-     * -------------------------------------------------------------- */
     const payload = Object.values(caseData).map(d => ({
       client: companyId,
-      package: d.packageId, // ✅ already the real backend id
+      package: d.packageId,
       service_name: d.service,
-      case_per_day: parseInt(d.casePerDay) || 0,
-      number_of_days: parseInt(d.numberOfDays) || 0,
-      total_case: parseInt(d.totalCase) || 0,
-      report_type: d.reportType,
-      report_type_cost: parseFloat(d.reportTypeCost) || 0
+      case_per_day: parseInt(d.casePerDay),
+      number_of_days: parseInt(d.numberOfDays),
+      report_type: d.reportType,  // sends "digital" or "hard copy"
+      report_type_cost: d.reportTypeCost
     }));
+
+    console.log("📤 Submitting payload:", payload);
 
     try {
       await saveTestCaseData(payload);
-      console.log('✅ Submitted test case data:', payload);
-
-      const transformedCaseData = payload.reduce((acc, item) => {
-        acc[`${item.package}__${item.service_name}`] = {
-          packageId: item.package,
-          totalCase: item.total_case,
-          numberOfDays: item.number_of_days,
-          reportTypeCost: item.report_type_cost
-        };
-        return acc;
-      }, {});
-
-      navigate('/cost-calculation', {
-        state: {
-          caseData: transformedCaseData,
-          companyId: companyId
-        }
-      });
+      console.log("✅ Submitted test case data");
 
       if (typeof onNext === 'function') {
-        onNext(payload);
+        onNext(caseData);
       }
     } catch (err) {
-      console.error('❌ Error submitting data:', err);
+      console.error("❌ Error submitting data:", err);
+
       if (err.response) {
-        alert(`🚨 Server rejected with 400:\n\n${JSON.stringify(err.response.data, null, 2)}`);
+        console.error("❌ Response data:", err.response.data);
+        alert(`Failed: ${JSON.stringify(err.response.data, null, 2)}`);
       } else {
-        alert('🚨 Network error. Please try again.');
+        alert("Network error. Please try again.");
       }
     }
   };
@@ -175,41 +158,37 @@ function TestCaseInput({ onNext, onBack }) {
   return (
     <div className="p-6 space-y-8">
       <h2 className="text-2xl font-bold text-center">Test Case Input</h2>
+
       <div className="bg-gray-100 p-2 rounded text-sm">
         <p><strong>Company ID:</strong> {companyId || 'Not set'}</p>
         <p><strong>Selected Packages:</strong> {selectedPackages.length}</p>
       </div>
 
-      {selectedPackages.map((pkg, pkgIndex) => {
+      {selectedPackages.map((pkg, index) => {
         const serviceList = Array.isArray(pkg.services)
           ? pkg.services
           : Object.keys(pkg.services || {});
-        return (
-          <div key={`package-${pkg.id}`} className="mb-8">
-            <h3 className="text-xl font-semibold mb-4 text-blue-800">
-              {pkg.package_name}
-              {selectedPackages.filter(p => p.package_name === pkg.package_name).length > 1
-                ? ` (Instance ${pkgIndex + 1})`
-                : ''}
-            </h3>
-            <div className="grid sm:grid-cols-2 gap-6">
-              {serviceList.map((service, serviceIndex) => {
-                const key = `${pkg.id}__${service}__${serviceIndex}`;
-                const data = caseData[key];
-                if (!data) return null;
 
+        return (
+          <div key={pkg.packageId || pkg.package_name || `pkg-${index}`} className="mb-10 border-2 border-gray-200 p-4 rounded-lg shadow-lg">
+            {/* Package Name Header */}
+            <h2 className="text-2xl font-bold text-blue-700 mb-6 text-center">
+              {pkg.package_name || pkg.name || `Package ${index + 1}`}
+            </h2>
+
+            {/* Services Grid */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              {serviceList.map(service => {
+                const key = `${pkg.packageId}__${service}`;
                 return (
                   <div key={key} className="border p-4 rounded shadow">
-                    <h4 className="text-lg font-medium mb-2">
-                      {service}
-                      <span className="text-sm text-gray-500 ml-2">(Package {pkgIndex + 1})</span>
-                    </h4>
+                    <h4 className="text-lg font-medium mb-2">{service}</h4>
 
                     <label className="block text-sm">Number of Days</label>
                     <input
                       type="number"
                       className="w-full p-2 border rounded mb-2"
-                      value={data.numberOfDays}
+                      value={caseData[key]?.numberOfDays ?? ''}
                       onChange={e => handleChange(key, 'numberOfDays', e.target.value)}
                     />
 
@@ -217,7 +196,7 @@ function TestCaseInput({ onNext, onBack }) {
                     <input
                       type="number"
                       className={`w-full p-2 border rounded mb-2 ${errors[key] ? 'border-red-500' : ''}`}
-                      value={data.casePerDay}
+                      value={caseData[key]?.casePerDay ?? ''}
                       onChange={e => handleChange(key, 'casePerDay', e.target.value)}
                     />
                     {errors[key] && <p className="text-red-500 text-sm">{errors[key]}</p>}
@@ -225,15 +204,14 @@ function TestCaseInput({ onNext, onBack }) {
                     <label className="block text-sm">Report Type</label>
                     <select
                       className="w-full p-2 border rounded mb-2"
-                      value={data.reportType}
+                      value={caseData[key]?.reportType}
                       onChange={e => handleReportTypeChange(key, e.target.value)}
                     >
                       <option value="digital">Digital</option>
                       <option value="hard copy">Hard Copy</option>
                     </select>
 
-                    <p><strong>Total Cases:</strong> {data.totalCase}</p>
-                    <p className="text-xs text-gray-500">Key: {key}</p>
+                    <p><strong>Total Cases:</strong> {caseData[key]?.totalCase}</p>
                   </div>
                 );
               })}
@@ -251,8 +229,8 @@ function TestCaseInput({ onNext, onBack }) {
         </button>
         <button
           onClick={handleNext}
-          disabled={!isValid}
           className={`px-4 py-2 rounded text-white ${isValid ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+          disabled={!isValid}
         >
           Next
         </button>
@@ -267,6 +245,7 @@ TestCaseInput.propTypes = {
 };
 
 export default TestCaseInput;
+
 
 
 
