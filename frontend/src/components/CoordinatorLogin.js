@@ -64,23 +64,30 @@ const handleCoordinatorLogin = async (e) => {
   }
 };
 
-  const handleCustomerLogin = async (e) => {
-    e.preventDefault();
-    const { username, password } = formData;
+const handleCustomerLogin = async (e) => {
+  e.preventDefault();
+  const { username, password } = formData;
 
-    try {
-      const { role, name, clientId } = await loginAsCustomer(username, password);
-
-      localStorage.setItem("role", role);
-      localStorage.setItem("username", name);
-      localStorage.setItem("clientId", clientId); // ✅ Store actual client_id like "CL-ABC123"
-
-      onLogin(role, clientId);
-      navigate("/customer-dashboard");
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
-  };
+  try {
+    const response = await loginAsCustomer(username, password);
+    
+    console.log("Login success:", response);
+    
+    // Store all auth data
+    localStorage.setItem("access_token", response.token);
+    localStorage.setItem("refresh_token", response.refreshToken);
+    localStorage.setItem("role", response.role);
+    localStorage.setItem("username", response.username);
+    localStorage.setItem("clientId", response.clientId);
+    localStorage.setItem("userId", response.userId);
+    
+    onLogin(response.role, response.clientId);
+    navigate("/customer-dashboard");
+  } catch (error) {
+    console.error("Login failed:", error);
+    setErrorMessage(error.message || "Login failed. Please try again.");
+  }
+};
 
   const handleTechnicianLogin = async (e) => {
     e.preventDefault();
