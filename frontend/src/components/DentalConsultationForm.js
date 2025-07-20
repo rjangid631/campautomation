@@ -3,6 +3,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 function DentalConsultationForm() {
   // State for form sections
+  const [showPainDetails, setShowPainDetails] = useState(false);
+  const [showSensitivityDetails, setShowSensitivityDetails] = useState(false);
+  const [showDentalCaries, setShowDentalCaries] = useState(false);
+  const [showGingiva, setShowGingiva] = useState(false);
+  const [showMissingTeeth, setShowMissingTeeth] = useState(false);
+  const [showOcclusion, setShowOcclusion] = useState(false);
+  const [showMalocclusion, setShowMalocclusion] = useState(false);
+  const [showRestoration, setShowRestoration] = useState(false);
+  const [showRct, setShowRct] = useState(false);
+  const [showIopa, setShowIopa] = useState(false);
   const navigate = useNavigate();
   
   // State for selected teeth
@@ -57,34 +67,52 @@ function DentalConsultationForm() {
     other_findings: '',
     advice: [],
     medications: '',
-    other_advice: '',
-    other_caries: ''  // Added missing field
+    other_advice: ''
   });
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  // Toggle functions
+  const toggleSection = (section, setter) => {
+    setter(!section);
+    if (!section) {
+      // Clear selection when hiding
+      const newSelectedTeeth = {...selectedTeeth};
+      const sectionKey = section.replace('show', '').toLowerCase();
+      newSelectedTeeth[sectionKey] = new Set();
+      setSelectedTeeth(newSelectedTeeth);
+    }
+  };
 
   const toggleToothSelection = (toothNumber, type) => {
-    setSelectedTeeth(prev => {
-      const newSet = new Set(prev[type]);
-      if (newSet.has(toothNumber)) {
-        newSet.delete(toothNumber);
-      } else {
-        newSet.add(toothNumber);
-      }
-      return {...prev, [type]: newSet};
-    });
+    const newSelectedTeeth = {...selectedTeeth};
+    if (newSelectedTeeth[type].has(toothNumber)) {
+      newSelectedTeeth[type].delete(toothNumber);
+    } else {
+      newSelectedTeeth[type].add(toothNumber);
+    }
+    setSelectedTeeth(newSelectedTeeth);
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
     if (type === 'checkbox') {
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked 
-          ? [...prev[name], value] 
-          : prev[name].filter(item => item !== value)
-      }));
+      if (checked) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: [...prev[name], value]
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: prev[name].filter(item => item !== value)
+        }));
+      }
+    } else if (type === 'radio') {
+      setFormData(prev => ({ ...prev, [name]: value }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -96,131 +124,108 @@ function DentalConsultationForm() {
     const submissionData = {
       ...formData,
       selected_pain_teeth: Array.from(selectedTeeth.pain).join(','),
-      selected_caries_teeth: Array.from(selectedTeeth.caries).join(','),
-      selected_fissure_teeth: Array.from(selectedTeeth.fissure).join(','),
-      selected_missing_teeth: Array.from(selectedTeeth.missing).join(','),
-      selected_restoration_teeth: Array.from(selectedTeeth.restoration).join(','),
-      selected_rct_teeth: Array.from(selectedTeeth.rct).join(','),
-      selected_iopa_teeth: Array.from(selectedTeeth.iopa).join(','),
+      missing_teeth_input: Array.from(selectedTeeth.missing).join(','),
       sensitivity_type_input: formData.sensitivity_type.join(',')
     };
     console.log('Form submission data:', submissionData);
-    // Send data to backend at 'dental-consultation' endpoint
+    // Here you would typically send the data to your backend
   };
 
   // Render tooth selection grid
   const renderTeethGrid = (type) => {
-    const teethMap = {
-      upperRight: [1, 2, 3, 4, 5, 6, 7, 8],
-      upperLeft: [9, 10, 11, 12, 13, 14, 15, 16],
-      lowerRight: [32, 31, 30, 29, 28, 27, 26, 25],
-      lowerLeft: [24, 23, 22, 21, 20, 19, 18, 17]
-    };
+    const upperRight = [1, 2, 3, 4, 5, 6, 7, 8];
+    const upperLeft = [9, 10, 11, 12, 13, 14, 15, 16];
+    const lowerRight = [32, 31, 30, 29, 28, 27, 26, 25];
+    const lowerLeft = [24, 23, 22, 21, 20, 19, 18, 17];
 
     return (
       <div className="teeth-box">
         {/* Upper Teeth */}
         <div className="flex justify-between gap-2 mb-2">
-          {['upperRight', 'upperLeft'].map(section => (
-            <div key={section} className="flex-1 max-w-[50%]">
-              <small className="text-gray-500">
-                {section.split(/(?=[A-Z])/).join(' ')}
-              </small>
-              <div className="grid grid-cols-4 gap-1">
-                {teethMap[section].map(tooth => (
-                  <span 
-                    key={`${type}-${tooth}`}
-                    className={`flex items-center justify-center p-1 text-sm border rounded cursor-pointer transition-all ${
-                      selectedTeeth[type].has(tooth.toString()) 
-                        ? 'bg-blue-500 text-white border-blue-700' 
-                        : 'bg-white border-gray-200'
-                    }`}
-                    onClick={() => toggleToothSelection(tooth.toString(), type)}
-                  >
-                    {tooth}
-                  </span>
-                ))}
-              </div>
+          {/* Upper Right */}
+          <div className="flex-1 max-w-[50%]">
+            <small className="text-gray-500">Upper Right</small>
+            <div className="grid grid-cols-4 gap-1">
+              {upperRight.map(tooth => (
+                <span 
+                  key={`${type}-${tooth}`}
+                  className={`flex items-center justify-center p-1 text-sm border border-gray-200 rounded cursor-pointer transition-all ${
+                    selectedTeeth[type].has(tooth.toString()) ? 'bg-blue-500 text-white border-blue-700' : 'bg-white'
+                  }`}
+                  onClick={() => toggleToothSelection(tooth.toString(), type)}
+                >
+                  {tooth}
+                </span>
+              ))}
             </div>
-          ))}
+          </div>
+          {/* Upper Left */}
+          <div className="flex-1 max-w-[50%]">
+            <small className="text-gray-500">Upper Left</small>
+            <div className="grid grid-cols-4 gap-1">
+              {upperLeft.map(tooth => (
+                <span 
+                  key={`${type}-${tooth}`}
+                  className={`flex items-center justify-center p-1 text-sm border border-gray-200 rounded cursor-pointer transition-all ${
+                    selectedTeeth[type].has(tooth.toString()) ? 'bg-blue-500 text-white border-blue-700' : 'bg-white'
+                  }`}
+                  onClick={() => toggleToothSelection(tooth.toString(), type)}
+                >
+                  {tooth}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
-        
         {/* Lower Teeth */}
         <div className="flex justify-between gap-2">
-          {['lowerRight', 'lowerLeft'].map(section => (
-            <div key={section} className="flex-1 max-w-[50%]">
-              <small className="text-gray-500">
-                {section.split(/(?=[A-Z])/).join(' ')}
-              </small>
-              <div className="grid grid-cols-4 gap-1">
-                {teethMap[section].map(tooth => (
-                  <span 
-                    key={`${type}-${tooth}`}
-                    className={`flex items-center justify-center p-1 text-sm border rounded cursor-pointer transition-all ${
-                      selectedTeeth[type].has(tooth.toString()) 
-                        ? 'bg-blue-500 text-white border-blue-700' 
-                        : 'bg-white border-gray-200'
-                    }`}
-                    onClick={() => toggleToothSelection(tooth.toString(), type)}
-                  >
-                    {tooth}
-                  </span>
-                ))}
-              </div>
+          {/* Lower Right */}
+          <div className="flex-1 max-w-[50%]">
+            <small className="text-gray-500">Lower Right</small>
+            <div className="grid grid-cols-4 gap-1">
+              {lowerRight.map(tooth => (
+                <span 
+                  key={`${type}-${tooth}`}
+                  className={`flex items-center justify-center p-1 text-sm border border-gray-200 rounded cursor-pointer transition-all ${
+                    selectedTeeth[type].has(tooth.toString()) ? 'bg-blue-500 text-white border-blue-700' : 'bg-white'
+                  }`}
+                  onClick={() => toggleToothSelection(tooth.toString(), type)}
+                >
+                  {tooth}
+                </span>
+              ))}
             </div>
-          ))}
+          </div>
+          {/* Lower Left */}
+          <div className="flex-1 max-w-[50%]">
+            <small className="text-gray-500">Lower Left</small>
+            <div className="grid grid-cols-4 gap-1">
+              {lowerLeft.map(tooth => (
+                <span 
+                  key={`${type}-${tooth}`}
+                  className={`flex items-center justify-center p-1 text-sm border border-gray-200 rounded cursor-pointer transition-all ${
+                    selectedTeeth[type].has(tooth.toString()) ? 'bg-blue-500 text-white border-blue-700' : 'bg-white'
+                  }`}
+                  onClick={() => toggleToothSelection(tooth.toString(), type)}
+                >
+                  {tooth}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
   };
 
-  // Section rendering functions for cleaner code
-  const renderSectionHeader = (title, icon) => (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
-      <h3 className="font-bold">{icon} {title}</h3>
-    </div>
-  );
-
-  const renderTeethSection = (title, type, formKey, sectionKey) => (
-    <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
-      <h5 className="font-bold mb-3">{title}</h5>
-      <div className="mb-3">
-        <input 
-          type="checkbox" 
-          id={type} 
-          name={formKey} 
-          value={type} 
-          checked={formData[formKey].includes(type)}
-          onChange={handleInputChange}
-          className="mr-2"
-        />
-        <label htmlFor={type}>{title} Present</label>
-      </div>
-      
-      {formData[formKey].includes(type) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-200 rounded p-4">
-            <div className="text-center py-8 bg-gray-100 rounded">
-              Teeth Diagram Placeholder
-            </div>
-          </div>
-          <div className="border border-gray-200 rounded p-4 bg-white">
-            <label className="block mb-2">Select Teeth for {title}:</label>
-            {renderTeethGrid(sectionKey)}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-gray-800 text-white p-4 flex justify-between items-center">
-        <div className="container mx-auto flex justify-between">
-          <span className="text-xl">🦷 Dental Consultation Form</span>
+      <nav className="bg-gray-800 text-white p-4">
+        <div className="container mx-auto">
+          <span className="text-xl">🦷 Dental Consultation Form </span>
           <button
             onClick={handleBack}
-            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
           >
             ← Back
           </button>
@@ -233,34 +238,354 @@ function DentalConsultationForm() {
           
           <form onSubmit={handleSubmit}>
             {/* Section 1: Basic Information */}
-            {renderSectionHeader("1. Basic Information (Auto-filled)", "🧍")}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold">🧍 1. Basic Information (Auto-filled)</h3>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-              {/* ... existing basic info fields ... */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Patient ID:</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      name="patient_id"
+                      value={formData.patient_id}
+                      onChange={handleInputChange}
+                      readOnly
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Patient Name:</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      name="patient_name"
+                      value={formData.patient_name}
+                      onChange={handleInputChange}
+                      readOnly
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Age:</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      value={formData.age}
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Gender:</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      value={formData.gender}
+                      readOnly
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Contact Number:</label>
+                    <input 
+                      type="tel" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      name="contact_number"
+                      value={formData.contact_number}
+                      onChange={handleInputChange}
+                      readOnly
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block mb-1">Date of Screening <span className="text-red-500">*</span></label>
+                    <input 
+                      type="date" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      name="screening_date"
+                      value={formData.screening_date}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Section 2: Family History */}
-            {renderSectionHeader("2. Family History", "🩺")}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold">🩺 2. Family History</h3>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-              {/* ... existing family history fields ... */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mb-4">
+                  <label className="block mb-2">Any History of Diabetes?</label>
+                  <div className="flex items-center">
+                    <input 
+                      type="radio" 
+                      id="fam_diabetes_no" 
+                      name="family_diabetes" 
+                      value="no" 
+                      checked={formData.family_diabetes === 'no'}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    <label htmlFor="fam_diabetes_no" className="mr-4">No</label>
+                    <input 
+                      type="radio" 
+                      id="fam_diabetes_yes" 
+                      name="family_diabetes" 
+                      value="yes" 
+                      checked={formData.family_diabetes === 'yes'}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    <label htmlFor="fam_diabetes_yes">Yes</label>
+                  </div>
+                  {formData.family_diabetes === 'yes' && (
+                    <div className="mt-2">
+                      <input 
+                        type="number" 
+                        name="family_diabetes_years" 
+                        className="w-full p-2 border border-gray-300 rounded mb-2" 
+                        placeholder="Since how many years?"
+                        value={formData.family_diabetes_years}
+                        onChange={handleInputChange}
+                      />
+                      <input 
+                        type="text" 
+                        name="family_diabetes_relation" 
+                        className="w-full p-2 border border-gray-300 rounded" 
+                        placeholder="Who has diabetes?"
+                        value={formData.family_diabetes_relation}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2">Any History of Hypertension?</label>
+                  <div className="flex items-center">
+                    <input 
+                      type="radio" 
+                      id="fam_hypertension_no" 
+                      name="family_hypertension" 
+                      value="no" 
+                      checked={formData.family_hypertension === 'no'}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    <label htmlFor="fam_hypertension_no" className="mr-4">No</label>
+                    <input 
+                      type="radio" 
+                      id="fam_hypertension_yes" 
+                      name="family_hypertension" 
+                      value="yes" 
+                      checked={formData.family_hypertension === 'yes'}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
+                    <label htmlFor="fam_hypertension_yes">Yes</label>
+                  </div>
+                  {formData.family_hypertension === 'yes' && (
+                    <div className="mt-2">
+                      <input 
+                        type="number" 
+                        name="family_hypertension_years" 
+                        className="w-full p-2 border border-gray-300 rounded mb-2" 
+                        placeholder="Since how many years?"
+                        value={formData.family_hypertension_years}
+                        onChange={handleInputChange}
+                      />
+                      <input 
+                        type="text" 
+                        name="family_hypertension_relation" 
+                        className="w-full p-2 border border-gray-300 rounded" 
+                        placeholder="Who has hypertension?"
+                        value={formData.family_hypertension_relation}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1">Any Other Family History:</label>
+                <textarea 
+                  name="family_other" 
+                  className="w-full p-2 border border-gray-300 rounded" 
+                  rows="2"
+                  value={formData.family_other}
+                  onChange={handleInputChange}
+                ></textarea>
+              </div>
             </div>
 
             {/* Section 3: Medical History */}
-            {renderSectionHeader("3. Medical History", "🦷")}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold">🦷 3. Medical History</h3>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-              {/* ... existing medical history fields ... */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="mb-4">
+                    <label className="block mb-2">History of Diabetes?</label>
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="med_diabetes_no" 
+                        name="medical_diabetes" 
+                        value="no" 
+                        checked={formData.medical_diabetes === 'no'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="med_diabetes_no" className="mr-4">No</label>
+                      <input 
+                        type="radio" 
+                        id="med_diabetes_yes" 
+                        name="medical_diabetes" 
+                        value="yes" 
+                        checked={formData.medical_diabetes === 'yes'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="med_diabetes_yes">Yes</label>
+                    </div>
+                    {formData.medical_diabetes === 'yes' && (
+                      <div className="mt-2">
+                        <input 
+                          type="number" 
+                          name="medical_diabetes_years" 
+                          className="w-full p-2 border border-gray-300 rounded" 
+                          placeholder="Since how many years?"
+                          value={formData.medical_diabetes_years}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block mb-2">History of Hypertension?</label>
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="med_hypertension_no" 
+                        name="medical_hypertension" 
+                        value="no" 
+                        checked={formData.medical_hypertension === 'no'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="med_hypertension_no" className="mr-4">No</label>
+                      <input 
+                        type="radio" 
+                        id="med_hypertension_yes" 
+                        name="medical_hypertension" 
+                        value="yes" 
+                        checked={formData.medical_hypertension === 'yes'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="med_hypertension_yes">Yes</label>
+                    </div>
+                    {formData.medical_hypertension === 'yes' && (
+                      <div className="mt-2">
+                        <input 
+                          type="number" 
+                          name="medical_hypertension_years" 
+                          className="w-full p-2 border border-gray-300 rounded" 
+                          placeholder="Since how many years?"
+                          value={formData.medical_hypertension_years}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-4">
+                    <label className="block mb-2">Currently taking any medications?</label>
+                    <div className="flex items-center">
+                      <input 
+                        type="radio" 
+                        id="medications_no" 
+                        name="current_medications" 
+                        value="no" 
+                        checked={formData.current_medications === 'no'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="medications_no" className="mr-4">No</label>
+                      <input 
+                        type="radio" 
+                        id="medications_yes" 
+                        name="current_medications" 
+                        value="yes" 
+                        checked={formData.current_medications === 'yes'}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor="medications_yes">Yes</label>
+                    </div>
+                    {formData.current_medications === 'yes' && (
+                      <div className="mt-2">
+                        <textarea 
+                          name="medications_list" 
+                          className="w-full p-2 border border-gray-300 rounded" 
+                          rows="3" 
+                          placeholder="List current medications"
+                          value={formData.medications_list}
+                          onChange={handleInputChange}
+                        ></textarea>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block mb-1">Have you undergone any surgeries in the past?</label>
+                    <textarea 
+                      name="past_surgeries" 
+                      className="w-full p-2 border border-gray-300 rounded" 
+                      rows="2"
+                      value={formData.past_surgeries}
+                      onChange={handleInputChange}
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Section 4: Chief Complaints */}
-            {renderSectionHeader("4. Chief Complaints", "🔎")}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold">🔎 4. Chief Complaints</h3>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+              
               {/* Pain Complaints */}
               <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
-                {/* ... pain complaints fields ... */}
+                <h5 className="font-bold mb-3">🦷 Pain Complaints</h5>
+                <div className="mb-3">
+                  <input 
+                    type="checkbox" 
+                    id="pain_teeth" 
+                    name="complaints" 
+                    value="pain_teeth" 
+                    checked={formData.complaints.includes('pain_teeth')}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <label htmlFor="pain_teeth">Pain in Teeth</label>
+                </div>
+                
                 {formData.complaints.includes('pain_teeth') && (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left side - Teeth Diagram */}
                       <div>
                         <div className="border border-gray-200 rounded p-4 mb-4">
+                          {/* Teeth diagram image would go here */}
                           <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
@@ -270,18 +595,273 @@ function DentalConsultationForm() {
                           {renderTeethGrid('pain')}
                         </div>
                       </div>
-                      {/* ... pain details ... */}
+                      
+                      {/* Right side - Pain Details */}
+                      <div>
+                        {/* Region Selection */}
+                        <div className="mb-4">
+                          <label className="block mb-2">Select Region(s):</label>
+                          <div className="space-y-2">
+                            {['right_upper', 'right_lower', 'left_upper', 'left_lower', 'upper_front', 'lower_front'].map(region => (
+                              <div key={region} className="flex items-center">
+                                <input 
+                                  type="checkbox" 
+                                  id={`pain_${region}`}
+                                  name="pain_regions" 
+                                  value={region}
+                                  checked={formData.pain_regions.includes(region)}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                <label htmlFor={`pain_${region}`}>
+                                  {region.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Region
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Number of Days */}
+                        <div className="mb-4">
+                          <label className="block mb-1">Number of Days <span className="text-red-500">*</span></label>
+                          <input 
+                            type="number" 
+                            className="w-full p-2 border border-gray-300 rounded" 
+                            name="pain_days" 
+                            min="1" 
+                            required 
+                            placeholder="Enter number of days"
+                            value={formData.pain_days}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-              
-              {/* ... other complaint sections ... */}
+
+              {/* Sensitivity Complaints */}
+              <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+                <h5 className="font-bold mb-3">🧊 Sensitivity</h5>
+                <div className="mb-3">
+                  <input 
+                    type="checkbox" 
+                    id="sensitivity" 
+                    name="complaints" 
+                    value="sensitivity" 
+                    checked={formData.complaints.includes('sensitivity')}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <label htmlFor="sensitivity">Sensitivity</label>
+                </div>
+                
+                {formData.complaints.includes('sensitivity') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="mb-4">
+                      <label className="block mb-2">Type of Sensitivity:</label>
+                      <div className="space-y-3">
+                        {/* Cold */}
+                        <div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              id="sensitivity_cold" 
+                              name="sensitivity_type" 
+                              value="cold" 
+                              checked={formData.sensitivity_type.includes('cold')}
+                              onChange={handleInputChange}
+                              className="mr-2"
+                            />
+                            <label htmlFor="sensitivity_cold">Sensitivity to Cold</label>
+                          </div>
+                          {formData.sensitivity_type.includes('cold') && (
+                            <div className="ml-6 pl-4 border-l-2 border-gray-200 mt-2">
+                              <label className="block mb-2">Select Regions:</label>
+                              <div className="space-y-2">
+                                {['right_upper', 'right_lower', 'left_upper', 'left_lower', 'upper_front', 'lower_front'].map(region => (
+                                  <div key={`cold-${region}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`cold_${region}`}
+                                      name="cold_regions" 
+                                      value={region}
+                                      checked={formData.cold_regions.includes(region)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`cold_${region}`}>
+                                      {region.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Region
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hot */}
+                        <div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              id="sensitivity_hot" 
+                              name="sensitivity_type" 
+                              value="hot" 
+                              checked={formData.sensitivity_type.includes('hot')}
+                              onChange={handleInputChange}
+                              className="mr-2"
+                            />
+                            <label htmlFor="sensitivity_hot">Sensitivity to Hot</label>
+                          </div>
+                          {formData.sensitivity_type.includes('hot') && (
+                            <div className="ml-6 pl-4 border-l-2 border-gray-200 mt-2">
+                              <label className="block mb-2">Select Regions:</label>
+                              <div className="space-y-2">
+                                {['right_upper', 'right_lower', 'left_upper', 'left_lower', 'upper_front', 'lower_front'].map(region => (
+                                  <div key={`hot-${region}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`hot_${region}`}
+                                      name="hot_regions" 
+                                      value={region}
+                                      checked={formData.hot_regions.includes(region)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`hot_${region}`}>
+                                      {region.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Region
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sweet */}
+                        <div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              id="sensitivity_sweet" 
+                              name="sensitivity_type" 
+                              value="sweet" 
+                              checked={formData.sensitivity_type.includes('sweet')}
+                              onChange={handleInputChange}
+                              className="mr-2"
+                            />
+                            <label htmlFor="sensitivity_sweet">Sensitivity to Sweet</label>
+                          </div>
+                          {formData.sensitivity_type.includes('sweet') && (
+                            <div className="ml-6 pl-4 border-l-2 border-gray-200 mt-2">
+                              <label className="block mb-2">Select Regions:</label>
+                              <div className="space-y-2">
+                                {['right_upper', 'right_lower', 'left_upper', 'left_lower', 'upper_front', 'lower_front'].map(region => (
+                                  <div key={`sweet-${region}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`sweet_${region}`}
+                                      name="sweet_regions" 
+                                      value={region}
+                                      checked={formData.sweet_regions.includes(region)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`sweet_${region}`}>
+                                      {region.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Region
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sour */}
+                        <div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox" 
+                              id="sensitivity_sour" 
+                              name="sensitivity_type" 
+                              value="sour" 
+                              checked={formData.sensitivity_type.includes('sour')}
+                              onChange={handleInputChange}
+                              className="mr-2"
+                            />
+                            <label htmlFor="sensitivity_sour">Sensitivity to Sour</label>
+                          </div>
+                          {formData.sensitivity_type.includes('sour') && (
+                            <div className="ml-6 pl-4 border-l-2 border-gray-200 mt-2">
+                              <label className="block mb-2">Select Regions:</label>
+                              <div className="space-y-2">
+                                {['right_upper', 'right_lower', 'left_upper', 'left_lower', 'upper_front', 'lower_front'].map(region => (
+                                  <div key={`sour-${region}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`sour_${region}`}
+                                      name="sour_regions" 
+                                      value={region}
+                                      checked={formData.sour_regions.includes(region)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`sour_${region}`}>
+                                      {region.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} Region
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bleeding Gums */}
+              <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+                <h5 className="font-bold mb-3">🩸 Bleeding in Gums</h5>
+                <div className="mb-3">
+                  <input 
+                    type="checkbox" 
+                    id="bleeding_gums" 
+                    name="complaints" 
+                    value="bleeding_gums" 
+                    checked={formData.complaints.includes('bleeding_gums')}
+                    onChange={handleInputChange}
+                    className="mr-2"
+                  />
+                  <label htmlFor="bleeding_gums">Bleeding while Brushing</label>
+                </div>
+              </div>
+
+              {/* Other Complaints */}
+              <div className="border border-gray-200 rounded p-4 bg-white">
+                <h5 className="font-bold mb-3">📝 Other Complaints</h5>
+                <div>
+                  <textarea 
+                    name="other_complaints" 
+                    className="w-full p-2 border border-gray-300 rounded" 
+                    rows="3" 
+                    placeholder="Enter any other complaints here..."
+                    value={formData.other_complaints}
+                    onChange={handleInputChange}
+                  ></textarea>
+                </div>
+              </div>
             </div>
 
             {/* Section 5: Oral Examination */}
-            {renderSectionHeader("5. Oral Examination", "🩻")}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+              <h3 className="font-bold">🩻 5. Oral Examination</h3>
+            </div>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+              
               {/* Dental Caries */}
               <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
                 <h5 className="font-bold mb-3">🦷 Dental Caries</h5>
@@ -305,6 +885,7 @@ function DentalConsultationForm() {
                       <label className="block mb-2">Grossly Carious:</label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-gray-200 rounded p-4">
+                          {/* Teeth diagram image would go here */}
                           <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
@@ -321,6 +902,7 @@ function DentalConsultationForm() {
                       <label className="block mb-2">Pit & Fissure Caries:</label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-gray-200 rounded p-4">
+                          {/* Teeth diagram image would go here */}
                           <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
@@ -332,6 +914,7 @@ function DentalConsultationForm() {
                       </div>
                     </div>
 
+                    {/* Other Caries */}
                     <div className="mb-4">
                       <label className="block mb-1">Any Other Caries:</label>
                       <textarea 
@@ -347,41 +930,441 @@ function DentalConsultationForm() {
               </div>
 
               {/* Gingiva */}
-              {/* ... existing gingiva section ... */}
-
-              {/* Missing Teeth */}
-              {renderTeethSection("🦷 Missing Teeth", "missing_teeth", "examination", "missing")}
-
-              {/* Occlusion */}
-              {/* ... existing occlusion section ... */}
-
-              {/* Other Findings */}
-              {/* ... existing other findings ... */}
-            </div>
-
-            {/* Section 6: Advice */}
-            {renderSectionHeader("6. Advice", "🧾")}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-              {renderTeethSection("🦷 Restoration", "restoration", "advice", "restoration")}
-              {renderTeethSection("🦷 RCT (Root Canal Treatment)", "rct", "advice", "rct")}
-              {renderTeethSection("🦷 IOPA (Intraoral Periapical Radiograph)", "iopa", "advice", "iopa")}
+              <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+                <h5 className="font-bold mb-3">🦷 Gingiva</h5>
+                <div className="mb-3">
+                  <input 
+                    type="checkbox" 
+                    id="gingiva" 
+                    name="examination" 
+                    value="gingiva" 
+                    checked={formData.examination.includes('gingiva')}
+                                      onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="gingiva">Gingival Issues Present</label>
+              </div>
               
-              {/* ... other advice sections ... */}
+              {formData.examination.includes('gingiva') && (
+                <div>
+                  <div className="mb-4">
+                    <label className="block mb-2">Select Condition:</label>
+                    <div className="space-y-2">
+                      {['normal', 'mild', 'moderate', 'severe'].map(condition => (
+                        <div key={condition} className="flex items-center">
+                          <input 
+                            type="radio" 
+                            id={`gingiva_${condition}`}
+                            name="gingiva_condition" 
+                            value={condition}
+                            checked={formData.gingiva_condition === condition}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          <label htmlFor={`gingiva_${condition}`}>
+                            {condition.charAt(0).toUpperCase() + condition.slice(1)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="mt-6 text-center">
-              <button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
-              >
-                Submit Consultation Form
-              </button>
+            {/* Missing Teeth */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 Missing Teeth</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="missing_teeth" 
+                  name="examination" 
+                  value="missing_teeth" 
+                  checked={formData.examination.includes('missing_teeth')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="missing_teeth">Missing Teeth Present</label>
+              </div>
+              
+              {formData.examination.includes('missing_teeth') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 rounded p-4">
+                    {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      Teeth Diagram Placeholder
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded p-4 bg-white">
+                    <label className="block mb-2">Select Missing Teeth:</label>
+                    {renderTeethGrid('missing')}
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
-        </div>
+
+            {/* Occlusion */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 Occlusion</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="occlusion" 
+                  name="examination" 
+                  value="occlusion" 
+                  checked={formData.examination.includes('occlusion')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="occlusion">Occlusion Issues Present</label>
+              </div>
+              
+              {formData.examination.includes('occlusion') && (
+                <div>
+                  <div className="mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <input 
+                          type="radio" 
+                          id="occlusion_normal" 
+                          name="occlusion_type" 
+                          value="normal" 
+                          checked={formData.occlusion_type === 'normal'}
+                          onChange={handleInputChange}
+                          className="mr-2"
+                        />
+                        <label htmlFor="occlusion_normal">Normal</label>
+                      </div>
+                      <div className="flex items-center">
+                        <input 
+                          type="radio" 
+                          id="occlusion_malocclusion" 
+                          name="occlusion_type" 
+                          value="malocclusion" 
+                          checked={formData.occlusion_type === 'malocclusion'}
+                          onChange={handleInputChange}
+                          className="mr-2"
+                        />
+                        <label htmlFor="occlusion_malocclusion">Malocclusion</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.occlusion_type === 'malocclusion' && (
+                    <div className="ml-4 pl-4 border-l-2 border-gray-200">
+                      <div className="mb-4">
+                        <div className="space-y-3">
+                          {/* Crowding */}
+                          <div>
+                            <div className="flex items-center">
+                              <input 
+                                type="radio" 
+                                id="malocclusion_crowding" 
+                                name="malocclusion_type" 
+                                value="crowding" 
+                                checked={formData.malocclusion_type === 'crowding'}
+                                onChange={handleInputChange}
+                                className="mr-2"
+                              />
+                              <label htmlFor="malocclusion_crowding">Crowding</label>
+                            </div>
+                            {formData.malocclusion_type === 'crowding' && (
+                              <div className="ml-6 mt-2 space-y-2">
+                                {['upper', 'lower', 'anterior'].map(location => (
+                                  <div key={`crowding-${location}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`crowding_${location}`}
+                                      name="crowding_location" 
+                                      value={location}
+                                      checked={formData.crowding_location.includes(location)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`crowding_${location}`}>
+                                      {location.charAt(0).toUpperCase() + location.slice(1)} teeth
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Spacing */}
+                          <div>
+                            <div className="flex items-center">
+                              <input 
+                                type="radio" 
+                                id="malocclusion_spacing" 
+                                name="malocclusion_type" 
+                                value="spacing" 
+                                checked={formData.malocclusion_type === 'spacing'}
+                                onChange={handleInputChange}
+                                className="mr-2"
+                              />
+                              <label htmlFor="malocclusion_spacing">Spacing</label>
+                            </div>
+                            {formData.malocclusion_type === 'spacing' && (
+                              <div className="ml-6 mt-2 space-y-2">
+                                {['upper', 'lower', 'anterior'].map(location => (
+                                  <div key={`spacing-${location}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`spacing_${location}`}
+                                      name="spacing_location" 
+                                      value={location}
+                                      checked={formData.spacing_location.includes(location)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`spacing_${location}`}>
+                                      {location.charAt(0).toUpperCase() + location.slice(1)} teeth
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Protrusion */}
+                          <div>
+                            <div className="flex items-center">
+                              <input 
+                                type="radio" 
+                                id="malocclusion_protrusion" 
+                                name="malocclusion_type" 
+                                value="protrusion" 
+                                checked={formData.malocclusion_type === 'protrusion'}
+                                onChange={handleInputChange}
+                                className="mr-2"
+                              />
+                              <label htmlFor="malocclusion_protrusion">Protrusion</label>
+                            </div>
+                            {formData.malocclusion_type === 'protrusion' && (
+                              <div className="ml-6 mt-2 space-y-2">
+                                {['maxillary', 'mandibular', 'bimaxillary'].map(protrusionType => (
+                                  <div key={`protrusion-${protrusionType}`} className="flex items-center">
+                                    <input 
+                                      type="checkbox" 
+                                      id={`protrusion_${protrusionType}`}
+                                      name="protrusion_type" 
+                                      value={protrusionType}
+                                      checked={formData.protrusion_type.includes(protrusionType)}
+                                      onChange={handleInputChange}
+                                      className="mr-2"
+                                    />
+                                    <label htmlFor={`protrusion_${protrusionType}`}>
+                                      {protrusionType.charAt(0).toUpperCase() + protrusionType.slice(1)}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Other Findings */}
+            <div className="border border-gray-200 rounded p-4 bg-white">
+              <div>
+                <label className="block mb-1">Any Other Finding:</label>
+                <textarea 
+                  name="other_findings" 
+                  className="w-full p-2 border border-gray-300 rounded" 
+                  rows="3"
+                  value={formData.other_findings}
+                  onChange={handleInputChange}
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: Advice */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4">
+            <h3 className="font-bold">🧾 6. Advice</h3>
+          </div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+            
+            {/* Restoration */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 Restoration</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="restoration" 
+                  name="advice" 
+                  value="restoration" 
+                  checked={formData.advice.includes('restoration')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="restoration">Restoration Required</label>
+              </div>
+              
+              {formData.advice.includes('restoration') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 rounded p-4">
+                    {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      Teeth Diagram Placeholder
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded p-4 bg-white">
+                    <label className="block mb-2">Select Teeth for Restoration:</label>
+                    {renderTeethGrid('restoration')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RCT */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 RCT (Root Canal Treatment)</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="rct" 
+                  name="advice" 
+                  value="rct" 
+                  checked={formData.advice.includes('rct')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="rct">RCT Required</label>
+              </div>
+              
+              {formData.advice.includes('rct') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 rounded p-4">
+                    {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      Teeth Diagram Placeholder
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded p-4 bg-white">
+                    <label className="block mb-2">Select Teeth for RCT:</label>
+                    {renderTeethGrid('rct')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* IOPA */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 IOPA (Intraoral Periapical Radiograph)</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="iopa" 
+                  name="advice" 
+                  value="iopa" 
+                  checked={formData.advice.includes('iopa')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="iopa">IOPA Required</label>
+              </div>
+              
+              {formData.advice.includes('iopa') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-gray-200 rounded p-4">
+                    {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      Teeth Diagram Placeholder
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 rounded p-4 bg-white">
+                    <label className="block mb-2">Select Teeth for IOPA:</label>
+                    {renderTeethGrid('iopa')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Oral Prophylaxis */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 Oral Prophylaxis</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="oral_prophylaxis" 
+                  name="advice" 
+                  value="oral_prophylaxis" 
+                  checked={formData.advice.includes('oral_prophylaxis')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="oral_prophylaxis">Oral Prophylaxis Required</label>
+              </div>
+            </div>
+
+            {/* Medications */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">💊 Medications</h5>
+              <div>
+                <textarea 
+                  name="medications" 
+                  className="w-full p-2 border border-gray-300 rounded" 
+                  rows="3" 
+                  placeholder="Enter prescribed medications..."
+                  value={formData.medications}
+                  onChange={handleInputChange}
+                ></textarea>
+              </div>
+            </div>
+
+            {/* Replacement of Missing Teeth */}
+            <div className="border border-gray-200 rounded p-4 mb-4 bg-white">
+              <h5 className="font-bold mb-3">🦷 Replacement of Missing Teeth</h5>
+              <div className="mb-3">
+                <input 
+                  type="checkbox" 
+                  id="replacement" 
+                  name="advice" 
+                  value="replacement" 
+                  checked={formData.advice.includes('replacement')}
+                  onChange={handleInputChange}
+                  className="mr-2"
+                />
+                <label htmlFor="replacement">Replacement Required</label>
+              </div>
+            </div>
+
+            {/* Other Advice */}
+            <div className="border border-gray-200 rounded p-4 bg-white">
+              <h5 className="font-bold mb-3">📝 Other Advice</h5>
+              <div>
+                <textarea 
+                  name="other_advice" 
+                  className="w-full p-2 border border-gray-300 rounded" 
+                  rows="3" 
+                  placeholder="Enter any other advice..."
+                  value={formData.other_advice}
+                  onChange={handleInputChange}
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <button 
+              type="submit" 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
+            >
+              Submit Consultation Form
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 export default DentalConsultationForm;
