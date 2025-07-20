@@ -15,10 +15,22 @@ const OnsiteDashboard = () => {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [patientForm, setPatientForm] = useState({
+    patient_id: '', 
+    name: '',
+    age: '',
+    gender: '',
+    phone: '',
+    services: ''
+  });
+  const [isSubmittingPatient, setIsSubmittingPatient] = useState(false);
 
   // Color constants
   const COLORS = {
     white: '#ffffff',
+    success: '#16a34a',
+    danger: '#dc2626',
     lightGrey: '#f8f9fa',
     mediumGrey: '#e1e5e9',
     darkGrey: '#6c757d',
@@ -32,7 +44,420 @@ const OnsiteDashboard = () => {
   const apiEndpoints = {
     camps: "http://127.0.0.1:8000/api/campmanager/camps/",
     campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/?camp_id=${campId}&package_id=${packageId}`
+    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/?camp_id=${campId}&package_id=${packageId}`,
+    addPatient: "http://127.0.0.1:8000/api/campmanager/patients/"
+  };
+
+  const handleAddPatientClick = (e, packageItem) => {
+    e.stopPropagation();
+    setShowAddPatientModal(true);
+  };
+  
+  const handlePatientFormChange = (field, value) => {
+    setPatientForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  const handleSubmitPatient = async (e) => {
+    e.preventDefault();
+    
+    if (!patientForm.name.trim() || !patientForm.age.trim() || !patientForm.gender.trim() || !patientForm.phone.trim() || !patientForm.services.trim()) {
+      alert('Please fill in all fields');
+      return;
+    }
+  
+    if (!selectedCamp || !selectedPackage) {
+      alert('Please select a camp and package first');
+      return;
+    }
+  
+    setIsSubmittingPatient(true);
+    
+    try {
+      const patientData = {
+        patient_id: patientForm.patient_id.trim(),
+        name: patientForm.name.trim(),
+        age: parseInt(patientForm.age),
+        gender: patientForm.gender,
+        phone: patientForm.phone.trim(),
+        services: patientForm.services.split(',').map(s => s.trim()).filter(s => s),
+        camp_id: selectedCamp.id,
+        package_id: selectedPackage.id
+      };
+  
+      await axios.post(apiEndpoints.addPatient, patientData);
+      
+      // Reset form
+      setPatientForm({ patient_id: '', name: '', age: '', gender: '', phone: '', services: '' });
+      setShowAddPatientModal(false);
+      
+      // Refresh patient list
+      fetchPackagePatients(selectedCamp.id, selectedPackage.id);
+      
+      alert('Patient added successfully!');
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      alert('Error adding patient. Please try again.');
+    } finally {
+      setIsSubmittingPatient(false);
+    }
+  };
+  
+  const handleCloseModal = () => {
+    setShowAddPatientModal(false);
+    setPatientForm({ name: '', age: '', gender: '', phone: '', services: '' });
+  };
+
+  // Fixed template literals and JSX structure
+  const renderAddPatientModal = () => {
+    if (!showAddPatientModal) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: COLORS.white,
+          borderRadius: '12px',
+          padding: '32px',
+          width: '90%',
+          maxWidth: '500px',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          position: 'relative',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          {/* Modal Header */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '24px',
+            borderBottom: `1px solid ${COLORS.mediumGrey}`,
+            paddingBottom: '16px'
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              fontSize: '20px', 
+              fontWeight: '600',
+              color: COLORS.darkText 
+            }}>
+              Add New Patient
+            </h2>
+            <button
+              onClick={handleCloseModal}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: COLORS.mediumText,
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'all 0.2s'
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Selected Package Info */}
+          {selectedPackage && (
+            <div style={{
+              backgroundColor: COLORS.lightGrey,
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              border: `1px solid ${COLORS.mediumGrey}`
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', color: COLORS.mediumText }}>
+                <strong>Adding patient to:</strong> {selectedPackage.name}
+              </p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: COLORS.lightText }}>
+                Camp: {selectedCamp?.location}
+              </p>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmitPatient}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: COLORS.darkText,
+              marginBottom: '8px'
+            }}>
+              Patient ID *
+            </label>
+            <input
+              type="text"
+              value={patientForm.patient_id}
+              onChange={(e) => handlePatientFormChange('patient_id', e.target.value)}
+              placeholder="e.g. PT-12345"
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: `1px solid ${COLORS.mediumGrey}`,
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Patient Name *
+              </label>
+              <input
+                type="text"
+                value={patientForm.name}
+                onChange={(e) => handlePatientFormChange('name', e.target.value)}
+                placeholder="Enter patient's full name"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: COLORS.darkText,
+                  marginBottom: '8px'
+                }}>
+                  Age *
+                </label>
+                <input
+                  type="number"
+                  value={patientForm.age}
+                  onChange={(e) => handlePatientFormChange('age', e.target.value)}
+                  placeholder="Enter age"
+                  required
+                  min="1"
+                  max="120"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: `1px solid ${COLORS.mediumGrey}`,
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: COLORS.darkText,
+                  marginBottom: '8px'
+                }}>
+                  Gender *
+                </label>
+                <select
+                  value={patientForm.gender}
+                  onChange={(e) => handlePatientFormChange('gender', e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: `1px solid ${COLORS.mediumGrey}`,
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box',
+                    backgroundColor: COLORS.white,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                value={patientForm.phone}
+                onChange={(e) => handlePatientFormChange('phone', e.target.value)}
+                placeholder="Enter phone number (e.g., +91 9876543210)"
+                required
+                pattern="[+]?[0-9\s\-]{10,15}"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box'
+                }}
+              />
+              <p style={{
+                fontSize: '12px',
+                color: COLORS.lightText,
+                marginTop: '4px',
+                margin: '4px 0 0 0'
+              }}>
+                Include country code if applicable
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Services *
+              </label>
+              <textarea
+                value={patientForm.services}
+                onChange={(e) => handlePatientFormChange('services', e.target.value)}
+                placeholder="Enter services (comma-separated, e.g., Consultation, Blood Test, X-Ray)"
+                required
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+              <p style={{
+                fontSize: '12px',
+                color: COLORS.lightText,
+                marginTop: '4px',
+                margin: '4px 0 0 0'
+              }}>
+                Separate multiple services with commas
+              </p>
+            </div>
+
+            {/* Form Actions */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end',
+              borderTop: `1px solid ${COLORS.mediumGrey}`,
+              paddingTop: '20px'
+            }}>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                disabled={isSubmittingPatient}
+                style={{
+                  padding: '10px 20px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '8px',
+                  backgroundColor: COLORS.white,
+                  color: COLORS.mediumText,
+                  cursor: isSubmittingPatient ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingPatient}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  backgroundColor: isSubmittingPatient ? COLORS.mediumGrey : COLORS.success,
+                  color: COLORS.white,
+                  cursor: isSubmittingPatient ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isSubmittingPatient ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid transparent',
+                      borderTop: '2px solid white',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    Adding...
+                  </>
+                ) : (
+                  'Add Patient'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   const fetchData = useCallback(async () => {
@@ -110,7 +535,7 @@ const OnsiteDashboard = () => {
     }
   };
 
-const handlePrintQR = (patient) => {
+  const handlePrintQR = (patient) => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -143,7 +568,6 @@ const handlePrintQR = (patient) => {
   };
 
   const handleCampStatus = (patientId) => {
-    // Add camp status logic here
     console.log('Camp status for patient:', patientId);
   };
 
@@ -166,7 +590,6 @@ const handlePrintQR = (patient) => {
     else return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
   };
 
-  // Add the missing render functions
   const renderCampProgressContent = () => {
     const readyCamps = data.filter(camp => camp.ready_to_go === true);
 
@@ -238,6 +661,28 @@ const handlePrintQR = (patient) => {
                           {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
                         </p>
                       </div>
+                      <button
+                        onClick={(e) => handleAddPatientClick(e, packageItem)}
+                        style={{
+                          backgroundColor: COLORS.success,
+                          color: COLORS.white,
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          cursor: 'pointer',
+                          fontWeight: '500',
+                          fontSize: '14px',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        ADD PATIENT
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -412,7 +857,6 @@ const handlePrintQR = (patient) => {
                       >
                         Print QR
                       </button>
-                      
                     </div>
                   </div>
                 ))}
@@ -524,6 +968,9 @@ const handlePrintQR = (patient) => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
+      {/* ADD PATIENT Modal */}
+      {renderAddPatientModal()}
+      
       {/* Simplified Sidebar */}
       <div style={{ width: '256px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: '1px solid #e5e7eb' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
@@ -558,7 +1005,7 @@ const handlePrintQR = (patient) => {
           ))}
         </nav>
       </div>
-
+      
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
