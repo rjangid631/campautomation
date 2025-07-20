@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+
 const OnsiteDashboard = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
@@ -15,9 +16,12 @@ const OnsiteDashboard = () => {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+
+
+  // Add these new state variables after line 17
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [patientForm, setPatientForm] = useState({
-    patient_id: '', 
     name: '',
     age: '',
     gender: '',
@@ -25,6 +29,8 @@ const OnsiteDashboard = () => {
     services: ''
   });
   const [isSubmittingPatient, setIsSubmittingPatient] = useState(false);
+
+
 
   // Color constants
   const COLORS = {
@@ -40,6 +46,7 @@ const OnsiteDashboard = () => {
     aquaBlue: '#17a2b8'
   };
 
+
   // API endpoints
   const apiEndpoints = {
     camps: "http://127.0.0.1:8000/api/campmanager/camps/",
@@ -48,8 +55,10 @@ const OnsiteDashboard = () => {
     addPatient: "http://127.0.0.1:8000/api/campmanager/patients/"
   };
 
+
+  // Add these new functions
   const handleAddPatientClick = (e, packageItem) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent package selection
     setShowAddPatientModal(true);
   };
   
@@ -77,7 +86,6 @@ const OnsiteDashboard = () => {
     
     try {
       const patientData = {
-        patient_id: patientForm.patient_id.trim(),
         name: patientForm.name.trim(),
         age: parseInt(patientForm.age),
         gender: patientForm.gender,
@@ -90,8 +98,11 @@ const OnsiteDashboard = () => {
       await axios.post(apiEndpoints.addPatient, patientData);
       
       // Reset form
-      setPatientForm({ patient_id: '', name: '', age: '', gender: '', phone: '', services: '' });
+      setPatientForm({ name: '', age: '', gender: '', phone: '', services: '' });
       setShowAddPatientModal(false);
+
+
+      
       
       // Refresh patient list
       fetchPackagePatients(selectedCamp.id, selectedPackage.id);
@@ -110,7 +121,7 @@ const OnsiteDashboard = () => {
     setPatientForm({ name: '', age: '', gender: '', phone: '', services: '' });
   };
 
-  // Fixed template literals and JSX structure
+  // ADD PATIENT MODAL FUNCTION - ADDED HERE
   const renderAddPatientModal = () => {
     if (!showAddPatientModal) return null;
 
@@ -192,34 +203,6 @@ const OnsiteDashboard = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmitPatient}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: COLORS.darkText,
-              marginBottom: '8px'
-            }}>
-              Patient ID *
-            </label>
-            <input
-              type="text"
-              value={patientForm.patient_id}
-              onChange={(e) => handlePatientFormChange('patient_id', e.target.value)}
-              placeholder="e.g. PT-12345"
-              required
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: `1px solid ${COLORS.mediumGrey}`,
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'all 0.2s',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block',
@@ -338,10 +321,10 @@ const OnsiteDashboard = () => {
                   padding: '12px 16px',
                   border: `1px solid ${COLORS.mediumGrey}`,
                   borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'all 0.2s',
-                    boxSizing: 'border-box'
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box'
                 }}
               />
               <p style={{
@@ -459,6 +442,8 @@ const OnsiteDashboard = () => {
       </div>
     );
   };
+  
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -471,9 +456,11 @@ const OnsiteDashboard = () => {
     }
   }, []);
 
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
 
   const fetchPackages = async (campId) => {
     setLoadingPackages(true);
@@ -487,6 +474,7 @@ const OnsiteDashboard = () => {
       setLoadingPackages(false);
     }
   };
+
 
   const fetchPackagePatients = async (campId, packageId) => {
     setLoadingPatients(true);
@@ -503,6 +491,7 @@ const OnsiteDashboard = () => {
     }
   };
 
+
   const handleCampClick = (camp) => {
     setSelectedCamp(camp);
     setSelectedPackage(null);
@@ -512,11 +501,13 @@ const OnsiteDashboard = () => {
     fetchPackages(camp.id);
   };
 
+
   const handlePackageClick = (packageItem) => {
     setSelectedPackage(packageItem);
     setSearchTerm('');
     fetchPackagePatients(selectedCamp.id, packageItem.id);
   };
+
 
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
@@ -535,7 +526,8 @@ const OnsiteDashboard = () => {
     }
   };
 
-  const handlePrintQR = (patient) => {
+
+const handlePrintQR = (patient) => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -567,9 +559,12 @@ const OnsiteDashboard = () => {
     `);
   };
 
+
   const handleCampStatus = (patientId) => {
+    // Add camp status logic here
     console.log('Camp status for patient:', patientId);
   };
+
 
   const formatDate = (dateString) => {
     try {
@@ -581,6 +576,7 @@ const OnsiteDashboard = () => {
     }
   };
 
+
   const getCampStatus = (startDate, endDate) => {
     const today = new Date();
     const start = new Date(startDate);
@@ -590,8 +586,11 @@ const OnsiteDashboard = () => {
     else return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
   };
 
+
+  // Add the missing render functions
   const renderCampProgressContent = () => {
     const readyCamps = data.filter(camp => camp.ready_to_go === true);
+
 
     return (
       <div>
@@ -626,6 +625,7 @@ const OnsiteDashboard = () => {
           ))}
         </div>
 
+
         {/* Packages section */}
         {selectedCamp && (
           <div style={{ marginTop: '32px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
@@ -653,43 +653,47 @@ const OnsiteDashboard = () => {
                   onClick={() => handlePackageClick(packageItem)}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
+                    <div>
                         <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
-                          {packageItem.name}
+                        {packageItem.name}
                         </h4>
                         <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
-                          {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
+                        {formatDate(packageItem.start_date)} - {formatDate(packageItem.end_date)}
                         </p>
-                      </div>
-                      <button
+                    </div>
+                    {/* ADD PATIENT Button */}
+                    <button
                         onClick={(e) => handleAddPatientClick(e, packageItem)}
                         style={{
-                          backgroundColor: COLORS.success,
-                          color: COLORS.white,
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '8px 16px',
-                          cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '14px',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
+                        backgroundColor: COLORS.success,
+                        color: COLORS.white,
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        fontSize: '14px',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
                         }}
-                      >
+                    >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                         ADD PATIENT
-                      </button>
+                    </button>
                     </div>
+
+
                   </div>
                 ))}
               </div>
             )}
           </div>
         )}
+
 
         {/* Enhanced Patients section with search functionality */}
         {selectedPackage && (
@@ -754,6 +758,7 @@ const OnsiteDashboard = () => {
                 )}
               </div>
             </div>
+
 
             {loadingPatients ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -857,6 +862,7 @@ const OnsiteDashboard = () => {
                       >
                         Print QR
                       </button>
+                      
                     </div>
                   </div>
                 ))}
@@ -868,6 +874,7 @@ const OnsiteDashboard = () => {
     );
   };
 
+
   const renderDashboardContent = () => {
     const filteredData = data.filter(camp => camp.ready_to_go === true);
     const groupedCamps = filteredData.reduce((acc, camp) => {
@@ -875,6 +882,7 @@ const OnsiteDashboard = () => {
       acc[camp.client].unshift(camp);
       return acc;
     }, {});
+
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -890,6 +898,7 @@ const OnsiteDashboard = () => {
           </div>
         </div>
 
+
         {/* Camp List */}
         {Object.entries(groupedCamps).map(([clientId, camps]) => (
           <div key={clientId} style={clientCardStyle}>
@@ -901,6 +910,7 @@ const OnsiteDashboard = () => {
                 </div>
               </div>
             </div>
+
 
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -920,6 +930,7 @@ const OnsiteDashboard = () => {
                                 status.status === 'Active' ? '#166534' : '#374151'
                             }}>{status.status}</span>
                           </div>
+
 
                           <div style={campGridStyle}>
                             <div>
@@ -944,12 +955,14 @@ const OnsiteDashboard = () => {
     );
   };
 
+
   // Simplified menu items
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', color: 'text-blue-600' },
     { id: 'camp-progress', label: 'Camp Progress', color: 'text-indigo-600' },
     { id: 'logout', label: 'Log Out', color: 'text-red-600' }
   ];
+
 
   const handleMenuClick = (menuId) => {
     if (menuId === 'logout') {
@@ -966,9 +979,10 @@ const OnsiteDashboard = () => {
     }
   };
 
+
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
-      {/* ADD PATIENT Modal */}
+      {/* ADD PATIENT Modal - MOVED TO CORRECT POSITION */}
       {renderAddPatientModal()}
       
       {/* Simplified Sidebar */}
@@ -1014,6 +1028,7 @@ const OnsiteDashboard = () => {
           </h1>
         </div>
 
+
         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
           {activeMenuItem === 'camp-progress' ? (
             loading ? (
@@ -1051,6 +1066,7 @@ const OnsiteDashboard = () => {
   );
 };
 
+
 // Style constants
 const loaderContainerStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' };
 const spinnerStyle = { border: '4px solid #e5e7eb', borderTop: '4px solid #3b82f6', borderRadius: '50%', width: '36px', height: '36px', animation: 'spin 1s linear infinite', margin: 'auto' };
@@ -1075,5 +1091,6 @@ const statusBadgeStyle = { padding: '2px 8px', borderRadius: '12px', fontSize: '
 const campGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' };
 const campSubText = { fontSize: '14px', color: '#6b7280', marginBottom: '4px' };
 const campInfo = { fontWeight: '500', marginBottom: '4px' };
+
 
 export default OnsiteDashboard;

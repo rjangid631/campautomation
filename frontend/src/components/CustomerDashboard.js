@@ -38,16 +38,21 @@ const CustomerDashboard = () => {
   };
 
   // Load from localStorage
-const rawClientId = localStorage.getItem("clientId");
-console.log("🗃 Raw clientId from localStorage:", rawClientId);
-const finalClientId = rawClientId && !rawClientId.startsWith("CL-") ? `CL-${rawClientId}` : rawClientId;
-console.log("✅ Final clientId used for fetch:", finalClientId);
+  const getClientId = () => {
+    const rawClientId = localStorage.getItem("clientId");
+    console.log("🗃 Raw clientId from localStorage:", rawClientId);
+    
+    if (!rawClientId || rawClientId === "undefined") {
+      console.error("⚠️ Client ID not found in localStorage");
+      // Redirect to login if no client ID
+      window.location.href = "/login";
+      return null;
+    }
 
-const clientId = localStorage.getItem('clientId') || '';
-console.log("✅ Final clientId used for fetch:", clientId);
+    return rawClientId.startsWith('CL-') ? rawClientId : `CL-${rawClientId}`;
+  };
 
-const clientIdString = clientId;           // for Camps API
-console.log("🔤 Client ID String:", clientIdString);
+const clientId = getClientId();
 
 console.log("✅ Final clientId used for fetch:", clientId);
 
@@ -55,12 +60,14 @@ console.log("✅ Final clientId used for fetch:", clientId);
 
   useEffect(() => {
     const fetchClientDashboard = async () => {
+      if (!clientId) return; // Don't proceed without clientId
       const token = localStorage.getItem('access_token');
 
 
       if (!token) {
         setError("Unauthorized: Token not found. Please login again.");
         setLoading(false);
+        window.location.href = "/login";
         return;
       }
 
@@ -87,6 +94,9 @@ console.log("✅ Final clientId used for fetch:", clientId);
         await fetchCamps();
       } catch (err) {
         console.error("❌ Error fetching client dashboard:", err);
+        if (err.response?.status === 401) {
+          window.location.href = "/login";
+        }
         setError("Failed to fetch client data.");
       } finally {
         setLoading(false);
@@ -98,8 +108,8 @@ console.log("✅ Final clientId used for fetch:", clientId);
 
   const fetchCamps = async () => {
     try {
-      console.log("📤 Fetching camps for client:", clientIdString);
-      const campsData = await apiHandlers.getCamps(clientIdString);
+      console.log("📤 Fetching camps for client:", clientId); 
+      const campsData = await apiHandlers.getCamps(clientId);
       console.log("✅ Camps data received:", campsData);
       
       // Transform the data to match the expected format
