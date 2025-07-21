@@ -46,6 +46,7 @@ import RandomBloodGlucoseForm from './components/RandomBloodGlucoseForm';
 import BloodGroupingForm from './components/BloodGroupingForm';
 import OnsiteDashboard from './components/OnsiteDashboard';
 import StatusTracking from './components/StatusTracking';
+import CampStatusPage from './components/CampStatusPage';
 export const AppContext = createContext();
 function App() {
   const [loginType, setLoginType] = useState(null);
@@ -240,6 +241,7 @@ const handleLogin = (type, id) => {
             <Route path="/status-tracking" element={<StatusTracking />} />
             {/* Default Route */}
             <Route path="*" element={<Navigate to="/login" />} />
+            <Route path="/campStatus/:campId" element={<CampStatusPage/>} />
           </Routes>
 
           <Outlet />

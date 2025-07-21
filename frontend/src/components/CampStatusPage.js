@@ -34,7 +34,13 @@ const CampStatusPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-
+  const params = useParams();
+  
+  // Add comprehensive debugging
+  console.log('All URL params:', params);
+  console.log('Current URL:', window.location.pathname);
+  console.log('Keys in params:', Object.keys(params));
+  console.log('campId from params:', params.campId);
   // Fetch camp data
   
   // Fetch camp data
@@ -42,6 +48,7 @@ const fetchCampData = async () => {
   try {
     setLoading(true);
     // Use the correct API method from your apiService structure
+    console.log('Fetching camp data for campId:', campId);
     const response = await apiService.camps.getProgress(campId);
     setCampData(response); // Note: removed .data since apiService already returns response.data
     setLastUpdated(new Date());
