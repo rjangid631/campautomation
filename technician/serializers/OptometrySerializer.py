@@ -11,14 +11,24 @@ import os
 
 class OptometrySerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
+    technician_id = serializers.IntegerField(write_only=True, required=False)  # ✅ Add this
 
     class Meta:
         model = Optometry
         fields = '__all__'
         read_only_fields = ['pdf_report', 'patient']
 
+    def get_optometrist_from_technician(self, technician_id):
+        from technician.Models.optometrists import Optometrist  # ✅ Adjust import path if needed
+        try:
+            return Optometrist.objects.get(technician_id=technician_id)
+        except Optometrist.DoesNotExist:
+            return None
+
     def create(self, validated_data):
         unique_id = validated_data.pop('patient_unique_id')
+        technician_id = validated_data.pop('technician_id', None)  # ✅ Extract technician_id
+
         try:
             patient = PatientData.objects.get(unique_patient_id=unique_id)
         except PatientData.DoesNotExist:
@@ -26,8 +36,18 @@ class OptometrySerializer(serializers.ModelSerializer):
 
         validated_data['patient'] = patient
 
+        # ✅ Automatically map optometrist if not sent
+        if technician_id and 'optometrist' not in validated_data:
+            optometrist = self.get_optometrist_from_technician(technician_id)
+            if optometrist:
+                validated_data['optometrist'] = optometrist
+
         existing = Optometry.objects.filter(patient=patient).first()
         if existing:
+            # If updating, preserve existing optometrist if not in request
+            if 'optometrist' not in validated_data:
+                validated_data['optometrist'] = existing.optometrist
+
             for attr, value in validated_data.items():
                 setattr(existing, attr, value)
             existing.save()
@@ -40,6 +60,7 @@ class OptometrySerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('patient_unique_id', None)
+        validated_data.pop('technician_id', None)  # ✅ Ignore during update
         instance = super().update(instance, validated_data)
         self.generate_pdf(instance)
         return instance

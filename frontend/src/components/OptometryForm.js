@@ -148,7 +148,7 @@ function OptometryForm() {
     setSuccess("");
 
     try {
-      const submitData = { ...formData };
+      const submitData = { ...formData,technician_id: technicianId };
 
       // Convert empty strings to null (except for some fields)
       Object.keys(submitData).forEach((key) => {

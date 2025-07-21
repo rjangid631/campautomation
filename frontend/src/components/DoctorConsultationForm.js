@@ -69,7 +69,7 @@ const DoctorConsultationForm = () => {
         if (existing) {
           setIsEditing(true);
           setExistingConsultationId(existing.id);
-          
+
           const p = existing.patient;
           setPatient({
             patient_name: p?.patient_name || patientName || 'N/A',
@@ -97,23 +97,38 @@ const DoctorConsultationForm = () => {
             unfit_reason: existing.unfit_reason || ''
           }));
         } else {
-          setPatient({
-            patient_name: patientName,
-            unique_patient_id: patientId,
-            patient_excel_id: patientId,
-            age: 'N/A',
-            gender: 'N/A',
-            phone: 'N/A'
-          });
+          // 🩺 Fallback: Fetch patient details if no consultation exists
+          const patientRes = await fetch(`http://127.0.0.1:8000/api/campmanager/patient/${patientId}/`);
+          if (patientRes.ok) {
+            const data = await patientRes.json();
+            setPatient({
+              patient_name: data.patient_name || patientName || 'N/A',
+              unique_patient_id: data.unique_patient_id || patientId,
+              patient_excel_id: data.patient_excel_id || patientId,
+              age: data.age || 'N/A',
+              gender: data.gender || 'N/A',
+              phone: data.contact_number || 'N/A'
+            });
+          } else {
+            setPatient({
+              patient_name: patientName,
+              unique_patient_id: patientId,
+              patient_excel_id: patientId,
+              age: 'N/A',
+              gender: 'N/A',
+              phone: 'N/A'
+            });
+          }
         }
 
-        // Fetch doctor information
+        // ✅ Fetch doctor information
         const doctorRes = await fetch('http://127.0.0.1:8000/api/technician/doctors/');
         if (doctorRes.ok) {
           const doctors = await doctorRes.json();
           const selectedDoctor = Array.isArray(doctors) ? doctors[0] : doctors;
           setDoctor(selectedDoctor);
         }
+
       } catch (err) {
         console.error('Init fetch error:', err);
         setError('Failed to fetch consultation or doctor details.');
@@ -141,7 +156,7 @@ const DoctorConsultationForm = () => {
 
     try {
       // Prepare submission data - remove empty strings for optional fields
-      const submitData = { ...formData };
+      const submitData = { ...formData, technician_id: technicianId};
       
       // Fields that should remain as-is (required or have default values)
       const requiredFields = [

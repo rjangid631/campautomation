@@ -17,7 +17,8 @@ from technician.serializers.doctor_serializer import DoctorSerializer
 
 class DoctorConsultationSerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
-    
+    technician_id = serializers.IntegerField(write_only=True, required=False)  # ✅ Add technician_id for lookup
+
     patient = PatientDataSerializer(read_only=True)
     doctor = DoctorSerializer(read_only=True)
 
@@ -26,19 +27,30 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['pdf_report', 'patient', 'doctor']
 
+    def get_doctor_from_technician(self, technician_id):
+        from technician.Models.doctors import Doctor
+        try:
+            technician_id = int(technician_id)  # <-- Ensure it's an integer
+            return Doctor.objects.get(technician_id=technician_id)
+        except (Doctor.DoesNotExist, ValueError, TypeError):
+            return None
+
     def create(self, validated_data):
-        request = self.context.get('request')
         unique_id = validated_data.pop('patient_unique_id')
+        technician_id = validated_data.pop('technician_id', None)
 
         try:
             patient = PatientData.objects.get(unique_patient_id=unique_id)
         except PatientData.DoesNotExist:
             raise serializers.ValidationError({"patient_unique_id": "Patient not found."})
 
-        doctor = getattr(getattr(request.user, 'technician', None), 'doctor_profile', None)
+        # ✅ Assign doctor from technician_id
+        doctor = None
+        if technician_id:
+            doctor = self.get_doctor_from_technician(technician_id)
 
         if not doctor:
-            raise serializers.ValidationError({"doctor": "Doctor profile not found for the current technician user."})
+            raise serializers.ValidationError({"doctor": "Doctor profile not found for this technician."})
 
         validated_data['patient'] = patient
         validated_data['doctor'] = doctor
@@ -49,14 +61,13 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('patient_unique_id', None)
+        technician_id = validated_data.pop('technician_id', None)
 
-        request = self.context.get('request')
-        doctor = getattr(getattr(request.user, 'technician', None), 'doctor_profile', None)
-
-        if not doctor:
-            raise serializers.ValidationError({"doctor": "Doctor profile not found for the current technician user."})
-
-        validated_data['doctor'] = doctor
+        if technician_id:
+            doctor = self.get_doctor_from_technician(technician_id)
+            if not doctor:
+                raise serializers.ValidationError({"doctor": "Doctor profile not found for this technician."})
+            validated_data['doctor'] = doctor
 
         instance = super().update(instance, validated_data)
         self.generate_pdf(instance)
