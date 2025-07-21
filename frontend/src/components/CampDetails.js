@@ -39,13 +39,25 @@ const CampDetails = ({ onNext }) => {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    // Check multiple possible token storage keys
+    const token = localStorage.getItem('token') || 
+                 localStorage.getItem('authToken') || 
+                 localStorage.getItem('access_token') ||
+                 localStorage.getItem('accessToken');
+    
+    console.log('📋 Checking token in localStorage...');
+    console.log('📋 token key:', localStorage.getItem('token'));
+    console.log('📋 authToken key:', localStorage.getItem('authToken'));
+    console.log('📋 access_token key:', localStorage.getItem('access_token'));
+    console.log('📋 accessToken key:', localStorage.getItem('accessToken'));
+    console.log('📋 All localStorage keys:', Object.keys(localStorage));
+    
     console.log('📋 Token exists:', !!token);
     console.log('📋 Token value:', token ? token.substring(0, 20) + '...' : 'No token');
     
     if (!token) {
-      console.log('❌ No token found');
-      setError('You are not logged in. Please log in to continue.');
+      console.log('❌ No token found in any common storage key');
+      setError('Authentication token not found. Please log in again to continue.');
       setClients([]);
       return;
     }
@@ -73,7 +85,9 @@ const CampDetails = ({ onNext }) => {
               id: client.id,
               client_id: client.client_id,
               name: client.name,
-              email: client.email
+              email: client.email,
+              login_type: client.login_type, // Added this to debug
+              user_type: client.user_type    // Added this in case it's named differently
             });
           });
         } else {
@@ -266,6 +280,31 @@ const CampDetails = ({ onNext }) => {
     }
   };
 
+  // Helper function to filter clients - modified to show all clients or adjust filter as needed
+  const getFilteredClients = () => {
+    if (!Array.isArray(clients)) return [];
+    
+    // Debug: Log all clients and their login_type values
+    console.log('🔍 All clients for filtering:', clients.map(c => ({
+      id: c.id,
+      name: c.name,
+      login_type: c.login_type,
+      user_type: c.user_type
+    })));
+    
+    // Option 1: Show all clients (remove filter temporarily to debug)
+    return clients;
+    
+    // Option 2: Filter by login_type === 'Client' (original logic)
+    // return clients.filter(client => client.login_type === 'Client');
+    
+    // Option 3: Filter by user_type if that's the correct field
+    // return clients.filter(client => client.user_type === 'Client');
+    
+    // Option 4: Filter out coordinators specifically
+    // return clients.filter(client => client.login_type !== 'Coordinator');
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen p-6">
       <h2 className="text-3xl font-semibold mb-6">Camp Details</h2>
@@ -276,6 +315,12 @@ const CampDetails = ({ onNext }) => {
         <div className="mb-6 p-4 bg-white rounded shadow">
           <label className="block mb-2 font-semibold">Select Client:</label>
           
+          {/* Authentication Status */}
+         
+          
+          {/* Debug info */}
+         
+          
           {isLoadingClients ? (
             <p className="text-gray-500">Loading clients...</p>
           ) : (
@@ -285,11 +330,9 @@ const CampDetails = ({ onNext }) => {
               onChange={e => setSelectedClientId(e.target.value)}
             >
               <option value="">-- Select Client --</option>
-              {clients
-              .filter(client => client.login_type === 'Client') 
-              .map(client => (
+              {getFilteredClients().map(client => (
                 <option key={client.id} value={client.id}>
-                  {client.name} ({client.email}) - {client.login_type}
+                  {client.name} ({client.email}) - {client.login_type || client.user_type || 'Unknown Type'}
                 </option>
               ))}
             </select>
@@ -299,6 +342,17 @@ const CampDetails = ({ onNext }) => {
             <p className="text-gray-500 mt-2">No clients available</p>
           )}
           
+          {getFilteredClients().length === 0 && clients.length > 0 && !isLoadingClients && (
+            <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
+              <p className="text-orange-700">
+                No clients match the current filter. Total clients available: {clients.length}
+              </p>
+              <p className="text-sm text-orange-600 mt-1">
+                Check the console logs to see the login_type values of all clients.
+              </p>
+            </div>
+          )}
+          
           {clientDetails && (
             <div className="mt-4 bg-gray-50 p-3 rounded">
               <h4 className="font-bold mb-2">Selected Client Details</h4>
@@ -306,6 +360,7 @@ const CampDetails = ({ onNext }) => {
               <p><b>Email:</b> {clientDetails.email}</p>
               <p><b>Contact:</b> {clientDetails.contact_number}</p>
               <p><b>Client ID:</b> {clientDetails.client_id}</p>
+              <p><b>Login Type:</b> {clientDetails.login_type || clientDetails.user_type || 'Unknown'}</p>
             </div>
           )}
         </div>

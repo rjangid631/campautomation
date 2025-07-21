@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
@@ -28,6 +26,7 @@ const CustomerDashboard = () => {
   const [campDetails, setCampDetails] = useState(null);
   const [invoiceHistory, setInvoiceHistory] = useState([]);
   const [reports, setReports] = useState([]);
+  const [campReports, setCampReports] = useState(null);
 
   // Color scheme constants
   const colors = {
@@ -118,12 +117,15 @@ console.log("✅ Final clientId used for fetch:", clientId);
         name: `${camp.location} Camp`,
         date: camp.start_date,
         endDate: camp.end_date,
-        status: camp.ready_to_go ? 'Ready to Go' : 'In Progress',
+        status: camp.ready_to_go
+          ? (camp.is_completed ? 'Completed' : 'Ready to Go')
+          : 'In Progress',
         location: camp.location,
         district: camp.district,
         state: camp.state,
         pin_code: camp.pin_code,
         ready_to_go: camp.ready_to_go,
+        completed: camp.is_completed || false,
         client: camp.client
       }));
 
@@ -183,6 +185,42 @@ console.log("✅ Final clientId used for fetch:", clientId);
     }
   };
 
+  // New function to fetch camp reports from Google Drive API
+  const fetchCampReports = async (campId) => {
+  try {
+    console.log(`📤 Fetching camp reports for camp ID: ${campId}`);
+    const response = await fetch(`http://127.0.0.1:8000/api/campmanager/detail/${campId}/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Camp reports data received:", data);
+    
+    // NEW CODE: Clean the Google Drive link by removing extra brackets
+    if (data.google_drive_link) {
+      data.google_drive_link = data.google_drive_link.replace(/^\[|\]$/g, '');
+      const linkMatch = data.google_drive_link.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (linkMatch) {
+        data.google_drive_link = linkMatch[2];
+      }
+    }
+    
+    setCampReports(data);
+  } catch (err) {
+    console.error("❌ Error fetching camp reports:", err);
+    setCampReports(null);
+  }
+};
+
+
   const handleCampSelect = (camp) => {
     setSelectedCamp(camp);
     if (activeSection === 'campProgress') {
@@ -190,7 +228,7 @@ console.log("✅ Final clientId used for fetch:", clientId);
     } else if (activeSection === 'invoiceHistory') {
       fetchInvoiceHistory(camp.id);
     } else if (activeSection === 'reports') {
-      fetchReports(camp.id);
+      fetchCampReports(camp.id);
     }
   };
 
@@ -302,10 +340,10 @@ console.log("✅ Final clientId used for fetch:", clientId);
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Ready to Go Camps
+                  Ready to Go Camps (Not Completed)
                 </h2>
                 <div className="space-y-2">
-                  {camps.filter(camp => camp.ready_to_go).map((camp) => (
+                  {camps.filter(camp => camp.ready_to_go && !camp.completed).map((camp) => (
                     <div
                       key={camp.id}
                       className={`p-3 border rounded cursor-pointer hover:bg-gray-50 ${
@@ -345,8 +383,8 @@ console.log("✅ Final clientId used for fetch:", clientId);
                       </div>
                     </div>
                   ))}
-                  {camps.filter(camp => camp.ready_to_go).length === 0 && (
-                    <p style={{ color: colors.darkGrey }}>No ready-to-go camps available.</p>
+                  {camps.filter(camp => camp.ready_to_go && !camp.completed).length === 0 && (
+                    <p style={{ color: colors.darkGrey }}>No ready-to-go camps available that are not completed.</p>
                   )}
                 </div>
               </div>
@@ -511,10 +549,10 @@ console.log("✅ Final clientId used for fetch:", clientId);
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Select Camp
+                  Select Camp (Ready to Go & Completed)
                 </h2>
                 <div className="space-y-2">
-                  {camps.filter(camp => camp.ready_to_go).map((camp) => (
+                  {camps.filter(camp => camp.ready_to_go && camp.completed).map((camp) => (
                     <div
                       key={camp.id}
                       className={`p-3 border rounded cursor-pointer hover:bg-gray-50 ${
@@ -525,60 +563,106 @@ console.log("✅ Final clientId used for fetch:", clientId);
                       }}
                       onClick={() => handleCampSelect(camp)}
                     >
-                      <h3 className="font-medium" style={{ color: colors.darkGrey }}>
-                        {camp.name}
-                      </h3>
-                      <p className="text-sm" style={{ color: colors.darkGrey }}>
-                        Date: {camp.date}
-                      </p>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium" style={{ color: colors.darkGrey }}>
+                            {camp.name}
+                          </h3>
+                          <p className="text-sm" style={{ color: colors.darkGrey }}>
+                            Date: {camp.date}
+                          </p>
+                          <p className="text-sm" style={{ color: colors.darkGrey }}>
+                            Location: {camp.location}
+                          </p>
+                        </div>
+                        <span 
+                          className="px-2 py-1 rounded text-xs text-white"
+                          style={{ backgroundColor: colors.vividPurple }}
+                        >
+                          {camp.status}
+                        </span>
+                      </div>
                     </div>
                   ))}
+                  {camps.filter(camp => camp.ready_to_go && camp.completed).length === 0 && (
+                    <p style={{ color: colors.darkGrey }}>No completed camps available for reports.</p>
+                  )}
                 </div>
               </div>
 
               <div className="bg-white p-4 rounded-lg shadow-md">
                 <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Available Reports
+                  Google Drive Reports
                 </h2>
                 {selectedCamp ? (
                   <div className="space-y-3">
-                    {reports.map((report) => (
-                      <div key={report.id} className="border p-3 rounded">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium" style={{ color: colors.darkGrey }}>
-                              {report.name}
-                            </h4>
-                            <p className="text-sm" style={{ color: colors.darkGrey }}>
-                              Type: {report.type}
-                            </p>
-                            <p className="text-sm" style={{ color: colors.darkGrey }}>
-                              Generated: {report.date}
-                            </p>
-                            <p className="text-sm" style={{ color: colors.darkGrey }}>
-                              Size: {report.size}
-                            </p>
+                    {campReports ? (
+                      <div className="border p-4 rounded">
+                        <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium mb-2" style={{ color: colors.darkGrey }}>
+                            Camp Reports - {selectedCamp.name}
+                          </h4>
+                          <p className="text-sm mb-2" style={{ color: colors.darkGrey }}>
+                            Camp ID: {campReports.camp}
+                          </p>
+                          <p className="text-sm mb-3" style={{ color: colors.darkGrey }}>
+                            Uploaded: {new Date(campReports.uploaded_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 104 0 2 2 0 00-4 0zm8-2a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-medium" style={{ color: colors.darkGrey }}>
+                              Google Drive Folder
+                            </span>
                           </div>
-                          <div className="space-x-2">
-                            <button 
-                              className="text-white px-3 py-1 rounded text-sm"
-                              style={{ backgroundColor: colors.aquaBlue }}
-                            >
-                              View
-                            </button>
-                            <button 
-                              className="text-white px-3 py-1 rounded text-sm"
-                              style={{ backgroundColor: colors.grassGreen }}
-                            >
-                              Download
-                            </button>
+                          
+                          {/* NEW CODE: Display the cleaned Google Drive link */}
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs break-all" style={{ color: colors.darkGrey }}>
+                            {campReports.google_drive_link}
                           </div>
                         </div>
                       </div>
-                    ))}
+
+                        <div className="mt-4 pt-3 border-t">
+                          <button 
+                            className="text-white px-4 py-2 rounded text-sm mr-3"
+                            style={{ backgroundColor: colors.aquaBlue }}
+                            onClick={() => window.open(campReports.google_drive_link, '_blank')}
+                          >
+                            Open Google Drive
+                          </button>
+                          <button 
+                            className="text-white px-4 py-2 rounded text-sm"
+                            style={{ backgroundColor: colors.grassGreen }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(campReports.google_drive_link);
+                              alert('Drive link copied to clipboard!');
+                            }}
+                          >
+                            Copy Link
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border p-4 rounded bg-gray-50">
+                        <p style={{ color: colors.darkGrey }}>
+                          No Google Drive reports found for this camp.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <p style={{ color: colors.darkGrey }}>Select a camp to view available reports</p>
+                  <p style={{ color: colors.darkGrey }}>Select a completed camp to view Google Drive reports</p>
                 )}
               </div>
             </div>

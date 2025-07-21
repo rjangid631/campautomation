@@ -40,6 +40,11 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [originalPatients, setOriginalPatients] = useState([]);
 
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedUploadCamp, setSelectedUploadCamp] = useState(null);
+  const [driveLink, setDriveLink] = useState('');
+  const [uploading, setUploading] = useState(false);
+
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(apiEndpoints.camps);
@@ -72,7 +77,8 @@ const Dashboard = () => {
     allCamps: "http://127.0.0.1:8000/api/camps/",
     patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`,
     campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`
+    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
+    uploadReport: "http://127.0.0.1:8000/api/campmanager/upload/"
   };
 
   const handleDetailsToggle = (index) => {
@@ -197,6 +203,43 @@ const Dashboard = () => {
     { id: 'camp-progress', label: 'Camp Progress', color: COLORS.vividPurple },
     { id: 'logout', label: 'Log Out', color: '#dc2626' }
   ];
+  const handleUploadReport = (camp) => {
+    setSelectedUploadCamp(camp);
+    setUploadModalOpen(true);
+    setDriveLink('');
+  };
+  
+  const handleSubmitReport = async () => {
+    if (!driveLink.trim()) {
+      alert('Please enter a valid drive link');
+      return;
+    }
+  
+  setUploading(true);
+    try {
+      const response = await axios.post(apiEndpoints.uploadReport, {
+        camp: selectedUploadCamp.id,
+        google_drive_link: driveLink.trim()
+      });
+      
+      alert('Report uploaded successfully!');
+      setUploadModalOpen(false);
+      setSelectedUploadCamp(null);
+      setDriveLink('');
+    } catch (error) {
+      console.error('Error uploading report:', error);
+      alert('Failed to upload report. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const handleCloseUploadModal = () => {
+    setUploadModalOpen(false);
+    setSelectedUploadCamp(null);
+    setDriveLink('');
+  };
+
 
   const handleMenuClick = (menuId) => {
     setActiveMenuItem(menuId);
@@ -253,8 +296,92 @@ const Dashboard = () => {
     return acc;
   }, {});
 
+  
+  const renderUploadReportContent = () => {
+    const completedReadyCamps = data.filter(camp => 
+      camp.ready_to_go === true && 
+      getCampStatus(camp.start_date, camp.end_date).status === 'Completed'
+    );
+  
+    return (
+      <div>
+        <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600', color: COLORS.darkText }}>
+          Completed Camps Ready for Report Upload
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {completedReadyCamps.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: COLORS.mediumText }}>
+              <p>No completed camps available for report upload.</p>
+            </div>
+          )}
+          {completedReadyCamps.map(camp => {
+            const status = getCampStatus(camp.start_date, camp.end_date);
+            return (
+              <div
+                key={camp.id}
+                style={{
+                  padding: '16px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '8px',
+                  backgroundColor: COLORS.white,
+                  transition: 'all 0.2s',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: COLORS.darkText }}>
+                        {camp.location} (ID: {camp.id})
+                      </h3>
+                      <span style={{
+                        ...statusBadgeStyle,
+                        backgroundColor: status.color,
+                        color: status.textColor
+                      }}>
+                        {status.status}
+                      </span>
+                    </div>
+                    <p style={{ margin: '4px 0', color: COLORS.mediumText, fontSize: '14px' }}>
+                      {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
+                    </p>
+                    <p style={{ margin: '4px 0 0 0', color: COLORS.lightText, fontSize: '12px' }}>
+                      Client: {camp.client}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleUploadReport(camp)}
+                    style={{
+                      backgroundColor: COLORS.grassGreen,
+                      color: COLORS.white,
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '10px 20px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = COLORS.aquaBlue}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.grassGreen}
+                  >
+                    Upload Report
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+};
+
+
+
+
+
   const renderCampProgressContent = () => {
-    const readyCamps = data.filter(camp => camp.ready_to_go === true);
+    const readyCamps = data.filter(camp => camp.ready_to_go === true && getCampStatus(camp.start_date, camp.end_date).status !== 'Completed');
 
     return (
       <div>
@@ -682,12 +809,14 @@ const Dashboard = () => {
   const getHeaderTitle = () => {
     if (activeMenuItem === 'view-camp') return 'View All Camps';
     if (activeMenuItem === 'camp-progress') return 'Camp Progress';
+    if (activeMenuItem === 'upload-report') return 'Upload Reports';
     return 'Dashboard of All Camps';
   };
 
   const getHeaderDescription = () => {
     if (activeMenuItem === 'view-camp') return 'View and manage all camps from all clients. You can delete camps that are not going to happen.';
     if (activeMenuItem === 'camp-progress') return 'View all camps marked ready to go and their patient details.';
+    if (activeMenuItem === 'upload-report') return 'Upload reports for completed camps that are ready to go.';
     return 'Manage and monitor all camp activities. You can delete camps that are not going to happen.';
   };
 
@@ -762,6 +891,17 @@ const Dashboard = () => {
             ) : (
               renderCampProgressContent()
             )
+          ) : activeMenuItem === 'upload-report' ? (
+            loading ? (
+              <div style={loaderContainerStyle}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={spinnerStyle}></div>
+                  <p style={loadingTextStyle}>Loading camp data...</p>
+                </div>
+              </div>
+            ) : (
+              renderUploadReportContent()
+            )
           ) : (activeMenuItem === 'dashboard' || activeMenuItem === 'view-camp') ? (
             loading ? (
               <div style={loaderContainerStyle}>
@@ -802,12 +942,131 @@ const Dashboard = () => {
               >
                 Upload
               </button>
-          </div>
+            </div>
           )}
         </div>
       </div>
 
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      {uploadModalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              backgroundColor: COLORS.white,
+              borderRadius: '8px',
+              padding: '24px',
+              width: '500px',
+              maxWidth: '90vw',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h3 style={{ 
+                fontSize: '18px', 
+                fontWeight: '600', 
+                color: COLORS.darkText, 
+                marginBottom: '16px',
+                margin: '0 0 16px 0'
+              }}>
+                Upload Report for {selectedUploadCamp?.location}
+              </h3>
+              <p style={{ 
+                color: COLORS.mediumText, 
+                fontSize: '14px', 
+                marginBottom: '16px',
+                margin: '0 0 16px 0'
+              }}>
+                Camp ID: {selectedUploadCamp?.id} | {selectedUploadCamp?.district}, {selectedUploadCamp?.state}
+              </p>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  color: COLORS.darkText, 
+                  marginBottom: '8px' 
+                }}>
+                  Drive Link
+                </label>
+                <input
+                  type="url"
+                  value={driveLink}
+                  onChange={(e) => setDriveLink(e.target.value)}
+                  placeholder="Enter Google Drive link or report URL"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: `1px solid ${COLORS.mediumGrey}`,
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = COLORS.aquaBlue}
+                  onBlur={(e) => e.target.style.borderColor = COLORS.mediumGrey}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  onClick={handleCloseUploadModal}
+                  disabled={uploading}
+                  style={{
+                    backgroundColor: COLORS.lightGrey,
+                    color: COLORS.darkText,
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 20px',
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    fontSize: '14px',
+                    opacity: uploading ? 0.6 : 1
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitReport}
+                  disabled={uploading || !driveLink.trim()}
+                  style={{
+                    backgroundColor: uploading || !driveLink.trim() ? COLORS.mediumGrey : COLORS.grassGreen,
+                    color: COLORS.white,
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 20px',
+                    cursor: uploading || !driveLink.trim() ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {uploading && (
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid transparent',
+                      borderTop: '2px solid white',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                  )}
+                  {uploading ? 'Uploading...' : 'Upload Report'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
