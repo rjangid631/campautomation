@@ -30,38 +30,39 @@ const COLORS = {
 const CampStatusPage = () => {
   const { campId } = useParams();
   const navigate = useNavigate();
-  const [campData, setCampData] = useState(null);
+  const [campData, setCampData] = useState({
+    service_summary: [],
+    technician_summary: [],
+    packages: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const params = useParams();
   
-  // Add comprehensive debugging
-  console.log('All URL params:', params);
-  console.log('Current URL:', window.location.pathname);
-  console.log('Keys in params:', Object.keys(params));
-  console.log('campId from params:', params.campId);
-  // Fetch camp data
-  
-  // Fetch camp data
-const fetchCampData = async () => {
-  try {
-    setLoading(true);
-    // Use the correct API method from your apiService structure
-    console.log('Fetching camp data for campId:', campId);
-    const response = await apiService.camps.getProgress(campId);
-    setCampData(response); // Note: removed .data since apiService already returns response.data
-    setLastUpdated(new Date());
-    setError(null);
-  } catch (err) {
-    setError(err.response?.data?.message || err.message || 'Failed to fetch camp data');
-    console.error('Error fetching camp data:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchCampData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching camp data for campId:', campId);
+      const response = await apiService.camps.getProgress(campId);
+      
+      // Ensure all arrays exist with default empty arrays
+      setCampData({
+        ...response,
+        service_summary: response.service_summary || [],
+        technician_summary: response.technician_summary || [],
+        packages: response.packages || []
+      });
+      
+      setLastUpdated(new Date());
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to fetch camp data');
+      console.error('Error fetching camp data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
     fetchCampData();
     const interval = setInterval(fetchCampData, 30000);
@@ -267,8 +268,6 @@ const fetchCampData = async () => {
                 transition: 'all 0.2s',
                 backdropFilter: 'blur(10px)'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = `${COLORS.white}30`}
-              onMouseLeave={(e) => e.target.style.backgroundColor = `${COLORS.white}20`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 18l-6-6 6-6" />
@@ -364,7 +363,7 @@ const fetchCampData = async () => {
           }}>
             <StatCard
               title="Overall Progress"
-              value={`${campData.progress_percent.toFixed(1)}%`}
+              value={`${campData.progress_percent?.toFixed(1) || 0}%`}
               subtitle="Total completion"
               color={COLORS.primary}
               icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.primary}>
@@ -373,8 +372,8 @@ const fetchCampData = async () => {
             />
             <StatCard
               title="Completed Services"
-              value={campData.completed_services}
-              subtitle={`Out of ${campData.total_services} services`}
+              value={campData.completed_services || 0}
+              subtitle={`Out of ${campData.total_services || 0} services`}
               color={COLORS.green}
               icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.green}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -382,7 +381,7 @@ const fetchCampData = async () => {
             />
             <StatCard
               title="Pending Services"
-              value={campData.pending_services}
+              value={campData.pending_services || 0}
               subtitle="Services remaining"
               color={COLORS.orange}
               icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.orange}>
@@ -391,8 +390,8 @@ const fetchCampData = async () => {
             />
             <StatCard
               title="Total Patients"
-              value={campData.total_patients}
-              subtitle={`${campData.completed_patients} completed`}
+              value={campData.total_patients || 0}
+              subtitle={`${campData.completed_patients || 0} completed`}
               color={COLORS.blue}
               icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.blue}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -411,12 +410,12 @@ const fetchCampData = async () => {
                 Services Progress
               </span>
               <span style={{ fontSize: '14px', fontWeight: '500', color: COLORS.mediumText }}>
-                {campData.completed_services}/{campData.total_services} completed
+                {campData.completed_services || 0}/{campData.total_services || 0} completed
               </span>
             </div>
             <ProgressBar 
-              value={campData.completed_services} 
-              total={campData.total_services} 
+              value={campData.completed_services || 0} 
+              total={campData.total_services || 1} 
               color={COLORS.primary}
               height="12px"
             />
@@ -455,56 +454,67 @@ const fetchCampData = async () => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
             gap: '20px' 
           }}>
-            {campData.service_summary.map((service, index) => (
-              <div key={service.service__id} style={{ 
-                border: `1px solid ${COLORS.border}`, 
-                borderRadius: '12px', 
-                padding: '20px',
-                backgroundColor: COLORS.lightGrey,
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: `linear-gradient(90deg, ${service.completed === service.total ? COLORS.green : COLORS.orange}, ${service.completed === service.total ? COLORS.green : COLORS.orange}80)`
-                }} />
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '18px', color: COLORS.darkText, fontWeight: '600' }}>
-                    {service.service__name}
-                  </h3>
+            {campData.service_summary?.length > 0 ? (
+              campData.service_summary.map((service, index) => (
+                <div key={service.service__id || index} style={{ 
+                  border: `1px solid ${COLORS.border}`, 
+                  borderRadius: '12px', 
+                  padding: '20px',
+                  backgroundColor: COLORS.lightGrey,
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    backgroundColor: service.completed === service.total ? COLORS.greenLight : COLORS.orangeLight,
-                    color: service.completed === service.total ? COLORS.green : COLORS.orange,
-                    fontSize: '14px',
-                    fontWeight: 'bold'
-                  }}>
-                    <span>{service.completed}/{service.total}</span>
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: `linear-gradient(90deg, ${service.completed === service.total ? COLORS.green : COLORS.orange}, ${service.completed === service.total ? COLORS.green : COLORS.orange}80)`
+                  }} />
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', color: COLORS.darkText, fontWeight: '600' }}>
+                      {service.service__name || 'Unnamed Service'}
+                    </h3>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      backgroundColor: service.completed === service.total ? COLORS.greenLight : COLORS.orangeLight,
+                      color: service.completed === service.total ? COLORS.green : COLORS.orange,
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      <span>{service.completed || 0}/{service.total || 0}</span>
+                    </div>
+                  </div>
+                  
+                  <ProgressBar 
+                    value={service.completed || 0} 
+                    total={service.total || 1} 
+                    color={service.completed === service.total ? COLORS.green : COLORS.orange}
+                    height="10px"
+                  />
+                  
+                  <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
+                    {service.total > 0 ? `${((service.completed / service.total) * 100).toFixed(1)}% completed` : 'No services scheduled'}
                   </div>
                 </div>
-                
-                <ProgressBar 
-                  value={service.completed} 
-                  total={service.total} 
-                  color={service.completed === service.total ? COLORS.green : COLORS.orange}
-                  height="10px"
-                />
-                
-                <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
-                  {service.total > 0 ? `${((service.completed / service.total) * 100).toFixed(1)}% completed` : 'No services scheduled'}
-                </div>
+              ))
+            ) : (
+              <div style={{ 
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '20px',
+                color: COLORS.mediumText
+              }}>
+                No service data available
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -540,59 +550,70 @@ const fetchCampData = async () => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: '20px' 
           }}>
-            {campData.technician_summary.map((tech, index) => (
-              <div key={tech.technician__id || index} style={{ 
-                border: `1px solid ${COLORS.border}`, 
-                borderRadius: '12px', 
-                padding: '20px',
-                backgroundColor: COLORS.lightGrey,
-                transition: 'all 0.3s ease',
-                position: 'relative'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: tech.technician__name ? COLORS.primary : COLORS.mediumGrey,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: COLORS.white,
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}>
-                      {tech.technician__name ? tech.technician__name.charAt(0).toUpperCase() : '?'}
+            {campData.technician_summary?.length > 0 ? (
+              campData.technician_summary.map((tech, index) => (
+                <div key={tech.technician__id || index} style={{ 
+                  border: `1px solid ${COLORS.border}`, 
+                  borderRadius: '12px', 
+                  padding: '20px',
+                  backgroundColor: COLORS.lightGrey,
+                  transition: 'all 0.3s ease',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: tech.technician__name ? COLORS.primary : COLORS.mediumGrey,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: COLORS.white,
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}>
+                        {tech.technician__name ? tech.technician__name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: '16px', color: COLORS.darkText, fontWeight: '600' }}>
+                        {tech.technician__user__name || 'Unassigned'}
+                      </h3>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '16px', color: COLORS.darkText, fontWeight: '600' }}>
-                      {tech.technician__name || 'Unassigned'}
-                    </h3>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: 'bold',
+                      color: tech.completed === tech.total ? COLORS.green : COLORS.orange,
+                      backgroundColor: tech.completed === tech.total ? COLORS.greenLight : COLORS.orangeLight,
+                      padding: '4px 8px',
+                      borderRadius: '12px'
+                    }}>
+                      {tech.completed || 0}/{tech.total || 0}
+                    </span>
                   </div>
-                  <span style={{ 
-                    fontSize: '14px', 
-                    fontWeight: 'bold',
-                    color: tech.completed === tech.total ? COLORS.green : COLORS.orange,
-                    backgroundColor: tech.completed === tech.total ? COLORS.greenLight : COLORS.orangeLight,
-                    padding: '4px 8px',
-                    borderRadius: '12px'
-                  }}>
-                    {tech.completed}/{tech.total}
-                  </span>
+                  
+                  <ProgressBar 
+                    value={tech.completed || 0} 
+                    total={tech.total || 1} 
+                    color={tech.completed === tech.total ? COLORS.green : COLORS.orange}
+                    height="10px"
+                  />
+                  
+                  <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
+                    {tech.total > 0 ? `${((tech.completed / tech.total) * 100).toFixed(1)}% completed` : 'No tasks assigned'}
+                  </div>
                 </div>
-                
-                <ProgressBar 
-                  value={tech.completed} 
-                  total={tech.total} 
-                  color={tech.completed === tech.total ? COLORS.green : COLORS.orange}
-                  height="10px"
-                />
-                
-                <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
-                  {tech.total > 0 ? `${((tech.completed / tech.total) * 100).toFixed(1)}% completed` : 'No tasks assigned'}
-                </div>
+              ))
+            ) : (
+              <div style={{ 
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '20px',
+                color: COLORS.mediumText
+              }}>
+                No technician data available
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -628,42 +649,53 @@ const fetchCampData = async () => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: '20px' 
           }}>
-            {campData.packages.map((pkg, index) => (
-              <div key={pkg.package_id} style={{ 
-                border: `1px solid ${COLORS.border}`, 
-                borderRadius: '12px', 
+            {campData.packages?.length > 0 ? (
+              campData.packages.map((pkg, index) => (
+                <div key={pkg.package_id || index} style={{ 
+                  border: `1px solid ${COLORS.border}`, 
+                  borderRadius: '12px', 
+                  padding: '20px',
+                  backgroundColor: COLORS.lightGrey,
+                  transition: 'all 0.3s ease'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', color: COLORS.darkText, fontWeight: '600' }}>
+                      {pkg.package_name || 'Unnamed Package'}
+                    </h3>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: 'bold',
+                      color: pkg.completed_patients === pkg.total_patients ? COLORS.green : COLORS.orange,
+                      backgroundColor: pkg.completed_patients === pkg.total_patients ? COLORS.greenLight : COLORS.orangeLight,
+                      padding: '4px 8px',
+                      borderRadius: '12px'
+                    }}>
+                      {pkg.completed_patients || 0}/{pkg.total_patients || 0}
+                    </span>
+                  </div>
+                  
+                  <ProgressBar 
+                    value={pkg.completed_patients || 0} 
+                    total={pkg.total_patients || 1} 
+                    color={pkg.completed_patients === pkg.total_patients ? COLORS.green : COLORS.orange}
+                    height="10px"
+                  />
+                  
+                  <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
+                    {pkg.total_patients > 0 ? `${((pkg.completed_patients / pkg.total_patients) * 100).toFixed(1)}% patients completed` : 'No patients enrolled'}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ 
+                gridColumn: '1 / -1',
+                textAlign: 'center',
                 padding: '20px',
-                backgroundColor: COLORS.lightGrey,
-                transition: 'all 0.3s ease'
+                color: COLORS.mediumText
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '18px', color: COLORS.darkText, fontWeight: '600' }}>
-                    {pkg.package_name}
-                  </h3>
-                  <span style={{ 
-                    fontSize: '14px', 
-                    fontWeight: 'bold',
-                    color: pkg.completed_patients === pkg.total_patients ? COLORS.green : COLORS.orange,
-                    backgroundColor: pkg.completed_patients === pkg.total_patients ? COLORS.greenLight : COLORS.orangeLight,
-                    padding: '4px 8px',
-                    borderRadius: '12px'
-                  }}>
-                    {pkg.completed_patients}/{pkg.total_patients}
-                  </span>
-                </div>
-                
-                <ProgressBar 
-                  value={pkg.completed_patients} 
-                  total={pkg.total_patients} 
-                  color={pkg.completed_patients === pkg.total_patients ? COLORS.green : COLORS.orange}
-                  height="10px"
-                />
-                
-                <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
-                  {pkg.total_patients > 0 ? `${((pkg.completed_patients / pkg.total_patients) * 100).toFixed(1)}% patients completed` : 'No patients enrolled'}
-                </div>
+                No package data available
               </div>
-            ))}
+            )}
           </div>
         </div>
 

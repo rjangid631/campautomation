@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+
 // API endpoints
 const apiEndpoints = {
   camps: "http://127.0.0.1:8000/api/campmanager/camps/",
@@ -345,40 +346,23 @@ const Dashboard = () => {
                           View Patients
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('packageItem:', packageItem); // Debug: see what's available
-                            console.log('packageItem keys:', Object.keys(packageItem)); // See all available keys
-                            
-                            // Try different possible field names
-                            const campId = packageItem.camp_id || 
-                                           packageItem.campId || 
-                                           packageItem.camp || 
-                                           packageItem.id ||
-                                           packageItem.package_id;
-                            
-                            console.log('Found campId:', campId);
-                            
-                            if (campId) {
-                              navigate(`/campStatus/${campId}`);
-                            } else {
-                              console.error('No camp ID found in packageItem');
-                              alert('Camp ID not found');
-                            }
-                          }}
-                          style={{
-                            backgroundColor: '#11a8a4',
-                            color: COLORS.white,
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            fontWeight: '500',
-                            fontSize: '14px'
-                          }}
-                        >
-                          Camp Status
-                        </button>
+  onClick={(e) => {
+    e.stopPropagation();
+    navigate(`/campStatus/${selectedCamp.id}`);
+  }}
+  style={{
+    backgroundColor: '#11a8a4',
+    color: COLORS.white,
+    border: 'none',
+    borderRadius: '6px',
+    padding: '8px 16px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '14px'
+  }}
+>
+  Camp Status
+</button>
 
                       </div>
                     </div>
