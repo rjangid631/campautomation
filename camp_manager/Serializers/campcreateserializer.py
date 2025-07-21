@@ -14,6 +14,8 @@ class PatientCreateSerializer(serializers.ModelSerializer):
     services     = serializers.ListField(
         child=serializers.CharField(), write_only=True
     )
+    camp_id    = serializers.IntegerField(write_only=True)       # ✅
+    package_id = serializers.IntegerField(write_only=True) 
 
     class Meta:
         model  = PatientData
@@ -21,10 +23,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             'patient_id', 'name', 'age', 'gender',
             'phone', 'services', 'package_id', 'camp_id'
         ]
-        extra_kwargs = {
-            'package_id': {'write_only': True},
-            'camp_id'   : {'write_only': True},
-        }
+        
 
     def create(self, validated_data):
         """
