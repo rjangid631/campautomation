@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 from camp_manager.views import CampManagerViewSet
 from camp_manager.views.camp_manager import CampManagerUserViewSet
 from camp_manager.views.campmanager_auth import CampManagerLoginView, CampManagerRegisterView
+from camp_manager.views.campupload import CampReportDetailView, CampReportUploadView
 from camp_manager.views.createapiview import AddPatientView
 from camp_manager.views.patient_detail import check_in_patient, get_patient_details
 from camp_manager.views.uploadview import UploadExcelViewSet, get_patients_by_camp_and_package, print_thermal_slips
@@ -28,6 +29,8 @@ urlpatterns = [
     path('print-thermal-slips/', print_thermal_slips, name='print-thermal-slips'),
     path('patients/filter/', get_patients_by_camp_and_package, name='get-patients-by-camp-package'),
     path('patients/', AddPatientView.as_view(), name='add-patient'),
+    path('upload/', CampReportUploadView.as_view(), name='upload-camp-report'),
+    path('detail/<int:camp__id>/', CampReportDetailView.as_view(), name='camp-report-detail'),
 ]
 
 # ✅ Append static media files URL
