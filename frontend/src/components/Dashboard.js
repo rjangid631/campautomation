@@ -71,7 +71,7 @@ const Dashboard = () => {
     allCamps: "http://127.0.0.1:8000/api/camps/",
     patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`,
     campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/?camp_id=${campId}&package_id=${packageId}`
+    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`
   };
 
   const handleDetailsToggle = (index) => {

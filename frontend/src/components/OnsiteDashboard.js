@@ -22,6 +22,7 @@ const OnsiteDashboard = () => {
   // Add these new state variables after line 17
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [patientForm, setPatientForm] = useState({
+    patient_id: '',
     name: '',
     age: '',
     gender: '',
@@ -48,12 +49,12 @@ const OnsiteDashboard = () => {
 
 
   // API endpoints
-  const apiEndpoints = {
-    camps: "http://127.0.0.1:8000/api/campmanager/camps/",
-    campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/?camp_id=${campId}&package_id=${packageId}`,
-    addPatient: "http://127.0.0.1:8000/api/campmanager/patients/"
-  };
+const apiEndpoints = {
+  camps: "http://127.0.0.1:8000/api/campmanager/camps/",
+  campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
+  packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
+  addPatient: "http://127.0.0.1:8000/api/campmanager/patients/"
+};
 
 
   // Add these new functions
@@ -69,53 +70,65 @@ const OnsiteDashboard = () => {
     }));
   };
   
-  const handleSubmitPatient = async (e) => {
-    e.preventDefault();
-    
-    if (!patientForm.name.trim() || !patientForm.age.trim() || !patientForm.gender.trim() || !patientForm.phone.trim() || !patientForm.services.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
+const handleSubmitPatient = async (e) => {
+  e.preventDefault();
   
-    if (!selectedCamp || !selectedPackage) {
-      alert('Please select a camp and package first');
-      return;
-    }
+  // Validate form fields
+  const formErrors = [];
+  if (!patientForm.patient_id.trim()) formErrors.push('Patient ID');
+  if (!patientForm.name.trim()) formErrors.push('Name');
+  if (!patientForm.age.trim()) formErrors.push('Age');
+  if (!patientForm.gender.trim()) formErrors.push('Gender');
+  if (!patientForm.phone.trim()) formErrors.push('Phone');
+  if (!patientForm.services.trim()) formErrors.push('Services');
   
-    setIsSubmittingPatient(true);
-    
-    try {
-      const patientData = {
-        name: patientForm.name.trim(),
-        age: parseInt(patientForm.age),
-        gender: patientForm.gender,
-        phone: patientForm.phone.trim(),
-        services: patientForm.services.split(',').map(s => s.trim()).filter(s => s),
-        camp_id: selectedCamp.id,
-        package_id: selectedPackage.id
-      };
-  
-      await axios.post(apiEndpoints.addPatient, patientData);
-      
-      // Reset form
-      setPatientForm({ name: '', age: '', gender: '', phone: '', services: '' });
-      setShowAddPatientModal(false);
+  if (formErrors.length > 0) {
+    alert(`Please fill in: ${formErrors.join(', ')}`);
+    return;
+  }
 
+  // Validate selections
+  if (!selectedCamp) {
+    alert('Please select a camp first');
+    return;
+  }
 
-      
-      
-      // Refresh patient list
-      fetchPackagePatients(selectedCamp.id, selectedPackage.id);
-      
-      alert('Patient added successfully!');
-    } catch (error) {
-      console.error('Error adding patient:', error);
-      alert('Error adding patient. Please try again.');
-    } finally {
-      setIsSubmittingPatient(false);
-    }
-  };
+  if (!selectedPackage) {
+    alert('Please select a package first - try clicking the package again');
+    return;
+  }
+
+  setIsSubmittingPatient(true);
   
+  try {
+    const patientData = {
+      patient_id: patientForm.patient_id.trim(),
+      name: patientForm.name.trim(),
+      age: parseInt(patientForm.age),
+      gender: patientForm.gender,
+      phone: patientForm.phone.trim(),
+      services: patientForm.services.split(',').map(s => s.trim()).filter(s => s),
+      package_id: selectedPackage.id,
+      camp_id: selectedCamp.id
+    };
+
+    await axios.post(apiEndpoints.addPatient, patientData);
+    
+    // Reset form
+    setPatientForm({ patient_id: '', name: '', age: '', gender: '', phone: '', services: '' });
+    setShowAddPatientModal(false);
+    
+    // Refresh patient list
+    fetchPackagePatients(selectedCamp.id, selectedPackage.id);
+    
+    alert('Patient added successfully!');
+  } catch (error) {
+    console.error('Error adding patient:', error);
+    alert(`Error: ${error.response?.data?.message || 'Failed to add patient'}`);
+  } finally {
+    setIsSubmittingPatient(false);
+  }
+};
   const handleCloseModal = () => {
     setShowAddPatientModal(false);
     setPatientForm({ name: '', age: '', gender: '', phone: '', services: '' });
@@ -203,6 +216,35 @@ const OnsiteDashboard = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmitPatient}>
+            <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: COLORS.darkText,
+              marginBottom: '8px'
+            }}>
+              Patient ID *
+            </label>
+            <input
+              type="text"
+              value={patientForm.patient_id}
+              onChange={(e) => handlePatientFormChange('patient_id', e.target.value)}
+              placeholder="Enter patient ID"
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: `1px solid ${COLORS.mediumGrey}`,
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block',
@@ -662,28 +704,28 @@ const handlePrintQR = (patient) => {
                         </p>
                     </div>
                     {/* ADD PATIENT Button */}
-                    <button
-                        onClick={(e) => handleAddPatientClick(e, packageItem)}
-                        style={{
-                        backgroundColor: COLORS.success,
-                        color: COLORS.white,
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        fontSize: '14px',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                        }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        ADD PATIENT
-                    </button>
+                   <button
+  onClick={(e) => handleAddPatientClick(e, packageItem)}
+  style={{
+    backgroundColor: COLORS.success,
+    color: COLORS.white,
+    border: 'none',
+    borderRadius: '6px',
+    padding: '8px 16px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '14px',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  }}
+>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+  ADD PATIENT
+</button>
                     </div>
 
 
