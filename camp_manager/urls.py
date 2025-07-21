@@ -26,8 +26,8 @@ urlpatterns = [
     path('login/', CampManagerLoginView.as_view(), name='campmanager-login'),
     path('register/', CampManagerRegisterView.as_view(), name='campmanager-register'),
     path('print-thermal-slips/', print_thermal_slips, name='print-thermal-slips'),
-    path('patients/filter/', get_patients_by_camp_and_package, name='get-patients-by-camp-package'),
-    path('patients/', AddPatientView.as_view(), name='add-patient'),
+    path('patients/', get_patients_by_camp_and_package, name='get-patients-by-camp-package'),
+    path('api/campmanager/patients/', AddPatientView.as_view(), name='add-patient'),
 ]
 
 # ✅ Append static media files URL
