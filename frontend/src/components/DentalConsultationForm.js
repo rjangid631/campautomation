@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 
 function DentalConsultationForm() {
@@ -14,7 +14,12 @@ function DentalConsultationForm() {
   const [showRct, setShowRct] = useState(false);
   const [showIopa, setShowIopa] = useState(false);
   const navigate = useNavigate();
-  
+  const location = useLocation();
+  const patientId = location?.state?.patientId || '';
+  const technicianIdFromLocation = location?.state?.technicianId;
+  const technicianId = technicianIdFromLocation || localStorage.getItem('technician_id');
+  console.log("🔍 location.state =", location?.state);
+  console.log("🆔 Extracted patientId =", patientId);
   // State for selected teeth
   const [selectedTeeth, setSelectedTeeth] = useState({
     pain: new Set(),
@@ -69,11 +74,41 @@ function DentalConsultationForm() {
     medications: '',
     other_advice: ''
   });
+  useEffect(() => {
+    if (!patientId) {
+      console.warn("⛔ No patientId found. Skipping API call.");
+      return;
+    }
 
+    console.log(`🌐 Fetching patient details for ID: ${patientId}`);
+
+    fetch(`http://127.0.0.1:8000/api/campmanager/patient/${patientId}/`)
+      .then(res => {
+        console.log("🌐 API response status:", res.status);
+        if (!res.ok) throw new Error("Failed to fetch patient details");
+        return res.json();
+      })
+      .then(data => {
+        console.log("✅ Patient Data Fetched:", data);
+
+        setFormData(prev => ({
+          ...prev,
+          patient_id: data.unique_patient_id,
+          patient_name: data.patient_name,
+          age: data.age,
+          gender: data.gender,
+          contact_number: data.contact_number,
+          screening_date: data.test_date || '',
+        }));
+      })
+      .catch(err => {
+        console.error("❌ Error fetching patient details:", err);
+      });
+  }, [patientId]);
   const handleBack = () => {
     navigate(-1);
   };
-
+  
   // Toggle functions
   const toggleSection = (section, setter) => {
     setter(!section);
@@ -120,16 +155,45 @@ function DentalConsultationForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Prepare data for submission
+
+     console.log("🧪 technicianId before submit:", technicianId); // ✅ Check this log
+
     const submissionData = {
       ...formData,
+      technician_id: parseInt(technicianId),
+      patient_unique_id: formData.patient_id, // ✅ Add this line
       selected_pain_teeth: Array.from(selectedTeeth.pain).join(','),
       missing_teeth_input: Array.from(selectedTeeth.missing).join(','),
-      sensitivity_type_input: formData.sensitivity_type.join(',')
+      sensitivity_type_input: formData.sensitivity_type.join(','),
     };
-    console.log('Form submission data:', submissionData);
-    // Here you would typically send the data to your backend
+
+    console.log('🚀 Submitting consultation form:', submissionData);
+
+    fetch('http://127.0.0.1:8000/api/technician/dental-consultation/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Include token if needed
+        // 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(submissionData),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('❌ Failed to submit form');
+        return response.json();
+      })
+      .then((data) => {
+        console.log('✅ Submission success:', data);
+        alert("Consultation form submitted successfully!");
+        // Optionally navigate or reset form
+        // navigate("/success-page");
+      })
+      .catch((error) => {
+        console.error('❌ Error submitting consultation form:', error);
+        alert("Failed to submit form. Please try again.");
+      });
   };
+
 
   // Render tooth selection grid
   const renderTeethGrid = (type) => {
@@ -263,7 +327,7 @@ function DentalConsultationForm() {
                       name="patient_name"
                       value={formData.patient_name}
                       onChange={handleInputChange}
-                      readOnly
+                      readOnly // ✅ Read-only is fine since data is prefilled
                     />
                   </div>
                   <div className="mb-4">

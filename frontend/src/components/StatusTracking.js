@@ -398,7 +398,7 @@ function StatusTracking() {
                               {details.technician_summary.map((tech, idx) => (
                                 <div key={idx} className="border rounded-lg p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">{tech.technician__name || 'Unassigned'}</span>
+                                    <span className="font-medium text-sm">{tech.technician__user__name || 'Unassigned'}</span>
                                     <span className="text-xs text-gray-500">{tech.completed}/{tech.total}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">

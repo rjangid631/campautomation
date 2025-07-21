@@ -1,193 +1,207 @@
-from io import BytesIO
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-)
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from django.core.files.base import ContentFile
 from rest_framework import serializers
-
+from io import BytesIO
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from django.core.files.base import ContentFile
 from technician.Models.dentalconsultation import DentalConsultation
 from camp_manager.Models.Patientdata import PatientData
+import os
 
 class DentalConsultationSerializer(serializers.ModelSerializer):
     patient_unique_id = serializers.CharField(write_only=True)
+    technician_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = DentalConsultation
         fields = '__all__'
         read_only_fields = ['pdf_report', 'pdf_filename', 'pdf_saved_at', 'patient']
-        extra_kwargs = {
-            'patient': {'read_only': True}
-        }
+
+    def get_dentist_from_technician(self, technician_id):
+        from technician.Models.dentist import Dentist
+        try:
+            return Dentist.objects.get(technician_id=technician_id)
+        except Dentist.DoesNotExist:
+            return None
 
     def create(self, validated_data):
-        request = self.context.get('request')
         unique_id = validated_data.pop('patient_unique_id')
-
-        print("📝 Starting DentalConsultationSerializer.create()")
-        print(f"🔍 Received unique_id: {unique_id}")
+        technician_id = validated_data.pop('technician_id', None)
 
         try:
             patient = PatientData.objects.get(unique_patient_id=unique_id)
-            print(f"✅ Patient found: {patient.patient_name} (Excel ID: {patient.patient_excel_id})")
         except PatientData.DoesNotExist:
-            print("❌ Patient not found with the given unique_patient_id")
             raise serializers.ValidationError({"patient_unique_id": "Invalid or not found."})
 
         validated_data['patient'] = patient
+        dentist = self.get_dentist_from_technician(technician_id) if technician_id else None
 
-        # ✅ Auto-assign dentist from technician
-        if request:
-            print(f"🔐 Logged-in user: {request.user} (ID: {request.user.id})")
-            if hasattr(request.user, 'technician'):
-                technician = request.user.technician
-                print(f"👨‍🔧 Technician found: {technician.name} (ID: {technician.id})")
-                if hasattr(technician, 'dentist_profile'):
-                    print(f"🦷 Dentist linked: {technician.dentist_profile.name}")
-                    validated_data['dentist'] = technician.dentist_profile
-                else:
-                    print("⚠️ Technician has no linked dentist_profile")
-                    raise serializers.ValidationError({"dentist": "Dentist profile not linked to this technician."})
-            else:
-                print("❌ User is not linked to a technician")
-                raise serializers.ValidationError({"technician": "User is not a technician."})
-        else:
-            print("❌ Request object not available in context")
-            raise serializers.ValidationError({"error": "Request context is missing"})
-
-        # Update if consultation already exists
         existing = DentalConsultation.objects.filter(patient=patient).first()
         if existing:
-            print("♻️ Existing consultation found. Updating it.")
+            # 🔁 Only reassign if dentist is not same as current one
+            if dentist and (not existing.dentist or existing.dentist.technician_id != technician_id):
+                print(f"🔁 Re-assigning dentist to technician {technician_id}")
+                existing.dentist = dentist
+
             for attr, value in validated_data.items():
                 setattr(existing, attr, value)
+
             existing.save()
             self.generate_pdf(existing)
-            print("✅ Updated existing consultation and generated PDF.")
             return existing
+
+        if dentist:
+            validated_data['dentist'] = dentist
 
         instance = super().create(validated_data)
         self.generate_pdf(instance)
-        print("✅ Created new consultation and generated PDF.")
         return instance
 
+    
 
     def update(self, instance, validated_data):
         validated_data.pop('patient_unique_id', None)
+        validated_data.pop('technician_id', None)
         instance = super().update(instance, validated_data)
         self.generate_pdf(instance)
         return instance
-
+    
     def generate_pdf(self, consultation):
+        print("📦 Starting PDF generation...")
         buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=A4,
-            leftMargin=30 * mm,
-            rightMargin=30 * mm,
-            topMargin=30 * mm,
-            bottomMargin=20 * mm
-        )
+        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=20)
         styles = getSampleStyleSheet()
         story = []
 
-        # === Title ===
-        title_style = styles['Heading1']
-        title_style.fontSize = 14
-        title_style.alignment = TA_LEFT
-        story.append(Paragraph("Dental Prescription Report", title_style))
+        # Title
+        story.append(Paragraph("Dental Prescription Report", styles['Title']))
         story.append(Spacer(1, 12))
 
-        # === Patient Info Table ===
+        patient = consultation.patient
+        test_date = consultation.screening_date.strftime("%d/%m/%Y") if consultation.screening_date else "N/A"
+        report_time = consultation.created_at.strftime("%d/%m/%Y, %H:%M") if consultation.created_at else "N/A"
+
         data = [
-            ["Patient Name:", consultation.patient.patient_name, "XRai ID:", consultation.patient.unique_patient_id],
-            ["Patient Age:", str(consultation.patient.age), "Patient ID:", consultation.patient.patient_excel_id],
-            ["Gender:", consultation.patient.gender, "Report Date/Time:",
-             consultation.created_at.strftime("%d/%m/%y, %H:%M") if consultation.created_at else "N/A"],
-            ["Test Date:", consultation.screening_date.strftime("%d/%m/%y") if consultation.screening_date else "N/A", "Referral Dr:", ""],
+            ["Patient Name:", patient.patient_name, "XRai ID:", patient.unique_patient_id],
+            ["Patient Age:", str(patient.age), "Patient ID:", patient.patient_excel_id or "N/A"],
+            ["Gender:", patient.gender, "Report Date/Time:", report_time],
+            ["Test Date:", test_date, "Referral Dr:", "N/A"],
         ]
-        table = Table(data, colWidths=[40 * mm, 55 * mm, 40 * mm, 55 * mm])
+
+        table = Table(data, colWidths=[70, 140, 70, 140])
         table.setStyle(TableStyle([
-            ("BOX", (0, 0), (-1, -1), 1, colors.black),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 10),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('PADDING', (0, 0), (-1, -1), 6),
         ]))
         story.append(table)
         story.append(Spacer(1, 20))
 
-        # === Complaints Section ===
-        story.append(Paragraph("<b>Complaint:</b>", styles["Heading4"]))
-        if consultation.other_complaints:
-            for line in consultation.other_complaints.split('\n'):
-                story.append(Paragraph(f"• {line}", styles["Normal"]))
-        else:
-            story.append(Paragraph("• No complaint provided", styles["Normal"]))
+        # === FAMILY HISTORY ===
+        story.append(Paragraph("<b>Family History:</b>", styles["Heading4"]))
+        story.append(Paragraph(f"Diabetes: {consultation.family_diabetes} ({consultation.family_diabetes_years or 'N/A'} years, {consultation.family_diabetes_relation or 'N/A'})", styles["Normal"]))
+        story.append(Paragraph(f"Hypertension: {consultation.family_hypertension} ({consultation.family_hypertension_years or 'N/A'} years, {consultation.family_hypertension_relation or 'N/A'})", styles["Normal"]))
+        if consultation.family_other:
+            story.append(Paragraph(f"Other: {consultation.family_other}", styles["Normal"]))
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("• PERSONAL HISTORY: N/A", styles["Normal"]))
-        story.append(Paragraph("• FAMILY HISTORY: N/A", styles["Normal"]))
+        # === MEDICAL HISTORY ===
+        story.append(Paragraph("<b>Medical History:</b>", styles["Heading4"]))
+        story.append(Paragraph(f"Diabetes: {consultation.medical_diabetes} ({consultation.medical_diabetes_years or 'N/A'} years)", styles["Normal"]))
+        story.append(Paragraph(f"Hypertension: {consultation.medical_hypertension} ({consultation.medical_hypertension_years or 'N/A'} years)", styles["Normal"]))
+        story.append(Paragraph(f"Current Medications: {consultation.current_medications}", styles["Normal"]))
+        if consultation.medications_list:
+            story.append(Paragraph(f"Medications List: {consultation.medications_list}", styles["Normal"]))
+        if consultation.past_surgeries:
+            story.append(Paragraph(f"Past Surgeries: {consultation.past_surgeries}", styles["Normal"]))
         story.append(Spacer(1, 12))
 
-        # === Oral Examination ===
+        # === PAIN DETAILS ===
+        story.append(Paragraph("<b>Pain:</b>", styles["Heading4"]))
+        story.append(Paragraph(f"Pain in teeth: {'Yes' if consultation.pain_teeth else 'No'}", styles["Normal"]))
+        story.append(Paragraph(f"Pain Days: {consultation.pain_days or 'N/A'}", styles["Normal"]))
+        story.append(Paragraph(f"Pain Regions: {', '.join(consultation.pain_regions) if consultation.pain_regions else 'N/A'}", styles["Normal"]))
+        story.append(Paragraph(f"Pain Teeth Numbers: {consultation.pain_teeth_numbers or 'N/A'}", styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # === SENSITIVITY ===
+        story.append(Paragraph("<b>Sensitivity:</b>", styles["Heading4"]))
+        story.append(Paragraph(f"Cold: {'Yes' if consultation.sensitivity_cold else 'No'}", styles["Normal"]))
+        story.append(Paragraph(f"Hot: {'Yes' if consultation.sensitivity_hot else 'No'}", styles["Normal"]))
+        story.append(Paragraph(f"Sweet: {'Yes' if consultation.sensitivity_sweet else 'No'}", styles["Normal"]))
+        story.append(Paragraph(f"Sour: {'Yes' if consultation.sensitivity_sour else 'No'}", styles["Normal"]))
+        story.append(Paragraph(f"Sensitivity Regions: {', '.join(consultation.sensitivity_regions) if consultation.sensitivity_regions else 'N/A'}", styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # === COMPLAINTS & FINDINGS ===
+        story.append(Paragraph("<b>Complaints:</b>", styles["Heading4"]))
+        story.append(Paragraph(consultation.other_complaints or "No complaint provided", styles["Normal"]))
+        story.append(Spacer(1, 8))
+
         story.append(Paragraph("<b>Oral Examination:</b>", styles["Heading4"]))
-        if consultation.other_findings:
-            for line in consultation.other_findings.split('\n'):
-                story.append(Paragraph(f"{line}", styles["Normal"]))
-        else:
-            story.append(Paragraph("No significant findings", styles["Normal"]))
+        story.append(Paragraph(consultation.other_findings or "No significant findings", styles["Normal"]))
         story.append(Spacer(1, 12))
 
-        # === Prescription ===
+        # === TREATMENT FLAGS ===
+        story.append(Paragraph("<b>Treatment Suggestions:</b>", styles["Heading4"]))
+        def flag(text, value): return f"{text}: {'Yes' if value else 'No'}"
+        story.append(Paragraph(flag("Restoration Required", consultation.restoration_required), styles["Normal"]))
+        story.append(Paragraph(flag("RCT Required", consultation.rct_required), styles["Normal"]))
+        story.append(Paragraph(flag("IOPA Required", consultation.iopa_required), styles["Normal"]))
+        story.append(Paragraph(flag("Oral Prophylaxis Required", consultation.oral_prophylaxis_required), styles["Normal"]))
+        story.append(Paragraph(flag("Replacement Required", consultation.replacement_required), styles["Normal"]))
+        story.append(Spacer(1, 12))
+
+        # === PRESCRIPTION & ADVICE ===
         story.append(Paragraph("<b>Rx:</b>", styles["Heading4"]))
-        meds = consultation.medications.split('\n') if consultation.medications else []
-        for med in meds or ["", "", "", ""]:
-            story.append(Paragraph(f"• {med.strip()}", styles["Normal"]))
-        story.append(Spacer(1, 12))
+        if consultation.medications:
+            for line in consultation.medications.splitlines():
+                story.append(Paragraph(f"• {line}", styles['Normal']))
+        else:
+            story.append(Paragraph("• No medications", styles["Normal"]))
+        story.append(Spacer(1, 8))
 
-        # === Advice ===
         story.append(Paragraph("<b>Advice:</b>", styles["Heading4"]))
         if consultation.other_advice:
-            for line in consultation.other_advice.split('\n'):
+            for line in consultation.other_advice.splitlines():
                 story.append(Paragraph(f"• {line}", styles["Normal"]))
         else:
             story.append(Paragraph("• No specific advice", styles["Normal"]))
         story.append(Spacer(1, 20))
 
-        # === Dentist Info and Signature ===
-        if consultation.dentist:
-            story.append(Paragraph(f"<b>{consultation.dentist.name}</b>", styles["Normal"]))
-            story.append(Paragraph(consultation.dentist.designation or "Dental Surgeon", styles["Normal"]))
-            story.append(Spacer(1, 10))
+        # === Signature Block ===
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("<b>Verified by:</b>", styles['Heading4']))
+        dentist = consultation.dentist
+        print("🧾 Dentist in PDF:", dentist)
 
-            if consultation.dentist.signature and consultation.dentist.signature.path:
+        if dentist and dentist.signature and hasattr(dentist.signature, 'path'):
+            if os.path.exists(dentist.signature.path):
                 try:
-                    img = Image(consultation.dentist.signature.path, width=100, height=30)
+                    img = Image(dentist.signature.path, width=120, height=40)
+                    img.hAlign = 'LEFT'
                     story.append(img)
+                    print("🖋️ Dentist signature added.")
                 except Exception as e:
-                    story.append(Paragraph("<i>Signature could not be loaded.</i>", styles["Normal"]))
+                    print(f"⚠️ Error loading signature: {e}")
+                    story.append(Paragraph("Signature could not be loaded.", styles['Italic']))
             else:
-                story.append(Spacer(1, 15))
-                story.append(Paragraph("________________________", styles["Normal"]))
+                story.append(Paragraph("Signature file missing", styles["Normal"]))
         else:
-            story.append(Paragraph("<b>Dr. Name</b>", styles["Normal"]))
-            story.append(Paragraph("Dental Surgeon", styles["Normal"]))
-            story.append(Spacer(1, 15))
-            story.append(Paragraph("________________________", styles["Normal"]))
+            story.append(Paragraph("Dentist: N/A", styles['Normal']))
 
-        story.append(Paragraph("Signature", styles["Normal"]))
+        # Dentist name and designation
+        if dentist:
+            story.append(Spacer(1, 8))
+            story.append(Paragraph(f"<b>{dentist.name}</b>", styles['Normal']))
+            story.append(Paragraph(dentist.designation or "Dental Surgeon", styles['Normal']))
 
-        # === Build PDF ===
         doc.build(story)
         buffer.seek(0)
-
-        consultation.pdf_report.save(
-            f"dental_{consultation.patient.unique_patient_id}.pdf",
-            ContentFile(buffer.read()),
-            save=True
-        )
+        filename = f"dental_{consultation.patient.unique_patient_id}.pdf"
+        consultation.pdf_report.save(filename, ContentFile(buffer.read()), save=True)
+        print(f"✅ PDF saved as {filename}")

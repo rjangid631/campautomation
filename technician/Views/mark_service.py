@@ -101,14 +101,14 @@ def get_camp_progress(request, camp_id):
     technician_summary = (
         service_statuses
         .filter(technician__isnull=False)
-        .values('technician__id', 'technician__user__name')
+        .values('technician__user__name')
         .annotate(total=Count('id'), completed=Count('id', filter=Q(is_completed=True)))
     )
 
     # Per service summary
     service_summary = (
         service_statuses
-        .values('service__id', 'service__name')
+        .values('service__name')
         .annotate(total=Count('id'), completed=Count('id', filter=Q(is_completed=True)))
     )
 
