@@ -191,8 +191,12 @@ const handleLogin = (type, id) => {
               path="/cost-calculation" 
               element={
                 <CostCalculation 
+                  companyId={companyId}
+                  selectedPackages={selectedPackages}
+                  caseData={caseData}
                   onNext={handleCostCalculationNext}
                   onBack={handleBackFromCostCalculation}
+                  onSubmit={handleCostCalculationNext}
                 />
               } 
             />

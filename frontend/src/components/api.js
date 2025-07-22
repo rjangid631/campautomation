@@ -249,18 +249,36 @@ export const getServiceCosts = async () => {
 };
 
 // ✅ SUBMIT COST DETAILS
-export const submitCostDetails = async (clientId, costDetails) => {
+export const submitCostDetails = async (companyId, payload) => {
   try {
-    const response = await api.post('cost_details/', {
-      clientId,
-      costDetails,
+    console.log('🔧 API: Sending payload to backend:', payload);
+    console.log('🔧 API: CostDetails type:', typeof payload.costDetails);
+    
+    const response = await fetch('http://localhost:8000/api/cost_details/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // ✅ ONLY stringify the entire payload here, not individual parts
+      body: JSON.stringify(payload)
     });
-    return response.data;
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ API Error Response:', errorData);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ API Success Response:', result);
+    return result;
+    
   } catch (error) {
-    console.error('Error submitting cost details:', error);
+    console.error('❌ API Error in submitCostDetails:', error);
     throw error;
   }
 };
+
 
 // ✅ SUBMIT COST SUMMARY
 export const submitCostSummary = async (data) => {
@@ -579,6 +597,7 @@ export const apiHandlers = {
   delete: (url) => api.delete(url),
 };
 
+
 // ✅ NEW: API Service object for cleaner usage
 export const apiService = {
   // Authentication
@@ -688,5 +707,30 @@ export const fetchPatientData = async (patientId) => {
   return await response.json();
 };
 
+
+export const fetchPackagesByCamp = async (campId) => {
+  try {
+    const response = await api.get(`serviceselection/?camp=${campId}`);
+    if (response.data && response.data.length > 0) {
+      // The API returns an array, get the first item
+      const serviceSelection = response.data[0];
+      
+      return serviceSelection.packages.map((pkg, index) => ({
+        id: `${serviceSelection.id}-${index}`, // Generate a unique ID
+        packageId: `${serviceSelection.id}-${index}`, // Add packageId for backward compatibility
+        package_name: pkg.package_name,
+        services: Object.keys(pkg.services || {}), // Extract service names
+        start_date: pkg.start_date,
+        end_date: pkg.end_date,
+        camp: serviceSelection.camp,
+        client: serviceSelection.client
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching packages by camp:', error);
+    throw error;
+  }
+};
 
 export default api;

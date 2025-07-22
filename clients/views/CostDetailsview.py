@@ -3,11 +3,15 @@ from rest_framework.response import Response
 from rest_framework import viewsets, status
 from clients.models.client import Client
 from clients.models.costdetails import CostDetails
+from clients.serializers.costdetails import CostDetailsSerializer
+
 
 class CostDetailsViewSet(viewsets.ViewSet):
     def create(self, request):
         data = request.data
-        client_code = data.get('clientId')          # <-- still "clientId" in body
+        print("📥 Backend received data:", data)
+        print("📥 Data type:", type(data))
+        client_code = data.get('clientId')
         cost_details = data.get('costDetails', {})
 
         if not client_code:
@@ -35,3 +39,14 @@ class CostDetailsViewSet(viewsets.ViewSet):
             )
 
         return Response({'message': 'Costs saved successfully'}, status=status.HTTP_201_CREATED)
+
+    def list(self, request):
+        client_code = request.query_params.get('clientId')  # Optional filtering
+        if client_code:
+            client = get_object_or_404(Client, client_id=client_code)
+            queryset = CostDetails.objects.filter(client=client)
+        else:
+            queryset = CostDetails.objects.all()
+
+        serializer = CostDetailsSerializer(queryset, many=True)
+        return Response(serializer.data)
