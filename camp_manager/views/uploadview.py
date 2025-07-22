@@ -102,7 +102,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     if str(row.get(svc)).strip().lower() in ['yes', '1', 'true', 'done']
                 ]
 
-                qr_data = f"http://192.168.1.22:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
+                qr_data = f"http://192.168.1.14:8000/api/campmanager/patient/{unique_patient_id}/checkin/"
                 qr_img = qrcode.make(qr_data)
                 qr_buffer = BytesIO()
                 qr_img.save(qr_buffer, format='PNG')
@@ -195,19 +195,28 @@ def print_thermal_slips(request):
         try:
             patient = PatientData.objects.get(id=pid)
             slip_path = os.path.join(tempfile.gettempdir(), f"{patient.unique_patient_id}_thermal.png")
+
+            # ✅ Try to print if slip exists
             if os.path.exists(slip_path):
                 printer.print_thermal_slip(slip_path, patient.patient_name)
                 printed.append(patient.id)
             else:
                 failed.append(patient.id)
-        except:
+
+            # ✅ Mark as checked-in (regardless of slip existence)
+            if not patient.checked_in:
+                patient.checked_in = True
+                patient.save()
+
+        except Exception:
             failed.append(pid)
 
     return Response({
-        "message": "Thermal printing complete.",
+        "message": "Thermal printing complete. Patients checked-in.",
         "printed": printed,
         "failed": failed
     })
+
 
 
 @api_view(['GET'])

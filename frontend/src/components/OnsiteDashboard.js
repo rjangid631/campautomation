@@ -569,7 +569,25 @@ const handleSubmitPatient = async (e) => {
   };
 
 
-const handlePrintQR = (patient) => {
+const handlePrintQR = async (patient) => {
+  try {
+    // ✅ 1. Make API call to mark patient as checked-in & trigger thermal print
+    const response = await fetch('http://127.0.0.1:8000/api/campmanager/print-thermal-slips/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ patient_ids: [patient.id] }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.error('Print API error:', result);
+      alert('Something went wrong while printing.');
+      return;
+    }
+
+    // ✅ 2. Open print window with patient QR
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -599,7 +617,12 @@ const handlePrintQR = (patient) => {
         </body>
       </html>
     `);
-  };
+
+  } catch (error) {
+    console.error('Failed to print QR:', error);
+    alert('Error printing QR. Check console.');
+  }
+};
 
 
   const handleCampStatus = (patientId) => {

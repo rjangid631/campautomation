@@ -18,10 +18,14 @@ class ServiceSelectionSerializer(serializers.ModelSerializer):
         child=serializers.DictField(),
         write_only=True
     )
+    camp = serializers.PrimaryKeyRelatedField(
+        queryset=Camp.objects.all(),
+        write_only=False  # 👈 allows it to appear in the response
+    )
 
     class Meta:
         model = ServiceSelection
-        fields = ['id', 'client', 'packages', 'selected_services']
+        fields = ['id', 'client', 'camp', 'packages', 'selected_services']
 
     def validate_packages(self, value):
         if not isinstance(value, list):

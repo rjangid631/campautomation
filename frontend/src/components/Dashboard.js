@@ -381,7 +381,7 @@ const Dashboard = () => {
 
 
   const renderCampProgressContent = () => {
-    const readyCamps = data.filter(camp => camp.ready_to_go === true && getCampStatus(camp.start_date, camp.end_date).status !== 'Completed');
+    const readyCamps = data.filter(camp => camp.ready_to_go === true);
 
     return (
       <div>
