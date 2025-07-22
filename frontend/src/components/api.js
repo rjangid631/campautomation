@@ -635,4 +635,58 @@ export const apiService = {
   delete: (url) => apiHandlers.delete(url),
 };
 
+// Submit audiometry data
+export const submitAudiometryData = async (data) => {
+  const response = await fetch(`${BASE_URL}/api/technician/audiometry/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData?.patient_unique_id || errorData.message || 'Failed to save audiometry data');
+  }
+
+  return await response.json();
+};
+
+// Mark service as completed
+export const markServiceCompleted = async (data) => {
+  const response = await fetch(`${BASE_URL}/api/technician/submit/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData?.message || 'Failed to mark service as completed');
+  }
+
+  return await response.json();
+};
+
+// Export other API functions as needed
+export const fetchPatientData = async (patientId) => {
+  const response = await fetch(`${BASE_URL}/api/patient/${patientId}/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData?.message || 'Failed to fetch patient data');
+  }
+
+  return await response.json();
+};
+
+
 export default api;
