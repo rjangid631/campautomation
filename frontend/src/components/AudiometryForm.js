@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { submitAudiometryData, fetchPatientData, markServiceCompleted } from './api';
+import { useLocation } from 'react-router-dom';
 
 const AudiometryApp = () => {
   const [patients, setPatients] = useState([]);
@@ -8,7 +9,10 @@ const AudiometryApp = () => {
   const [notification, setNotification] = useState({ show: false, message: '' });
   const [error, setError] = useState(null);
   const [fetchingPatient, setFetchingPatient] = useState(false);
-  
+  const location = useLocation();
+  const { patientId, patientName, technicianId, serviceId } = location.state || {};
+
+
   // Form states
   const [formData, setFormData] = useState({
     PatientName: '',
@@ -25,6 +29,26 @@ const AudiometryApp = () => {
     leftEarLevel: '',
     xAxis: '250,500,1000,2000,4000,8000'
   });
+
+  useEffect(() => {
+  if (!patientId) return;
+
+  fetch(`http://127.0.0.1:8000/api/campmanager/patient/${patientId}/`)
+    .then((res) => res.json())
+    .then((data) => {
+      setFormData(prev => ({
+        ...prev,
+        PatientId: data.unique_patient_id || '',
+        PatientName: data.patient_name || '',
+        age: data.age || '',
+        gender: data.gender || '',
+        contact_number: data.contact_number || '',
+        TestDate: data.test_date || '',
+        ReportDate: data.report_date || ''
+      }));
+    })
+    .catch((err) => console.error("❌ Fetch failed:", err));
+}, [patientId]);
 
 
 const audiogramStyle = {
@@ -566,7 +590,7 @@ const handleMarkCompleted = async () => {
                   placeholder="Patient Name"
                   value={formData.PatientName}
                   onChange={handleInputChange}
-                  required
+                  readOnly
                 />
                 <input
                   className="border border-gray-300 rounded px-3 py-2"
@@ -576,7 +600,7 @@ const handleMarkCompleted = async () => {
                   value={formData.PatientId}
                   onChange={handlePatientIdChange}  // Changed to new handler
                   onBlur={handlePatientIdBlur} 
-                  required
+                  readOnly
                 />{fetchingPatient && (
                     <div className="absolute right-3 top-3">
                       <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
@@ -589,19 +613,20 @@ const handleMarkCompleted = async () => {
                   placeholder="Age"
                   value={formData.age}
                   onChange={handleInputChange}
-                  required
+                  readOnly
                 />
                 <select
                   className="border border-gray-300 rounded px-3 py-2"
                   name="gender"
                   value={formData.gender}
                   onChange={handleInputChange}
-                  required
+                  disabled
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
+                  
                 </select>
               </div>
 
@@ -613,7 +638,7 @@ const handleMarkCompleted = async () => {
                   placeholder="Test Date"
                   value={formData.TestDate}
                   onChange={handleInputChange}
-                  required
+                  readOnly
                 />
                 <input
                   className="border border-gray-300 rounded px-3 py-2"

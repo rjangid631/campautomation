@@ -9,6 +9,7 @@ from technician.Views.doctorconsultationviewset import DoctorConsultationViewSet
 from technician.Views.optometristviewset import OptometristViewSet
 from technician.Views.optometryviewset import OptometryViewSet  # ✅ Import new viewset
 from technician.Views.getassignedtech import get_technician_assignments
+from technician.Views.patientreportview import PatientReportLinksView
 from technician.Views.technicains import get_all_technicians
 from technician.Views.technicianlogin import technician_login
 from technician.Views.getassigned import get_assigned_patients
@@ -39,5 +40,6 @@ urlpatterns = [
     path('assign-package/', assign_technicians_to_package, name='assign_technicians_to_package'),
     path('camp/<int:camp_id>/progress/', get_camp_progress, name='get_camp_progress'),
     path('patient/<str:patient_id>/summary/', get_patient_service_summary, name='get_patient_service_summary'),
+    path('report-links/', PatientReportLinksView.as_view(), name='report-links'),
 
 ]
