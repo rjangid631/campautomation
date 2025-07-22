@@ -84,7 +84,7 @@ class UploadExcelViewSet(viewsets.ViewSet):
             excel_upload = ExcelUpload.objects.create(file=file, camp=camp, package=package, unique_id=unique_excel_id)
 
             df = pd.read_excel(file)
-            required_columns = ['patient_name', 'age', 'gender', 'phone']
+            required_columns = ['patient_name', 'age', 'gender', 'phone', 'test_date']
             missing = [col for col in required_columns if col not in df.columns]
             if missing:
                 return Response({'error': f'Missing columns in Excel: {missing}'}, status=400)
@@ -116,7 +116,8 @@ class UploadExcelViewSet(viewsets.ViewSet):
                     age=row.get('age', 0),
                     gender=row.get('gender', ''),
                     contact_number=row.get('phone', ''),
-                    service=", ".join(selected_services)
+                    service=", ".join(selected_services),
+                    test_date=row.get('test_date')
                 )
                 patient.qr_code.save(qr_filename, ContentFile(qr_buffer.getvalue()), save=True)
 
