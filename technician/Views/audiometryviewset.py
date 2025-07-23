@@ -5,11 +5,13 @@ from technician.serializers.audiometryserializer import AudiometrySerializer
 from technician.permission import IsAssignedTechnicianForAudiometry
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
 from clients.models.service import Service
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class AudiometryViewSet(viewsets.ModelViewSet):
     queryset = Audiometry.objects.all() # This will be filtered in get_queryset
     serializer_class = AudiometrySerializer
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         technician = getattr(self.request.user, 'technician', None)

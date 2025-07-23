@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
+from technician.Models.audiometrist import Audiometrist
 from technician.Models.audiometry import Audiometry
 from technician.Models.dentist import Dentist
 from technician.Models.doctorconsultation import DoctorConsultation
@@ -159,4 +160,10 @@ class OptometristAdmin(admin.ModelAdmin):
 class DentistAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'designation', 'technician', 'user')
     search_fields = ('name', 'designation', 'technician__name', 'user__email')
+    list_filter = ('designation',)
+
+@admin.register(Audiometrist)
+class AudiometristAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'designation', 'technician', 'user')
+    search_fields = ('name', 'designation', 'technician__user__name', 'user__email')
     list_filter = ('designation',)

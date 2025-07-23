@@ -1,6 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from technician.Views.audiometry_signature import AudiometristSignatureView
 from technician.Views.audiometryviewset import AudiometryViewSet
 from technician.Views.dental import DentalConsultationViewSet
 from technician.Views.dentistviewset import DentistViewSet
@@ -15,6 +16,7 @@ from technician.Views.technicianlogin import technician_login
 from technician.Views.getassigned import get_assigned_patients
 from technician.Views.mark_service import get_camp_progress, get_patient_service_summary, mark_service_done
 from technician.Views.assigntechnician import assign_technicians, assign_technicians_to_package
+from technician.Views.uploadaudiometry import UploadFrontendGeneratedPDFView
 from technician.Views.vitalsviewset import VitalsViewSet
 from technician.Views.servicelogviewset import ServiceLogViewSet
 
@@ -30,6 +32,7 @@ router.register(r'dental-consultation', DentalConsultationViewSet, basename='den
 router.register(r'dentists', DentistViewSet, basename='dentists')
 
 urlpatterns = [
+    path('audiometry/upload-frontend-pdf/', UploadFrontendGeneratedPDFView.as_view(), name='upload-frontend-pdf'),
     path('', include(router.urls)),
     path('login/', technician_login, name='technician_login'),
     path('patients/', get_assigned_patients, name='get_assigned_patients'),
@@ -40,6 +43,7 @@ urlpatterns = [
     path('assign-package/', assign_technicians_to_package, name='assign_technicians_to_package'),
     path('camp/<int:camp_id>/progress/', get_camp_progress, name='get_camp_progress'),
     path('patient/<str:patient_id>/summary/', get_patient_service_summary, name='get_patient_service_summary'),
-    path('report-links/', PatientReportLinksView.as_view(), name='report-links'),
-
+    path('report-links/<int:camp_id>/', PatientReportLinksView.as_view(), name='report-links'),
+    path('audiometrist-signature/', AudiometristSignatureView.as_view(), name='audiometrist-signature'),
 ]
+

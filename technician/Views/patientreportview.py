@@ -12,9 +12,7 @@ from camp_manager.Models.Patientdata import PatientData
 
 
 class PatientReportLinksView(APIView):
-    def get(self, request):
-        camp_id = request.query_params.get('camp_id')
-
+    def get(self, request, camp_id):
         if not camp_id:
             return Response({"error": "camp_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -22,6 +20,7 @@ class PatientReportLinksView(APIView):
 
         # ✅ Get all patients whose package belongs to this camp
         patients = PatientData.objects.filter(package__camp_id=camp_id)
+        print("Patients found:", patients.count())
 
         # ✅ Dental
         for obj in DentalConsultation.objects.select_related('patient').filter(patient__in=patients):

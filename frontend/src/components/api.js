@@ -787,18 +787,44 @@ export const apiService = {
 };
 
 // Submit audiometry data
-export const submitAudiometryData = async (data) => {
+export const submitAudiometryData = async (formData, pdfBlob = null, technicianId = null) => {
+  const form = new FormData();
+
+  form.append('patient_unique_id', formData.PatientId);
+  if (formData.rightEarLevel) form.append('right_ear_finding', formData.rightEarLevel);
+  if (formData.leftEarLevel) form.append('left_ear_finding', formData.leftEarLevel);
+
+  const freq = ['250', '500', '1000', '2000', '4000', '8000'];
+  const rightAir = (formData.rightEarDB || '').split(',').map(v => v.trim());
+  const leftAir = (formData.leftEarDB || '').split(',').map(v => v.trim());
+  const rightBone = (formData.rightEarBoneDB || '').split(',').map(v => v.trim());
+  const leftBone = (formData.leftEarBoneDB || '').split(',').map(v => v.trim());
+
+  freq.forEach((hz, idx) => {
+    if (leftAir[idx]) form.append(`left_air_${hz}`, leftAir[idx]);
+    if (rightAir[idx]) form.append(`right_air_${hz}`, rightAir[idx]);
+    if (leftBone[idx]) form.append(`left_bone_${hz}`, leftBone[idx]);
+    if (rightBone[idx]) form.append(`right_bone_${hz}`, rightBone[idx]);
+  });
+
+  if (technicianId) {
+    form.append('technician_id', technicianId);   // ✅ correct key
+  }
+
+  if (pdfBlob) {
+    form.append('pdf_report', pdfBlob, `${formData.PatientId}_audiometry.pdf`);
+  }
+
   const response = await fetch(`${BASE_URL}/api/technician/audiometry/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
+    body: form,
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData?.patient_unique_id || errorData.message || 'Failed to save audiometry data');
+    throw new Error(
+      errorData?.detail || errorData?.patient_unique_id || errorData.message || 'Failed to save audiometry data'
+    );
   }
 
   return await response.json();
@@ -824,7 +850,7 @@ export const markServiceCompleted = async (data) => {
 
 // Export other API functions as needed
 export const fetchPatientData = async (patientId) => {
-  const response = await fetch(`${BASE_URL}/api/patient/${patientId}/`, {
+  const response = await fetch(`${BASE_URL}/api/campmanager/patient/${patientId}/`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

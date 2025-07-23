@@ -1,6 +1,7 @@
 from django.db import models
 
 from camp_manager.Models.Patientdata import PatientData
+from technician.Models.audiometrist import Audiometrist
 
 # Dropdown choices for ear findings
 FINDING_CHOICES = [
@@ -14,6 +15,7 @@ FINDING_CHOICES = [
 
 class Audiometry(models.Model):
     patient = models.ForeignKey(PatientData, on_delete=models.CASCADE, related_name='audiometries')
+    audiometrist = models.ForeignKey(Audiometrist, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Left Air Conduction (in dB at different frequencies)
     left_air_250 = models.IntegerField(null=True, blank=True)

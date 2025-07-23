@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { submitAudiometryData, fetchPatientData, markServiceCompleted } from './api';
 import { useLocation } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const AudiometryApp = () => {
   const [patients, setPatients] = useState([]);
@@ -11,7 +13,8 @@ const AudiometryApp = () => {
   const [fetchingPatient, setFetchingPatient] = useState(false);
   const location = useLocation();
   const { patientId, patientName, technicianId, serviceId } = location.state || {};
-
+  const [signatureInfo, setSignatureInfo] = useState(null);
+  const pdfRef = useRef(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -27,7 +30,7 @@ const AudiometryApp = () => {
     leftEarBoneDB: '',
     rightEarLevel: '',
     leftEarLevel: '',
-    xAxis: '250,500,1000,2000,4000,8000'
+    xAxis: '250,500,1000,2000,4000,8000',
   });
 
   useEffect(() => {
@@ -50,6 +53,25 @@ const AudiometryApp = () => {
     .catch((err) => console.error("❌ Fetch failed:", err));
 }, [patientId]);
 
+useEffect(() => {
+  if (!technicianId) return;
+
+  fetch(`http://127.0.0.1:8000/api/technician/audiometrist-signature/?technician_id=${technicianId}`)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Audiometrist signature not found");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      setSignatureInfo(data);  // contains name, designation, signature_url
+      console.log("✅ Signature fetched:", data);
+    })
+    .catch((err) => {
+      console.error("❌ Failed to fetch signature:", err);
+      setSignatureInfo(null);
+    });
+}, [technicianId]);
 
 const audiogramStyle = {
   border: '2px solid #333',
@@ -299,32 +321,38 @@ const handleInputChange = (e) => {
 };
 
 
-const handleSubmit = async (e) => {
+
+
+const handleAddPatient = async (e) => {
+  e.preventDefault();
+
   const validationErrors = validatePatientData(formData);
   if (validationErrors.length > 0) {
     setError(validationErrors.join(', '));
     return;
   }
-  e.preventDefault();
+
   setLoading(true);
-  
+
   try {
-    // Use the actual API instead of simulation
-    const response = await submitAudiometryData({
-      ...formData,
-      patient_unique_id: formData.PatientId
-    });
-    
+    const response = await submitAudiometryData(
+      formData,      // Only data
+      null,          // No PDF
+      technicianId
+    );
+
     const newPatient = {
       ...formData,
       id: response.id || Date.now(),
       patient_unique_id: formData.PatientId
     };
 
-    // Add to patients list
-    setPatients(prev => [...prev, newPatient]);
+    setPatients(prev => {
+      const exists = prev.some(p => p.patient_unique_id === newPatient.patient_unique_id);
+      if (exists) return prev;
+      return [...prev, newPatient];
+    });
 
-    // Reset form
     setFormData({
       PatientName: '',
       PatientId: '',
@@ -342,6 +370,80 @@ const handleSubmit = async (e) => {
     });
 
     showNotification('Patient data saved successfully!');
+  } catch (error) {
+    setError(error.message || 'Failed to save patient data');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleSaveAndUploadPdf = async (e) => {
+  e.preventDefault();
+
+  const validationErrors = validatePatientData(formData);
+  if (validationErrors.length > 0) {
+    setError(validationErrors.join(', '));
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    let pdfBlob = null;
+
+    // Generate PDF from report
+    if (pdfRef.current) {
+      const canvas = await html2canvas(pdfRef.current, {
+        backgroundColor: '#fff',
+        scale: 2,
+        useCORS: true,
+        width: 794,
+        height: 1123,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdfBlob = pdf.output('blob');
+    }
+
+    const response = await submitAudiometryData(
+      formData,
+      pdfBlob,
+      technicianId
+    );
+
+    const newPatient = {
+      ...formData,
+      id: response.id || Date.now(),
+      patient_unique_id: formData.PatientId
+    };
+
+    setPatients(prev => {
+      const exists = prev.some(p => p.patient_unique_id === newPatient.patient_unique_id);
+      if (exists) return prev;
+      return [...prev, newPatient];
+    });
+
+    setFormData({
+      PatientName: '',
+      PatientId: '',
+      age: '',
+      gender: '',
+      TestDate: '',
+      ReportDate: '',
+      rightEarDB: '',
+      leftEarDB: '',
+      rightEarBoneDB: '',
+      leftEarBoneDB: '',
+      rightEarLevel: '',
+      leftEarLevel: '',
+      xAxis: '250,500,1000,2000,4000,8000'
+    });
+
+    showNotification('Patient data and PDF saved successfully!');
   } catch (error) {
     setError(error.message || 'Failed to save patient data');
   } finally {
@@ -726,7 +828,7 @@ const handleMarkCompleted = async () => {
               </div>
 
               <div
-                onClick={handleSubmit}
+                onClick={handleAddPatient}
                 className="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 cursor-pointer text-center"
               >
                 Add Patient
@@ -779,26 +881,34 @@ const handleMarkCompleted = async () => {
         </div>
 
         {/* Right Panel - Report */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div ref={pdfRef} className="bg-white p-6 rounded-lg shadow">
           <div className="space-y-6">
             {/* Patient Details Table */}
-            <table className="w-full border-collapse border border-gray-300">
+            <table className="w-full border border-collapse border-gray-300 text-sm">
               <tbody>
                 <tr>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Name</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.PatientName || ''}</td>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Patient ID</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.PatientId || ''}</td>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Age</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.age || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">Patient Name:</td>
+                  <td className="border px-2 py-1">{selectedPatient?.PatientName || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">XRAi ID:</td>
+                  <td className="border px-2 py-1"></td>
                 </tr>
                 <tr>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Gender</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.gender || ''}</td>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Test Date</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.TestDate || ''}</td>
-                  <th className="border border-gray-300 px-4 py-2 bg-gray-100">Report Date</th>
-                  <td className="border border-gray-300 px-4 py-2">{selectedPatient?.ReportDate || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">Patient Age:</td>
+                  <td className="border px-2 py-1">{selectedPatient?.age || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">Patient <span className="underline">ID:</span></td>
+                  <td className="border px-2 py-1">{selectedPatient?.PatientId || ''}</td>
+                </tr>
+                <tr>
+                  <td className="border px-2 py-1 font-semibold">Patient <span className="underline">Gender :</span></td>
+                  <td className="border px-2 py-1">{selectedPatient?.gender || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">Report Date/Time:</td>
+                  <td className="border px-2 py-1">{selectedPatient?.ReportDate || ''}</td>
+                </tr>
+                <tr>
+                  <td className="border px-2 py-1 font-semibold">Test <span className="underline">Date :</span></td>
+                  <td className="border px-2 py-1">{selectedPatient?.TestDate || ''}</td>
+                  <td className="border px-2 py-1 font-semibold">Referral Dr:</td>
+                  <td className="border px-2 py-1"> {/* Add referral doctor field if available */}</td>
                 </tr>
               </tbody>
             </table>
@@ -884,15 +994,36 @@ const handleMarkCompleted = async () => {
                 </>
               )}
             </div>
-
+        </div>
+        
             {/* Placeholder for audiometry image */}
-            <div className="w-64 h-24 bg-gray-200 border border-gray-300 flex items-center justify-center">
-              <span className="text-gray-500">Audiometry Image</span>
+            {signatureInfo && (
+              <div style={{ marginTop: '20px' }}>
+                <p><strong>Verified by:</strong></p>
+                <img
+                  src={signatureInfo.signature_url}
+                  alt="Audiometrist Signature"
+                  style={{ width: '150px', height: '50px', objectFit: 'contain', border: '1px solid #ccc' }}
+                />
+                <p><strong>{signatureInfo.name}</strong></p>
+                <p>{signatureInfo.designation}</p>
+              </div>
+            )}
+          </div>  
+            {/* PDF Button */}
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={handleSaveAndUploadPdf}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 px-4 rounded"
+              >
+                {loading ? 'Saving...' : 'Save Audiometry & Upload PDF'}
+              </button>
             </div>
           </div>
-        </div>
+        
       </div>
-    </div>
   );
 };
 
