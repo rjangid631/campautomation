@@ -17,6 +17,7 @@ import Dashboard from './components/Dashboard';
 import ViewServiceSelection from './components/ViewServiceSelection';
 import TechnicalDashboard from './components/TechnicialDashboard.js'; // ✅ Explicit .js
 import PatientTechnicianDashboard from './components/PatientTechnicianDashboard';
+import DownloadReports from './components//DownloadReports';
 
 // Service Form Components
 import AudiometryForm from './components/AudiometryForm'; // ✅ Explicit .js
@@ -256,6 +257,7 @@ const handleLogin = (type, id) => {
             {/* Default Route */}
             <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/campStatus/:campId" element={<CampStatusPage/>} />
+            <Route path="/download-reports/:campId" element={<DownloadReports />} />
           </Routes>
 
           <Outlet />

@@ -78,7 +78,8 @@ const Dashboard = () => {
     patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`,
     campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
     packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
-    uploadReport: "http://127.0.0.1:8000/api/campmanager/upload/"
+    uploadReport: "http://127.0.0.1:8000/api/campmanager/upload/",
+    downloadReports: (campId) => `http://127.0.0.1:8000/api/technician/report-links/${campId}`
   };
 
   const handleDetailsToggle = (index) => {
@@ -174,6 +175,10 @@ const Dashboard = () => {
     setSelectedPackage(packageItem);
     setSearchTerm('');
     fetchPackagePatients(selectedCamp.id, packageItem.id);
+  };
+
+  const handleDownloadReport = (campId) => {
+    navigate(`/download-reports/${campId}`);
   };
 
   const handleCampStatus = (patientId) => {
@@ -349,6 +354,30 @@ const Dashboard = () => {
                       Client: {camp.client}
                     </p>
                   </div>
+                  <button
+                    onClick={() => handleDownloadReport(camp.id)}
+                    style={{
+                      backgroundColor: COLORS.aquaBlue,
+                      color: COLORS.white,
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '10px 20px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '14px',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = COLORS.vividPurple}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.aquaBlue}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download
+                  </button>
                   <button
                     onClick={() => handleUploadReport(camp)}
                     style={{
