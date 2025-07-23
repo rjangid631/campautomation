@@ -44,9 +44,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'clients',
     'users',
-    'camp_manager',
+    'camp_manager.apps.CampManagerConfig',  # ✅ This enables signals
     'technician',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
