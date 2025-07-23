@@ -135,13 +135,13 @@ function TestCaseInput({ onNext, onBack }) {
       }
 
       return {
-        client: companyId,
-        package: d.packageId,
-        service_name: d.service,
-        case_per_day: parseInt(d.casePerDay),
-        number_of_days: parseInt(d.numberOfDays),
+      client: companyId,
+      package: d.packageId,
+      service_name: d.service,
+      case_per_day: parseInt(d.casePerDay),
+      number_of_days: parseInt(d.numberOfDays),
         report_type: d.reportType,
-        report_type_cost: d.reportTypeCost
+      report_type_cost: d.reportTypeCost
       };
     });
 

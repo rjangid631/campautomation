@@ -371,8 +371,8 @@ function CostCalculation({
       
       // Format cost details for submission (same structure as before)
       const costDetailsFormatted = Object.keys(finalDetails).reduce((acc, service) => {
-        const { travel, stay, food, salary, misc, equipment, consumables, reporting } = finalDetails[service];
-        acc[service] = { travel, stay, food, salary, misc, equipment, consumables, reporting };
+        const { travel, stay, food, salary, misc, equipment, consumables, reporting, unitPrice } = finalDetails[service];
+        acc[service] = { travel, stay, food, salary, misc, equipment, consumables, reporting, unitPrice };
         return acc;
       }, {});
 

@@ -204,7 +204,17 @@ const handleLogin = (type, id) => {
               path="/onsite-dashboard" 
               element={<ProtectedRoute element={<OnsiteDashboard />} isAuthenticated={isAuthenticated} />} 
             />
-            <Route path="/cost-summary" element={<CostSummaryScreen />} />
+            <Route 
+              path="/cost-summary" 
+              element={
+                <CostSummaryScreen 
+                  clientId={companyId} // 👈 pass the prop correctly
+                  caseData={caseData}
+                  costDetails={costDetails}
+                  campDetails={campDetails}
+                />
+              } 
+            />
             <Route path="/simple-cost-calculation" element={<SimpleCostCalculation username={username} />} />
             
             {/* Dashboard Routes */}

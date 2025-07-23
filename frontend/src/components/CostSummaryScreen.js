@@ -41,43 +41,50 @@ function CostSummaryScreen({ caseData, costDetails, campDetails, companyId,onSub
     };
 
     // Service rows for the table
-    const serviceRows = Object.keys(caseData).map((service) => {
-        const { totalCase } = caseData[service];
-        const { unitPrice } = costDetails[service] || { unitPrice: 0 }; // Default to 0 if undefined
-        const serviceMarkup = markup[service] || 1; // Default markup value to 1 if undefined
-        const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
-        const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
+    const serviceRows = caseData && Object.keys(caseData).length > 0
+  ? Object.keys(caseData).map((serviceKey) => {
+      const { totalCase } = caseData[serviceKey];
 
-        return (
-            <tr key={service} className="border-b border-gray-200">
-                <td className="py-2 px-4">{service}</td>
-                <td className="py-2 px-4 text-right">{totalCase || 0}</td>
-                <td className="py-2 px-4 text-right">
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={serviceMarkup}
-                        onChange={(e) => handleMarkupChange(service, parseFloat(e.target.value))}
-                        className="w-20 p-1 border rounded text-right"
-                    />
-                </td>
-                <td className="py-2 px-4 text-right">₹{isNaN(revisedUnitPrice) ? '0.00' : revisedUnitPrice.toFixed(2)}</td>
-                <td className="py-2 px-4 text-right">₹{isNaN(totalPrice) ? '0.00' : totalPrice.toFixed(2)}</td>
-            </tr>
-        );
-    });
+      // Remove prefix (e.g., "120__X-ray" → "X-ray")
+      const cleanService = serviceKey.includes("__") ? serviceKey.split("__")[1] : serviceKey;
 
+      const { unitPrice } = (costDetails.costDetails?.[cleanService]) || { unitPrice: 0 };
+      const serviceMarkup = markup[serviceKey] || 1;
+      const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
+      const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
+
+      return (
+        <tr key={serviceKey} className="border-b border-gray-200">
+          <td className="py-2 px-4">{cleanService}</td>
+          <td className="py-2 px-4 text-right">{totalCase || 0}</td>
+          <td className="py-2 px-4 text-right">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={serviceMarkup}
+              onChange={(e) => handleMarkupChange(serviceKey, parseFloat(e.target.value))}
+              className="w-20 p-1 border rounded text-right"
+            />
+          </td>
+          <td className="py-2 px-4 text-right">₹{isNaN(revisedUnitPrice) ? '0.00' : revisedUnitPrice.toFixed(2)}</td>
+          <td className="py-2 px-4 text-right">₹{isNaN(totalPrice) ? '0.00' : totalPrice.toFixed(2)}</td>
+        </tr>
+      );
+  })
+  : [];
     // Grand total calculation
-    const grandTotal = Object.keys(caseData).reduce((total, service) => {
-        const { totalCase } = caseData[service];
-        const { unitPrice } = costDetails[service] || { unitPrice: 0 }; // Default to 0 if undefined
-        const serviceMarkup = markup[service] || 1; // Default markup value to 1 if undefined
-        const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
-        const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
-        return total + totalPrice;
-    }, 0);
-
+    const grandTotal = caseData
+        ? Object.keys(caseData).reduce((total, service) => {
+            const { totalCase } = caseData[service];
+            const cleanService = service.includes("__") ? service.split("__")[1] : service;
+            const { unitPrice } = (costDetails.costDetails?.[cleanService]) || { unitPrice: 0 };
+            const serviceMarkup = markup[service] || 1;
+            const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
+            const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
+            return total + totalPrice;
+            }, 0)
+        : 0;
     // Handle markup change
     const handleMarkupChange = (service, value) => {
         setMarkup((prev) => ({
@@ -85,7 +92,8 @@ function CostSummaryScreen({ caseData, costDetails, campDetails, companyId,onSub
             [service]: value,
         }));
     };
-
+    console.log("🧪 caseData keys:", Object.keys(caseData));
+    console.log("🧪 costDetails keys:", Object.keys(costDetails));
     // Generate and download the PDF
     const handleDownloadComprehensivePDF = () => {
         const doc = new jsPDF();
@@ -209,18 +217,19 @@ if (locations.length > 0) {
   
         // Table for Services
         const serviceRows = Object.keys(caseData).map((service) => {
-            const { totalCase } = caseData[service];
-            const { unitPrice } = costDetails[service] || { unitPrice: 0 }; // Default to 0 if undefined
-            const serviceMarkup = markup[service] || 1; // Default markup value to 1 if undefined
-            const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
-            const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
+        const { totalCase } = caseData[service];
+        const cleanService = service.includes("__") ? service.split("__")[1] : service;
+        const { unitPrice } = (costDetails.costDetails?.[cleanService]) || { unitPrice: 0 };
+        const serviceMarkup = markup[service] || 1;
+        const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
+        const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
 
-            return [
-                service,
-                totalCase || 0,
-                `${revisedUnitPrice.toFixed(2)}`,
-                `${totalPrice.toFixed(2)}`
-            ];
+        return [
+            cleanService,
+            totalCase || 0,
+            `${revisedUnitPrice.toFixed(2)}`,
+            `${totalPrice.toFixed(2)}`
+        ];
         });
 
         doc.autoTable({
@@ -261,18 +270,20 @@ if (locations.length > 0) {
             camp_details: campDetails.camps || [],
             service_details: Object.keys(caseData).map((service) => {
                 const { totalCase } = caseData[service];
-                const { unitPrice } = costDetails[service] || { unitPrice: 0 };
+                const cleanService = service.includes("__") ? service.split("__")[1] : service;
+                const { unitPrice } = (costDetails.costDetails?.[cleanService]) || { unitPrice: 0 };
                 const serviceMarkup = markup[service] || 1;
                 const revisedUnitPrice = calculateRevisedUnitPrice(unitPrice, serviceMarkup);
                 const totalPrice = calculateTotalPrice(revisedUnitPrice, totalCase);
+
                 return {
-                    service,
+                    service: cleanService,
                     totalCase,
                     unitPrice,
                     revisedUnitPrice,
                     totalPrice,
                 };
-            }),
+                }),
             grand_total: grandTotal,
         };
     
