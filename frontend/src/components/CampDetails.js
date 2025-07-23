@@ -280,7 +280,7 @@ const CampDetails = ({ onNext }) => {
     }
   };
 
-  // Helper function to filter clients - modified to show all clients or adjust filter as needed
+  // Helper function to filter clients - ONLY show clients with login_type === 'Client'
   const getFilteredClients = () => {
     if (!Array.isArray(clients)) return [];
     
@@ -292,17 +292,19 @@ const CampDetails = ({ onNext }) => {
       user_type: c.user_type
     })));
     
-    // Option 1: Show all clients (remove filter temporarily to debug)
-    return clients;
+    // Filter to show ONLY clients (not doctors, dentists, technicians, etc.)
+    const filteredClients = clients.filter(client => 
+      client.login_type === 'Client' || 
+      (client.login_type === undefined && client.user_type === 'Client')
+    );
     
-    // Option 2: Filter by login_type === 'Client' (original logic)
-    // return clients.filter(client => client.login_type === 'Client');
+    console.log('🎯 Filtered clients:', filteredClients.map(c => ({
+      id: c.id,
+      name: c.name,
+      login_type: c.login_type || c.user_type
+    })));
     
-    // Option 3: Filter by user_type if that's the correct field
-    // return clients.filter(client => client.user_type === 'Client');
-    
-    // Option 4: Filter out coordinators specifically
-    // return clients.filter(client => client.login_type !== 'Coordinator');
+    return filteredClients;
   };
 
   return (
@@ -315,24 +317,18 @@ const CampDetails = ({ onNext }) => {
         <div className="mb-6 p-4 bg-white rounded shadow">
           <label className="block mb-2 font-semibold">Select Client:</label>
           
-          {/* Authentication Status */}
-         
-          
-          {/* Debug info */}
-         
-          
           {isLoadingClients ? (
             <p className="text-gray-500">Loading clients...</p>
           ) : (
             <select
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
               value={selectedClientId}
               onChange={e => setSelectedClientId(e.target.value)}
             >
               <option value="">-- Select Client --</option>
               {getFilteredClients().map(client => (
                 <option key={client.id} value={client.id}>
-                  {client.name} ({client.email}) - {client.login_type || client.user_type || 'Unknown Type'}
+                  {client.name} ({client.email})
                 </option>
               ))}
             </select>
@@ -345,17 +341,17 @@ const CampDetails = ({ onNext }) => {
           {getFilteredClients().length === 0 && clients.length > 0 && !isLoadingClients && (
             <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
               <p className="text-orange-700">
-                No clients match the current filter. Total clients available: {clients.length}
+                No clients found. Total users available: {clients.length}
               </p>
               <p className="text-sm text-orange-600 mt-1">
-                Check the console logs to see the login_type values of all clients.
+                Only users with login_type "Client" are shown in this dropdown.
               </p>
             </div>
           )}
           
           {clientDetails && (
-            <div className="mt-4 bg-gray-50 p-3 rounded">
-              <h4 className="font-bold mb-2">Selected Client Details</h4>
+            <div className="mt-4 bg-gray-50 p-3 rounded border border-[#11a8a4]">
+              <h4 className="font-bold mb-2 text-[#11a8a4]">Selected Client Details</h4>
               <p><b>Name:</b> {clientDetails.name}</p>
               <p><b>Email:</b> {clientDetails.email}</p>
               <p><b>Contact:</b> {clientDetails.contact_number}</p>
@@ -368,8 +364,8 @@ const CampDetails = ({ onNext }) => {
 
       {/* Show current client details for non-coordinator */}
       {loginType !== 'Coordinator' && clientDetails && (
-        <div className="mb-6 p-4 bg-white rounded shadow">
-          <h4 className="font-bold mb-2">Client Details</h4>
+        <div className="mb-6 p-4 bg-white rounded shadow border border-[#11a8a4]">
+          <h4 className="font-bold mb-2 text-[#11a8a4]">Client Details</h4>
           <p><b>Name:</b> {clientDetails.name}</p>
           <p><b>Email:</b> {clientDetails.email}</p>
           <p><b>Contact:</b> {clientDetails.contact_number}</p>
@@ -381,35 +377,35 @@ const CampDetails = ({ onNext }) => {
         <input
           type="text"
           placeholder="Camp Location"
-          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campLocation}
           onChange={(e) => setCampLocation(e.target.value)}
         />
         <input
           type="text"
           placeholder="Camp District"
-          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campDistrict}
           onChange={(e) => setCampDistrict(e.target.value)}
         />
         <input
           type="text"
           placeholder="Camp State"
-          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campState}
           onChange={(e) => setCampState(e.target.value)}
         />
         <input
           type="text"
           placeholder="Camp Pin Code"
-          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campPinCode}
           onChange={(e) => setCampPinCode(e.target.value)}
         />
         <input
           type="text"
           placeholder="Camp Landmark"
-          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campLandmark}
           onChange={(e) => setCampLandmark(e.target.value)}
         />
@@ -421,7 +417,7 @@ const CampDetails = ({ onNext }) => {
               onChange={(date) => setStartDate(date)}
               dateFormat="yyyy-MM-dd"
               placeholderText="Start Date"
-              className="border rounded-lg p-3 mb-2 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="border rounded-lg p-3 mb-2 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
               minDate={new Date()}
             />
             <FaCalendarAlt className="absolute top-1/2 transform -translate-y-1/2 right-3 text-gray-500" />
@@ -432,7 +428,7 @@ const CampDetails = ({ onNext }) => {
               onChange={(date) => setEndDate(date)}
               dateFormat="yyyy-MM-dd"
               placeholderText="End Date"
-              className="border rounded-lg p-3 mb-2 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="border rounded-lg p-3 mb-2 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
               minDate={startDate || new Date()}
             />
             <FaCalendarAlt className="absolute top-1/2 transform -translate-y-1/2 right-3 text-gray-500" />
@@ -440,7 +436,7 @@ const CampDetails = ({ onNext }) => {
         </div>
 
         <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-200"
+          className="bg-[#11a8a4] text-white px-4 py-2 rounded-lg shadow-md hover:bg-[#0e8e8a] transition duration-200"
           onClick={handleAddCamp}
         >
           Add Camp
@@ -450,8 +446,8 @@ const CampDetails = ({ onNext }) => {
       <h4 className="text-xl font-semibold mt-6 mb-4">Camps Added ({camps.length})</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {camps.map((camp, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow-md">
-            <h5 className="text-lg font-semibold">{camp.campLocation}</h5>
+          <div key={index} className="bg-white p-4 rounded-lg shadow-md border-l-4 border-[#11a8a4]">
+            <h5 className="text-lg font-semibold text-[#11a8a4]">{camp.campLocation}</h5>
             <p>{camp.campDistrict}, {camp.campState}</p>
             <p>Pin Code: {camp.campPinCode}</p>
             <p>Landmark: {camp.campLandmark}</p>
@@ -462,7 +458,7 @@ const CampDetails = ({ onNext }) => {
       </div>
       
       <button
-        className={`bg-green-600 text-white px-4 py-2 mt-6 rounded-lg shadow-md hover:bg-green-700 transition duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`bg-[#11a8a4] text-white px-4 py-2 mt-6 rounded-lg shadow-md hover:bg-[#0e8e8a] transition duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleSubmit}
         disabled={isSubmitting}
       >
