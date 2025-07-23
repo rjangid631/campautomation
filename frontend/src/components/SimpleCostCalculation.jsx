@@ -278,8 +278,8 @@ const generatePDF = () => {
   
   currentY += 12;
   
-  // Service table with fixed column widths
-  const serviceColWidths = [100, 30, 50]; // Service, Cases, Amount
+  // Service table with fixed column widths - only 2 columns
+  const serviceColWidths = [130, 50]; // Service, Cases
   const serviceTableWidth = serviceColWidths.reduce((a, b) => a + b, 0);
   
   // Service table header
@@ -291,22 +291,17 @@ const generatePDF = () => {
   doc.text("SERVICE", xPos, currentY + 7);
   xPos += serviceColWidths[0];
   doc.text("CASES", xPos, currentY + 7);
-  xPos += serviceColWidths[1];
-  doc.text("AMOUNT", xPos, currentY + 7);
   
   currentY += 10;
   
-  let totalAmount = 0;
   let totalCases = 0;
   
   // Service rows
   Object.entries(caseData || {}).forEach(([key, data], index) => {
     const [, service] = key.split('__');
     const cases = data?.totalCase || 0;
-    const amount = cases * perCasePrice;
     
     totalCases += cases;
-    totalAmount += amount;
     
     // Row background
     if (index % 2 === 0) {
@@ -327,17 +322,12 @@ const generatePDF = () => {
     doc.setFont("Helvetica", "normal").setFontSize(9).setTextColor(40, 40, 40);
     
     xPos = margin + 3;
-    // Truncate long service names
-    const truncatedService = service.length > 15 ? service.substring(0, 12) + '...' : service;
+    const truncatedService = service.length > 20 ? service.substring(0, 17) + '...' : service;
     doc.text(truncatedService, xPos, currentY + 6);
     
     xPos += serviceColWidths[0];
     doc.setFont("Helvetica", "bold");
     doc.text(cases.toString(), xPos, currentY + 6);
-    
-    xPos += serviceColWidths[1];
-    // Fixed: Proper rupee symbol and formatting
-    doc.text(`Rs.${amount.toLocaleString()}`, xPos, currentY + 6);
     
     currentY += rowHeight;
   });
@@ -415,6 +405,7 @@ const generatePDF = () => {
   const clientId = clientDetails?.clientId || 'CLIENT';
   doc.save(`XRAI-Invoice-${clientId}-${timestamp}.pdf`);
 };
+
 
 
   if (!caseData) return <div className="text-red-500 p-4">No case data available.</div>;

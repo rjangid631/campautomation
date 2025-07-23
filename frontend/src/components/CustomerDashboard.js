@@ -28,12 +28,18 @@ const CustomerDashboard = () => {
   const [reports, setReports] = useState([]);
   const [campReports, setCampReports] = useState(null);
 
-  // Color scheme constants
+  // Enhanced color scheme with the primary color
   const colors = {
-    aquaBlue: '#00c0df',
-    grassGreen: '#7ed957',
-    darkGrey: '#3c3b3f',
-    vividPurple: '#9440dd'
+    primary: '#11a8a4',
+    primaryLight: '#11a8a4',
+    primaryDark: '#0e8a87',
+    accent: '#7ed957',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    dark: '#1f2937',
+    light: '#f8fafc',
+    success: '#10b981',
+    purple: '#8b5cf6'
   };
 
   // Load from localStorage
@@ -43,7 +49,6 @@ const CustomerDashboard = () => {
     
     if (!rawClientId || rawClientId === "undefined") {
       console.error("⚠️ Client ID not found in localStorage");
-      // Redirect to login if no client ID
       window.location.href = "/login";
       return null;
     }
@@ -51,17 +56,14 @@ const CustomerDashboard = () => {
     return rawClientId.startsWith('CL-') ? rawClientId : `CL-${rawClientId}`;
   };
 
-const clientId = getClientId();
+  const clientId = getClientId();
 
-console.log("✅ Final clientId used for fetch:", clientId);
-
-// ram ram
+  console.log("✅ Final clientId used for fetch:", clientId);
 
   useEffect(() => {
     const fetchClientDashboard = async () => {
-      if (!clientId) return; // Don't proceed without clientId
+      if (!clientId) return;
       const token = localStorage.getItem('access_token');
-
 
       if (!token) {
         setError("Unauthorized: Token not found. Please login again.");
@@ -89,7 +91,6 @@ console.log("✅ Final clientId used for fetch:", clientId);
         setCompanyDetails(processedData);
         console.log("✅ Dashboard data received:", processedData);
         
-        // Fetch camps data
         await fetchCamps();
       } catch (err) {
         console.error("❌ Error fetching client dashboard:", err);
@@ -111,7 +112,6 @@ console.log("✅ Final clientId used for fetch:", clientId);
       const campsData = await apiHandlers.getCamps(clientId);
       console.log("✅ Camps data received:", campsData);
       
-      // Transform the data to match the expected format
       const transformedCamps = campsData.map(camp => ({
         id: camp.id,
         name: `${camp.location} Camp`,
@@ -132,10 +132,7 @@ console.log("✅ Final clientId used for fetch:", clientId);
       setCamps(transformedCamps);
     } catch (err) {
       console.error("❌ Error fetching camps:", err);
-      // Set fallback data for demonstration
-      setCamps([
-
-      ]);
+      setCamps([]);
     }
   };
 
@@ -145,7 +142,6 @@ console.log("✅ Final clientId used for fetch:", clientId);
       setCampDetails(details);
     } catch (err) {
       console.error("❌ Error fetching camp details:", err);
-      // Set dummy data for demonstration
       setCampDetails({
         id: campId,
         name: camps.find(c => c.id === campId)?.name || 'Camp',
@@ -163,7 +159,6 @@ console.log("✅ Final clientId used for fetch:", clientId);
       setInvoiceHistory(invoices);
     } catch (err) {
       console.error("❌ Error fetching invoice history:", err);
-      // Set dummy data for demonstration
       setInvoiceHistory([
         { id: 1, invoice_no: 'INV-001', date: '2024-01-20', amount: 25000, status: 'Paid' },
         { id: 2, invoice_no: 'INV-002', date: '2024-02-15', amount: 18000, status: 'Pending' },
@@ -177,7 +172,6 @@ console.log("✅ Final clientId used for fetch:", clientId);
       setReports(reportsData);
     } catch (err) {
       console.error("❌ Error fetching reports:", err);
-      // Set dummy data for demonstration
       setReports([
         { id: 1, name: 'Participant Report', type: 'PDF', date: '2024-01-25', size: '2.5 MB' },
         { id: 2, name: 'Service Summary', type: 'Excel', date: '2024-02-01', size: '1.8 MB' },
@@ -185,41 +179,38 @@ console.log("✅ Final clientId used for fetch:", clientId);
     }
   };
 
-  // New function to fetch camp reports from Google Drive API
   const fetchCampReports = async (campId) => {
-  try {
-    console.log(`📤 Fetching camp reports for camp ID: ${campId}`);
-    const response = await fetch(`http://127.0.0.1:8000/api/campmanager/detail/${campId}/`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    try {
+      console.log(`📤 Fetching camp reports for camp ID: ${campId}`);
+      const response = await fetch(`http://127.0.0.1:8000/api/campmanager/detail/${campId}/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ Camp reports data received:", data);
-    
-    // NEW CODE: Clean the Google Drive link by removing extra brackets
-    if (data.google_drive_link) {
-      data.google_drive_link = data.google_drive_link.replace(/^\[|\]$/g, '');
-      const linkMatch = data.google_drive_link.match(/\[([^\]]+)\]\(([^)]+)\)/);
-      if (linkMatch) {
-        data.google_drive_link = linkMatch[2];
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    }
-    
-    setCampReports(data);
-  } catch (err) {
-    console.error("❌ Error fetching camp reports:", err);
-    setCampReports(null);
-  }
-};
 
+      const data = await response.json();
+      console.log("✅ Camp reports data received:", data);
+      
+      if (data.google_drive_link) {
+        data.google_drive_link = data.google_drive_link.replace(/^\[|\]$/g, '');
+        const linkMatch = data.google_drive_link.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        if (linkMatch) {
+          data.google_drive_link = linkMatch[2];
+        }
+      }
+      
+      setCampReports(data);
+    } catch (err) {
+      console.error("❌ Error fetching camp reports:", err);
+      setCampReports(null);
+    }
+  };
 
   const handleCampSelect = (camp) => {
     setSelectedCamp(camp);
@@ -244,21 +235,82 @@ console.log("✅ Final clientId used for fetch:", clientId);
         data: companyDetails.map((c) =>
           c.services.reduce((sum, s) => sum + s.total_cases, 0)
         ),
-        backgroundColor: colors.aquaBlue,
-        borderColor: colors.aquaBlue,
-        borderWidth: 1,
+        backgroundColor: colors.primary,
+        borderColor: colors.primaryDark,
+        borderWidth: 2,
+        borderRadius: 8,
       },
     ],
   };
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { 
+        position: 'top',
+        labels: {
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      title: { 
+        display: true, 
+        text: 'Service Totals by Client',
+        font: {
+          size: 18,
+          weight: 'bold'
+        },
+        color: colors.dark
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: '#e5e7eb'
+        }
+      },
+      x: {
+        grid: {
+          color: '#e5e7eb'
+        }
+      }
+    }
+  };
+
   const Loader = () => (
-    <div className="flex justify-center items-center h-screen">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-solid" style={{ borderColor: colors.aquaBlue }}></div>
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <div className="flex flex-col items-center space-y-4">
+        <div 
+          className="animate-spin rounded-full h-16 w-16 border-4 border-t-transparent"
+          style={{ borderColor: `${colors.primary} transparent ${colors.primary} ${colors.primary}` }}
+        ></div>
+        <p className="text-lg font-medium" style={{ color: colors.primary }}>Loading...</p>
+      </div>
     </div>
   );
 
   if (loading) return <Loader />;
-  if (error) return <div className="text-red-600 p-4">{error}</div>;
+  if (error) return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-red-800 font-medium">Error</h3>
+            <p className="text-red-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const displayedCompanyName =
     localStorage.getItem('companyName') &&
@@ -270,113 +322,188 @@ console.log("✅ Final clientId used for fetch:", clientId);
     switch (activeSection) {
       case 'dashboard':
         return (
-          <div>
-            <div className="flex justify-between p-4 bg-white rounded-lg shadow-md mb-4">
-              <h1 className="text-3xl font-bold" style={{ color: colors.aquaBlue }}>DASHBOARD</h1>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                  <p className="text-gray-600 mt-1">Welcome back to your health camp management system</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Companies</p>
+                    <p className="text-2xl font-bold text-gray-900">{companyDetails.length}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary + '20' }}>
+                    <svg className="w-5 h-5" style={{ color: colors.primary }} fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Camps</p>
+                    <p className="text-2xl font-bold text-gray-900">{camps.length}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.accent + '20' }}>
+                    <svg className="w-5 h-5" style={{ color: colors.accent }} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Active Camps</p>
+                    <p className="text-2xl font-bold text-gray-900">{camps.filter(c => c.ready_to_go && !c.completed).length}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.success + '20' }}>
+                    <svg className="w-5 h-5" style={{ color: colors.success }} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart */}
             {companyDetails.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold mb-4" style={{ color: colors.darkGrey }}>Service Summary</h2>
-                <Bar
-                  data={chartData}
-                  options={{
-                    responsive: true,
-                    plugins: {
-                      legend: { position: 'top' },
-                      title: { display: true, text: 'Service Totals by Client' },
-                    },
-                  }}
-                />
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Service Summary</h2>
+                <div className="h-80">
+                  <Bar data={chartData} options={chartOptions} />
+                </div>
               </div>
             )}
 
+            {/* Company Details */}
             {companyDetails.map((company, index) => (
-              <div key={index} className="mb-6 border bg-white p-4 rounded-lg shadow-md">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-semibold" style={{ color: colors.darkGrey }}>
-                      {company.name || "Unnamed Company"}
-                    </h3>
-                    <p style={{ color: colors.darkGrey }}>Date: {company.datenow}</p>
+              <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {company.name || "Unnamed Company"}
+                      </h3>
+                      <p className="text-gray-600 mt-1">Date: {company.datenow}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleDetails(index)}
+                      className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200 hover:opacity-90"
+                      style={{ backgroundColor: colors.primary }}
+                    >
+                      {expandedCompanyIndex === index ? 'Hide Details' : 'Show Details'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleDetails(index)}
-                    className="text-white px-4 py-2 rounded-lg"
-                    style={{ backgroundColor: colors.aquaBlue }}
-                  >
-                    {expandedCompanyIndex === index ? 'Hide Details' : 'Show Details'}
-                  </button>
-                </div>
 
-                {expandedCompanyIndex === index && (
-                  <div className="mt-4">
-                    <h4 className="text-lg font-semibold" style={{ color: colors.darkGrey }}>Services:</h4>
-                    <ul className="list-disc pl-5">
-                      {company.services.map((s, i) => (
-                        <li key={i} style={{ color: colors.darkGrey }}>
-                          {s.service_name}: {s.total_cases} cases
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {expandedCompanyIndex === index && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Services:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {company.services.map((s, i) => (
+                          <div key={i} className="p-4 rounded-lg border border-gray-200 bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900">{s.service_name}</span>
+                              <span className="text-lg font-bold" style={{ color: colors.primary }}>
+                                {s.total_cases}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">cases completed</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
 
             {companyDetails.length === 0 && (
-              <p style={{ color: colors.darkGrey }}>No data available for this client.</p>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
+                <p className="text-gray-600">No data available for this client at the moment.</p>
+              </div>
             )}
           </div>
         );
 
       case 'campProgress':
         return (
-          <div>
-            <div className="flex justify-between p-4 bg-white rounded-lg shadow-md mb-4">
-              <h1 className="text-3xl font-bold" style={{ color: colors.aquaBlue }}>CAMP PROGRESS</h1>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Camp Progress</h1>
+                  <p className="text-gray-600 mt-1">Monitor your active health camps</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Ready to Go Camps (Not Completed)
-                </h2>
-                <div className="space-y-2">
+              {/* Camps List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Ready to Go Camps (Not Completed)
+                  </h2>
+                  <p className="text-gray-600 mt-1">Select a camp to view details</p>
+                </div>
+                <div className="p-6 space-y-3 max-h-96 overflow-y-auto">
                   {camps.filter(camp => camp.ready_to_go && !camp.completed).map((camp) => (
                     <div
                       key={camp.id}
-                      className={`p-3 border rounded cursor-pointer hover:bg-gray-50 ${
-                        selectedCamp?.id === camp.id ? 'border-blue-300' : ''
+                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        selectedCamp?.id === camp.id 
+                          ? 'border-2 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                       style={{
-                        backgroundColor: selectedCamp?.id === camp.id ? colors.aquaBlue + '20' : 'white'
+                        borderColor: selectedCamp?.id === camp.id ? colors.primary : undefined,
+                        backgroundColor: selectedCamp?.id === camp.id ? colors.primary + '05' : 'white'
                       }}
                       onClick={() => handleCampSelect(camp)}
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium" style={{ color: colors.darkGrey }}>
-                            {camp.name}
-                          </h3>
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            Start: {camp.date}
-                          </p>
-                          {camp.endDate && (
-                            <p className="text-sm" style={{ color: colors.darkGrey }}>
-                              End: {camp.endDate}
-                            </p>
-                          )}
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            Location: {camp.location}, {camp.district}, {camp.state}
-                          </p>
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            Pin Code: {camp.pin_code}
-                          </p>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-2">{camp.name}</h3>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <p><span className="font-medium">Start:</span> {camp.date}</p>
+                            {camp.endDate && <p><span className="font-medium">End:</span> {camp.endDate}</p>}
+                            <p><span className="font-medium">Location:</span> {camp.location}, {camp.district}, {camp.state}</p>
+                            <p><span className="font-medium">Pin Code:</span> {camp.pin_code}</p>
+                          </div>
                         </div>
                         <span 
-                          className="px-2 py-1 rounded text-xs text-white"
-                          style={{ backgroundColor: colors.grassGreen }}
+                          className="px-3 py-1 rounded-full text-xs font-medium text-white ml-3"
+                          style={{ backgroundColor: colors.success }}
                         >
                           {camp.status}
                         </span>
@@ -384,64 +511,85 @@ console.log("✅ Final clientId used for fetch:", clientId);
                     </div>
                   ))}
                   {camps.filter(camp => camp.ready_to_go && !camp.completed).length === 0 && (
-                    <p style={{ color: colors.darkGrey }}>No ready-to-go camps available that are not completed.</p>
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 00-2 2v2a2 2 0 002 2m0 0h14" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600">No ready-to-go camps available that are not completed.</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Camp Details & QR Dashboard
-                </h2>
-                {selectedCamp && campDetails ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium text-lg" style={{ color: colors.darkGrey }}>
-                        {campDetails.name}
-                      </h3>
-                      <p style={{ color: colors.darkGrey }}>Status: {campDetails.status}</p>
-                      <p style={{ color: colors.darkGrey }}>Participants: {campDetails.participants}</p>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2" style={{ color: colors.darkGrey }}>
-                        Services Offered:
-                      </h4>
-                      <ul className="list-disc pl-5">
-                        {campDetails.services.map((service, index) => (
-                          <li key={index} style={{ color: colors.darkGrey }}>{service}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-4 rounded" style={{ backgroundColor: colors.aquaBlue + '10' }}>
-                      <h4 className="font-medium mb-2" style={{ color: colors.darkGrey }}>
-                        QR Code Dashboard
-                      </h4>
-                      <div className="flex items-center space-x-4">
-                        <div 
-                          className="w-20 h-20 flex items-center justify-center rounded"
-                          style={{ backgroundColor: colors.darkGrey, color: 'white' }}
-                        >
-                          QR
+              {/* Camp Details */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Camp Details </h2>
+                  <p className="text-gray-600 mt-1">View detailed information about selected camp</p>
+                </div>
+                <div className="p-6">
+                  {selectedCamp && campDetails ? (
+                    <div className="space-y-6">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-lg text-gray-900 mb-3">{campDetails.name}</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-600">Status:</span>
+                            <p className="text-gray-900">{campDetails.status}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">Participants:</span>
+                            <p className="text-gray-900">{campDetails.participants}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            QR Code: {campDetails.qrCode}
-                          </p>
-                          <button 
-                            className="text-white px-3 py-1 rounded text-sm mt-2"
-                            style={{ backgroundColor: colors.vividPurple }}
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3">Services Offered:</h4>
+                        <div className="grid grid-cols-1 gap-2">
+                          {campDetails.services.map((service, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }}></div>
+                              <span className="text-gray-700">{service}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6">
+                        <h4 className="font-semibold text-gray-900 mb-4">QR Code Dashboard</h4>
+                        <div className="flex items-center space-x-6">
+                          <div 
+                            className="w-20 h-20 flex items-center justify-center rounded-lg text-white font-bold text-xl"
+                            style={{ backgroundColor: colors.primary }}
                           >
-                            View Full Dashboard
-                          </button>
+                            QR
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600 mb-2">QR Code: <span className="font-medium">{campDetails.qrCode}</span></p>
+                            <button 
+                              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200 hover:opacity-90"
+                              style={{ backgroundColor: colors.purple }}
+                            >
+                              View Full Dashboard
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <p style={{ color: colors.darkGrey }}>Select a camp to view details</p>
-                )}
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600">Select a camp to view details</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -449,91 +597,107 @@ console.log("✅ Final clientId used for fetch:", clientId);
 
       case 'invoiceHistory':
         return (
-          <div>
-            <div className="flex justify-between p-4 bg-white rounded-lg shadow-md mb-4">
-              <h1 className="text-3xl font-bold" style={{ color: colors.aquaBlue }}>INVOICE HISTORY</h1>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Invoice History</h1>
+                  <p className="text-gray-600 mt-1">Track all your camp invoices and payments</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Select Camp
-                </h2>
-                <div className="space-y-2">
+              {/* Camps List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Select Camp</h2>
+                  <p className="text-gray-600 mt-1">Choose a camp to view invoice history</p>
+                </div>
+                <div className="p-6 space-y-3 max-h-96 overflow-y-auto">
                   {camps.filter(camp => camp.ready_to_go).map((camp) => (
                     <div
                       key={camp.id}
-                      className={`p-3 border rounded cursor-pointer hover:bg-gray-50 ${
-                        selectedCamp?.id === camp.id ? 'border-blue-300' : ''
+                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        selectedCamp?.id === camp.id 
+                          ? 'border-2 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                       style={{
-                        backgroundColor: selectedCamp?.id === camp.id ? colors.aquaBlue + '20' : 'white'
+                        borderColor: selectedCamp?.id === camp.id ? colors.primary : undefined,
+                        backgroundColor: selectedCamp?.id === camp.id ? colors.primary + '05' : 'white'
                       }}
                       onClick={() => handleCampSelect(camp)}
                     >
-                      <h3 className="font-medium" style={{ color: colors.darkGrey }}>
-                        {camp.name}
-                      </h3>
-                      <p className="text-sm" style={{ color: colors.darkGrey }}>
-                        Date: {camp.date}
-                      </p>
+                      <h3 className="font-semibold text-gray-900">{camp.name}</h3>
+                      <p className="text-sm text-gray-600 mt-1">Date: {camp.date}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Invoice History
-                </h2>
-                {selectedCamp ? (
-                  <div className="space-y-3">
-                    {invoiceHistory.map((invoice) => (
-                      <div key={invoice.id} className="border p-3 rounded">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium" style={{ color: colors.darkGrey }}>
-                              {invoice.invoice_no}
-                            </h4>
-                            <p className="text-sm" style={{ color: colors.darkGrey }}>
-                              Date: {invoice.date}
-                            </p>
-                            <p className="font-medium" style={{ color: colors.darkGrey }}>
-                              ₹{invoice.amount.toLocaleString()}
-                            </p>
+              {/* Invoice History */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Invoice History</h2>
+                  <p className="text-gray-600 mt-1">View and download invoices</p>
+                </div>
+                <div className="p-6">
+                  {selectedCamp ? (
+                    <div className="space-y-4">
+                      {invoiceHistory.map((invoice) => (
+                        <div key={invoice.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{invoice.invoice_no}</h4>
+                              <p className="text-sm text-gray-600 mt-1">Date: {invoice.date}</p>
+                              <p className="text-lg font-bold mt-2" style={{ color: colors.primary }}>
+                                ₹{invoice.amount.toLocaleString()}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium text-white`}
+                            style={{
+                              backgroundColor: invoice.status === 'Paid' ? colors.success :
+                                             invoice.status === 'Pending' ? colors.warning :
+                                             colors.primary
+                            }}>
+                              {invoice.status}
+                            </span>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs text-white ${
-                            invoice.status === 'Paid' ? '' : 
-                            invoice.status === 'Pending' ? '' : ''
-                          }`}
-                          style={{
-                            backgroundColor: invoice.status === 'Paid' ? colors.grassGreen :
-                                           invoice.status === 'Pending' ? colors.vividPurple :
-                                           colors.aquaBlue
-                          }}>
-                            {invoice.status}
-                          </span>
+                          <div className="flex space-x-3">
+                            <button 
+                              className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
+                              style={{ backgroundColor: colors.primary }}
+                            >
+                              View Invoice
+                            </button>
+                            <button 
+                              className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
+                              style={{ backgroundColor: colors.success }}
+                            >
+                              Download
+                            </button>
+                          </div>
                         </div>
-                        <div className="mt-2">
-                          <button 
-                            className="text-white px-3 py-1 rounded text-sm mr-2"
-                            style={{ backgroundColor: colors.aquaBlue }}
-                          >
-                            View Invoice
-                          </button>
-                          <button 
-                            className="text-white px-3 py-1 rounded text-sm"
-                            style={{ backgroundColor: colors.grassGreen }}
-                          >
-                            Download
-                          </button>
-                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ color: colors.darkGrey }}>Select a camp to view invoice history</p>
-                )}
+                      <p className="text-gray-600">Select a camp to view invoice history</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -541,43 +705,53 @@ console.log("✅ Final clientId used for fetch:", clientId);
 
       case 'reports':
         return (
-          <div>
-            <div className="flex justify-between p-4 bg-white rounded-lg shadow-md mb-4">
-              <h1 className="text-3xl font-bold" style={{ color: colors.aquaBlue }}>REPORTS</h1>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+                  <p className="text-gray-600 mt-1">Access Google Drive reports for completed camps</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Select Camp (Ready to Go & Completed)
-                </h2>
-                <div className="space-y-2">
+              {/* Completed Camps */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Completed Camps</h2>
+                  <p className="text-gray-600 mt-1">Select a completed camp to view reports</p>
+                </div>
+                <div className="p-6 space-y-3 max-h-96 overflow-y-auto">
                   {camps.filter(camp => camp.ready_to_go && camp.completed).map((camp) => (
                     <div
                       key={camp.id}
-                      className={`p-3 border rounded cursor-pointer hover:bg-gray-50 ${
-                        selectedCamp?.id === camp.id ? 'border-blue-300' : ''
+                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        selectedCamp?.id === camp.id 
+                          ? 'border-2 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                       style={{
-                        backgroundColor: selectedCamp?.id === camp.id ? colors.aquaBlue + '20' : 'white'
+                        borderColor: selectedCamp?.id === camp.id ? colors.primary : undefined,
+                        backgroundColor: selectedCamp?.id === camp.id ? colors.primary + '05' : 'white'
                       }}
                       onClick={() => handleCampSelect(camp)}
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium" style={{ color: colors.darkGrey }}>
-                            {camp.name}
-                          </h3>
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            Date: {camp.date}
-                          </p>
-                          <p className="text-sm" style={{ color: colors.darkGrey }}>
-                            Location: {camp.location}
-                          </p>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{camp.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">Date: {camp.date}</p>
+                          <p className="text-sm text-gray-600">Location: {camp.location}</p>
                         </div>
                         <span 
-                          className="px-2 py-1 rounded text-xs text-white"
-                          style={{ backgroundColor: colors.vividPurple }}
+                          className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: colors.purple }}
                         >
                           {camp.status}
                         </span>
@@ -585,85 +759,108 @@ console.log("✅ Final clientId used for fetch:", clientId);
                     </div>
                   ))}
                   {camps.filter(camp => camp.ready_to_go && camp.completed).length === 0 && (
-                    <p style={{ color: colors.darkGrey }}>No completed camps available for reports.</p>
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600">No completed camps available for reports.</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: colors.darkGrey }}>
-                  Google Drive Reports
-                </h2>
-                {selectedCamp ? (
-                  <div className="space-y-3">
-                    {campReports ? (
-                      <div className="border p-4 rounded">
-                        <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium mb-2" style={{ color: colors.darkGrey }}>
-                            Camp Reports - {selectedCamp.name}
-                          </h4>
-                          <p className="text-sm mb-2" style={{ color: colors.darkGrey }}>
-                            Camp ID: {campReports.camp}
-                          </p>
-                          <p className="text-sm mb-3" style={{ color: colors.darkGrey }}>
-                            Uploaded: {new Date(campReports.uploaded_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+              {/* Google Drive Reports */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Google Drive Reports</h2>
+                  <p className="text-gray-600 mt-1">Access and download camp reports</p>
+                </div>
+                <div className="p-6">
+                  {selectedCamp ? (
+                    <div className="space-y-4">
+                      {campReports ? (
+                        <div className="border border-gray-200 rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg text-gray-900 mb-2">
+                                Camp Reports - {selectedCamp.name}
+                              </h4>
+                              <div className="space-y-2 text-sm text-gray-600">
+                                <p><span className="font-medium">Camp ID:</span> {campReports.camp}</p>
+                                <p><span className="font-medium">Uploaded:</span> {new Date(campReports.uploaded_at).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 104 0 2 2 0 00-4 0zm8-2a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span className="text-sm font-medium" style={{ color: colors.darkGrey }}>
-                              Google Drive Folder
-                            </span>
+                            <div>
+                              <span className="font-medium text-gray-900">Google Drive Folder</span>
+                              <p className="text-xs text-gray-600">All camp reports and documents</p>
+                            </div>
                           </div>
                           
-                          {/* NEW CODE: Display the cleaned Google Drive link */}
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs break-all" style={{ color: colors.darkGrey }}>
-                            {campReports.google_drive_link}
+                          <div className="bg-white rounded-lg p-3 mb-4 border border-gray-200">
+                            <p className="text-xs text-gray-600 break-all font-mono">
+                              {campReports.google_drive_link}
+                            </p>
+                          </div>
+                          
+                          <div className="flex space-x-3">
+                            <button 
+                              className="flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200 hover:opacity-90"
+                              style={{ backgroundColor: colors.primary }}
+                              onClick={() => window.open(campReports.google_drive_link, '_blank')}
+                            >
+                              Open Google Drive
+                            </button>
+                            <button 
+                              className="px-4 py-2 rounded-lg text-white font-medium transition-colors duration-200 hover:opacity-90"
+                              style={{ backgroundColor: colors.success }}
+                              onClick={() => {
+                                navigator.clipboard.writeText(campReports.google_drive_link);
+                                alert('Drive link copied to clipboard!');
+                              }}
+                            >
+                              Copy Link
+                            </button>
                           </div>
                         </div>
-                      </div>
-
-                        <div className="mt-4 pt-3 border-t">
-                          <button 
-                            className="text-white px-4 py-2 rounded text-sm mr-3"
-                            style={{ backgroundColor: colors.aquaBlue }}
-                            onClick={() => window.open(campReports.google_drive_link, '_blank')}
-                          >
-                            Open Google Drive
-                          </button>
-                          <button 
-                            className="text-white px-4 py-2 rounded text-sm"
-                            style={{ backgroundColor: colors.grassGreen }}
-                            onClick={() => {
-                              navigator.clipboard.writeText(campReports.google_drive_link);
-                              alert('Drive link copied to clipboard!');
-                            }}
-                          >
-                            Copy Link
-                          </button>
+                      ) : (
+                        <div className="border border-gray-200 rounded-lg p-8 bg-gray-50 text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <h3 className="font-medium text-gray-900 mb-2">No Reports Found</h3>
+                          <p className="text-gray-600">No Google Drive reports found for this camp.</p>
                         </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
                       </div>
-                    ) : (
-                      <div className="border p-4 rounded bg-gray-50">
-                        <p style={{ color: colors.darkGrey }}>
-                          No Google Drive reports found for this camp.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p style={{ color: colors.darkGrey }}>Select a completed camp to view Google Drive reports</p>
-                )}
+                      <p className="text-gray-600">Select a completed camp to view Google Drive reports</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -675,53 +872,76 @@ console.log("✅ Final clientId used for fetch:", clientId);
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="flex flex-1">
-        <div className="w-64 bg-gray-800 text-white h-screen p-6">
-          <h2 className="text-2xl font-bold mb-6">{displayedCompanyName}</h2>
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveSection('dashboard')}
-              className={`block w-full text-left py-2 px-4 rounded ${
-                activeSection === 'dashboard' ? 'bg-gray-700' : 'hover:bg-gray-700'
-              }`}
-            >
-              Dashboard
-            </button>
-            <Link to="/camp-details" className="block py-2 px-4 hover:bg-gray-700 rounded">
-              Add New Camp
-            </Link>
-            <button
-              onClick={() => setActiveSection('campProgress')}
-              className={`block w-full text-left py-2 px-4 rounded ${
-                activeSection === 'campProgress' ? 'bg-gray-700' : 'hover:bg-gray-700'
-              }`}
-            >
-              Camp Progress
-            </button>
-            <button
-              onClick={() => setActiveSection('invoiceHistory')}
-              className={`block w-full text-left py-2 px-4 rounded ${
-                activeSection === 'invoiceHistory' ? 'bg-gray-700' : 'hover:bg-gray-700'
-              }`}
-            >
-              Invoice History
-            </button>
-            <button
-              onClick={() => setActiveSection('reports')}
-              className={`block w-full text-left py-2 px-4 rounded ${
-                activeSection === 'reports' ? 'bg-gray-700' : 'hover:bg-gray-700'
-              }`}
-            >
-              Reports
-            </button>
-            <Link to="/login" className="block py-2 px-4 hover:bg-gray-700 rounded">
-              LOGOUT
-            </Link>
-          </nav>
+        {/* Sidebar */}
+        <div className="w-64 text-white min-h-screen shadow-xl" style={{ backgroundColor: colors.primary }}>
+          <div className="p-6">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6" style={{ color: colors.primary }} fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold truncate">{displayedCompanyName}</h2>
+                <p className="text-xs opacity-80">Health Camp Portal</p>
+              </div>
+            </div>
+            
+            <nav className="space-y-2">
+              {[
+                { key: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+                { key: 'campProgress', icon: 'progress', label: 'Camp Progress' },
+                { key: 'invoiceHistory', icon: 'invoice', label: 'Invoice History' },
+                { key: 'reports', icon: 'reports', label: 'Reports' }
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setActiveSection(item.key)}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-lg text-left transition-all duration-200 ${
+                    activeSection === item.key 
+                      ? 'bg-white text-gray-900 shadow-md' 
+                      : 'hover:bg-white hover:bg-opacity-10'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {item.key === 'dashboard' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
+                    {item.key === 'campProgress' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
+                    {item.key === 'invoiceHistory' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
+                    {item.key === 'reports' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
+                  </svg>
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              ))}
+              
+              <div className="pt-4 mt-4 border-t border-white border-opacity-20">
+                <Link 
+                  to="/camp-details" 
+                  className="w-full flex items-center space-x-3 py-3 px-4 rounded-lg text-left transition-all duration-200 hover:bg-white hover:bg-opacity-10"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span className="font-medium">Add New Camp</span>
+                </Link>
+                
+                <Link 
+                  to="/login" 
+                  className="w-full flex items-center space-x-3 py-3 px-4 rounded-lg text-left transition-all duration-200 hover:bg-red-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="font-medium">Logout</span>
+                </Link>
+              </div>
+            </nav>
+          </div>
         </div>
 
-        <div className="flex-1 p-6 bg-gray-100">
+        {/* Main Content */}
+        <div className="flex-1 p-6 overflow-auto">
           {renderMainContent()}
         </div>
       </div>
