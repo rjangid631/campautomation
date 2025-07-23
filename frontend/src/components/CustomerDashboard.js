@@ -11,7 +11,8 @@ import {
   Legend,
 } from 'chart.js';
 import { AppContext } from '../App';
-import { apiHandlers } from './api';
+import { apiService, apiHandlers } from './api';
+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -27,6 +28,9 @@ const CustomerDashboard = () => {
   const [invoiceHistory, setInvoiceHistory] = useState([]);
   const [reports, setReports] = useState([]);
   const [campReports, setCampReports] = useState(null);
+  const [loadingCamps, setLoadingCamps] = useState(false);
+  const [loadingCampDetails, setLoadingCampDetails] = useState(false);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   // Enhanced color scheme with the primary color
   const colors = {
@@ -63,53 +67,55 @@ const CustomerDashboard = () => {
   useEffect(() => {
     const fetchClientDashboard = async () => {
       if (!clientId) return;
+      
       const token = localStorage.getItem('access_token');
-
       if (!token) {
         setError("Unauthorized: Token not found. Please login again.");
         setLoading(false);
         window.location.href = "/login";
         return;
       }
-
-      if (!clientId) {
-        console.warn("⚠️ Client ID not found. Cannot fetch dashboard.");
-        setError("Client ID not found. Please login again.");
-        setLoading(false);
-        return;
-      }
-
+    
       try {
         console.log("📤 Fetching client dashboard for clientId:", clientId);
-        const data = await apiHandlers.getClientDashboard(clientId);
-
+        
+        // Use the enhanced API service
+        const data = await apiService.dashboard.getClient(clientId);
+        
         const processedData = data.map((item) => ({
           ...item,
           datenow: new Date().toISOString().split('T')[0],
         }));
-
+    
         setCompanyDetails(processedData);
         console.log("✅ Dashboard data received:", processedData);
         
         await fetchCamps();
       } catch (err) {
         console.error("❌ Error fetching client dashboard:", err);
+        
+        // Enhanced error handling
         if (err.response?.status === 401) {
+          localStorage.clear(); // Clear all auth data
           window.location.href = "/login";
+        } else if (err.response?.status === 403) {
+          setError("Access denied. Please contact administrator.");
+        } else {
+          setError(`Failed to fetch client data: ${err.message}`);
         }
-        setError("Failed to fetch client data.");
       } finally {
         setLoading(false);
       }
-    };
-
+  };
     fetchClientDashboard();
   }, [clientId]);
 
   const fetchCamps = async () => {
     try {
       console.log("📤 Fetching camps for client:", clientId); 
-      const campsData = await apiHandlers.getCamps(clientId);
+      
+      // Use enhanced API service
+      const campsData = await apiService.camps.getAll(clientId);
       console.log("✅ Camps data received:", campsData);
       
       const transformedCamps = campsData.map(camp => ({
@@ -128,40 +134,52 @@ const CustomerDashboard = () => {
         completed: camp.is_completed || false,
         client: camp.client
       }));
-
+  
       setCamps(transformedCamps);
     } catch (err) {
       console.error("❌ Error fetching camps:", err);
+      // Set empty array but don't throw error to prevent dashboard crash
       setCamps([]);
     }
   };
 
   const fetchCampDetails = async (campId) => {
     try {
-      const details = await apiHandlers.getCampDetails(campId);
+      // Use enhanced API service
+      const details = await apiService.camps.getDetails(campId);
       setCampDetails(details);
     } catch (err) {
       console.error("❌ Error fetching camp details:", err);
+      
+      // Better fallback data structure
       setCampDetails({
         id: campId,
-        name: camps.find(c => c.id === campId)?.name || 'Camp',
-        participants: 150,
-        services: ['Blood Test', 'BP Check', 'Sugar Test'],
-        qrCode: 'QR123456',
-        status: 'Active'
+        name: camps.find(c => c.id === campId)?.name || 'Camp Details',
+        participants: 0,
+        services: ['Loading...'],
+        qrCode: `QR-${campId}`,
+        status: 'Loading...'
       });
     }
   };
 
   const fetchInvoiceHistory = async (campId) => {
     try {
-      const invoices = await apiHandlers.getInvoiceHistory(campId);
-      setInvoiceHistory(invoices);
+      // Use enhanced API service
+      const invoices = await apiService.invoices.getHistory(campId);
+      setInvoiceHistory(Array.isArray(invoices) ? invoices : []);
     } catch (err) {
       console.error("❌ Error fetching invoice history:", err);
+      
+      // Provide meaningful fallback data
       setInvoiceHistory([
-        { id: 1, invoice_no: 'INV-001', date: '2024-01-20', amount: 25000, status: 'Paid' },
-        { id: 2, invoice_no: 'INV-002', date: '2024-02-15', amount: 18000, status: 'Pending' },
+        { 
+          id: 1, 
+          invoice_no: 'Loading...', 
+          date: new Date().toISOString().split('T')[0], 
+          amount: 0, 
+          status: 'Loading' 
+        }
       ]);
     }
   };
@@ -182,44 +200,40 @@ const CustomerDashboard = () => {
   const fetchCampReports = async (campId) => {
     try {
       console.log(`📤 Fetching camp reports for camp ID: ${campId}`);
-      const response = await fetch(`http://127.0.0.1:8000/api/campmanager/detail/${campId}/`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("✅ Camp reports data received:", data);
       
-      if (data.google_drive_link) {
-        data.google_drive_link = data.google_drive_link.replace(/^\[|\]$/g, '');
-        const linkMatch = data.google_drive_link.match(/\[([^\]]+)\]\(([^)]+)\)/);
-        if (linkMatch) {
-          data.google_drive_link = linkMatch[2];
-        }
-      }
+      // Use the enhanced API service method
+      const data = await apiService.reports.getCampReports(campId);
       
-      setCampReports(data);
+      if (data) {
+        console.log("✅ Camp reports data received:", data);
+        setCampReports(data);
+      } else {
+        setCampReports(null);
+      }
     } catch (err) {
       console.error("❌ Error fetching camp reports:", err);
       setCampReports(null);
     }
   };
 
-  const handleCampSelect = (camp) => {
+  const handleCampSelect = async (camp) => {
     setSelectedCamp(camp);
-    if (activeSection === 'campProgress') {
-      fetchCampDetails(camp.id);
-    } else if (activeSection === 'invoiceHistory') {
-      fetchInvoiceHistory(camp.id);
-    } else if (activeSection === 'reports') {
-      fetchCampReports(camp.id);
+    
+    try {
+      if (activeSection === 'campProgress') {
+        setLoadingCampDetails(true);
+        await fetchCampDetails(camp.id);
+      } else if (activeSection === 'invoiceHistory') {
+        await fetchInvoiceHistory(camp.id);
+      } else if (activeSection === 'reports') {
+        setLoadingReports(true);
+        await fetchCampReports(camp.id);
+      }
+    } catch (error) {
+      console.error('Error handling camp selection:', error);
+    } finally {
+      setLoadingCampDetails(false);
+      setLoadingReports(false);
     }
   };
 

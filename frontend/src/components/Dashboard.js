@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { dashboardAPI } from './api.js';
 import { useNavigate } from 'react-router-dom';
 
 
-// API endpoints
-const apiEndpoints = {
-  camps: "http://127.0.0.1:8000/api/campmanager/camps/",
-  allCamps: "http://127.0.0.1:8000/api/camps/",
-  patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`
-};
 
 // Color constants
 const COLORS = {
@@ -45,22 +39,22 @@ const Dashboard = () => {
   const [driveLink, setDriveLink] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const response = await axios.get(apiEndpoints.camps);
-      const camps = response.data;
-      setData(camps);
-      if (firstLogin) {
-        setTimeout(() => setLoading(false), 2000);
-        setFirstLogin(false);
-      } else {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('Error fetching camps data:', error);
+const fetchData = useCallback(async () => {
+  try {
+    const camps = await dashboardAPI.getAllCamps();
+    setData(camps);
+    if (firstLogin) {
+      setTimeout(() => setLoading(false), 2000);
+      setFirstLogin(false);
+    } else {
       setLoading(false);
     }
-  }, [firstLogin]);
+  } catch (error) {
+    console.error('Error fetching camps data:', error);
+    setLoading(false);
+  }
+}, [firstLogin]);
+
 
   useEffect(() => {
     fetchData();
@@ -72,31 +66,23 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [fetchData, firstLogin]);
   
-  const apiEndpoints = {
-    camps: "http://127.0.0.1:8000/api/campmanager/camps/",
-    allCamps: "http://127.0.0.1:8000/api/camps/",
-    patients: (campId) => `http://127.0.0.1:8000/api/camps/${campId}/upload-excel/`,
-    campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-    packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
-    uploadReport: "http://127.0.0.1:8000/api/campmanager/upload/",
-    downloadReports: (campId) => `http://127.0.0.1:8000/api/technician/report-links/${campId}`
-  };
 
   const handleDetailsToggle = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
   const handleDeleteCamp = async (campId) => {
-    if (window.confirm('Are you sure you want to delete this camp?')) {
-      try {
-        await axios.delete(`${apiEndpoints.camps}${campId}/`);
-        setData(data.filter(camp => camp.id !== campId));
-      } catch (error) {
-        console.error('Error deleting camp:', error);
-        alert('Failed to delete camp. Please try again.');
-      }
+  if (window.confirm('Are you sure you want to delete this camp?')) {
+    try {
+      await dashboardAPI.deleteCamp(campId);
+      setData(data.filter(camp => camp.id !== campId));
+    } catch (error) {
+      console.error('Error deleting camp:', error);
+      alert('Failed to delete camp. Please try again.');
     }
-  };
+  }
+};
+
 
   const handleViewServiceSelection = (campId) => {
     navigate(`/view-serviceselection/${campId}`);
@@ -105,8 +91,8 @@ const Dashboard = () => {
   const fetchPackages = async (campId) => {
     setLoadingPackages(true);
     try {
-      const response = await axios.get(apiEndpoints.campDetails(campId));
-      setPackages(response.data.packages || []);
+      const campDetails = await dashboardAPI.getCampDetails(campId);
+      setPackages(campDetails.packages || []);
     } catch (error) {
       console.error('Error fetching packages:', error);
       setPackages([]);
@@ -115,12 +101,13 @@ const Dashboard = () => {
     }
   };
   
+  
   const fetchPackagePatients = async (campId, packageId) => {
     setLoadingPatients(true);
     try {
-      const response = await axios.get(apiEndpoints.packagePatients(campId, packageId));
-      setPatients(response.data);
-      setOriginalPatients(response.data); // Store original patients for filtering
+      const patients = await dashboardAPI.getPackagePatients(campId, packageId);
+      setPatients(patients);
+      setOriginalPatients(patients);
     } catch (error) {
       console.error('Error fetching package patients:', error);
       setPatients([]);
@@ -128,7 +115,8 @@ const Dashboard = () => {
     } finally {
       setLoadingPatients(false);
     }
-  };
+};
+
 
   const handleCampClick = (camp) => {
     setSelectedCamp(camp);
@@ -220,12 +208,9 @@ const Dashboard = () => {
       return;
     }
   
-  setUploading(true);
+    setUploading(true);
     try {
-      const response = await axios.post(apiEndpoints.uploadReport, {
-        camp: selectedUploadCamp.id,
-        google_drive_link: driveLink.trim()
-      });
+      await dashboardAPI.uploadReport(selectedUploadCamp.id, driveLink.trim());
       
       alert('Report uploaded successfully!');
       setUploadModalOpen(false);
@@ -238,7 +223,7 @@ const Dashboard = () => {
       setUploading(false);
     }
   };
-  
+
   const handleCloseUploadModal = () => {
     setUploadModalOpen(false);
     setSelectedUploadCamp(null);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { onsiteAPI, onsiteUtils } from './api';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -48,13 +48,7 @@ const OnsiteDashboard = () => {
   };
 
 
-  // API endpoints
-const apiEndpoints = {
-  camps: "http://127.0.0.1:8000/api/campmanager/camps/",
-  campDetails: (campId) => `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`,
-  packagePatients: (campId, packageId) => `http://127.0.0.1:8000/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
-  addPatient: "http://127.0.0.1:8000/api/campmanager/patients/"
-};
+
 
 
   // Add these new functions
@@ -74,18 +68,12 @@ const handleSubmitPatient = async (e) => {
   e.preventDefault();
   
   // Validate form fields
-  const formErrors = [];
-  if (!patientForm.patient_id.trim()) formErrors.push('Patient ID');
-  if (!patientForm.name.trim()) formErrors.push('Name');
-  if (!patientForm.age.trim()) formErrors.push('Age');
-  if (!patientForm.gender.trim()) formErrors.push('Gender');
-  if (!patientForm.phone.trim()) formErrors.push('Phone');
-  if (!patientForm.services.trim()) formErrors.push('Services');
-  
-  if (formErrors.length > 0) {
-    alert(`Please fill in: ${formErrors.join(', ')}`);
+  const validation = onsiteAPI.validatePatientData(patientForm);
+  if (!validation.isValid) {
+    alert(`Please fill in: ${validation.errors.join(', ')}`);
     return;
   }
+  
 
   // Validate selections
   if (!selectedCamp) {
@@ -101,19 +89,8 @@ const handleSubmitPatient = async (e) => {
   setIsSubmittingPatient(true);
   
   try {
-    const patientData = {
-      patient_id: patientForm.patient_id.trim(),
-      name: patientForm.name.trim(),
-      age: parseInt(patientForm.age),
-      gender: patientForm.gender,
-      phone: patientForm.phone.trim(),
-      services: patientForm.services.split(',').map(s => s.trim()).filter(s => s),
-      package_id: selectedPackage.id,
-      camp_id: selectedCamp.id
-    };
-
-    await axios.post(apiEndpoints.addPatient, patientData);
-    
+    const patientData = onsiteAPI.formatPatientData(patientForm, selectedCamp, selectedPackage);
+    await onsiteAPI.addPatient(patientData);
     // Reset form
     setPatientForm({ patient_id: '', name: '', age: '', gender: '', phone: '', services: '' });
     setShowAddPatientModal(false);
@@ -487,16 +464,17 @@ const handleSubmitPatient = async (e) => {
   
 
 
-  const fetchData = useCallback(async () => {
+ const fetchData = useCallback(async () => {
     try {
-      const response = await axios.get(apiEndpoints.camps);
-      setData(response.data);
+      const camps = await onsiteAPI.getAllCamps();
+      setData(camps);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching camps data:', error);
       setLoading(false);
     }
   }, []);
+
 
 
   useEffect(() => {
@@ -507,23 +485,24 @@ const handleSubmitPatient = async (e) => {
   const fetchPackages = async (campId) => {
     setLoadingPackages(true);
     try {
-      const response = await axios.get(apiEndpoints.campDetails(campId));
-      setPackages(response.data.packages || []);
+      const campDetails = await onsiteAPI.getCampDetails(campId);
+      setPackages(campDetails.packages || []);
     } catch (error) {
       console.error('Error fetching packages:', error);
       setPackages([]);
     } finally {
       setLoadingPackages(false);
     }
-  };
+};
+
 
 
   const fetchPackagePatients = async (campId, packageId) => {
     setLoadingPatients(true);
     try {
-      const response = await axios.get(apiEndpoints.packagePatients(campId, packageId));
-      setPatients(response.data);
-      setOriginalPatients(response.data);
+      const patients = await onsiteAPI.getPackagePatients(campId, packageId);
+      setPatients(patients);
+      setOriginalPatients(patients);
     } catch (error) {
       console.error('Error fetching package patients:', error);
       setPatients([]);
@@ -532,6 +511,7 @@ const handleSubmitPatient = async (e) => {
       setLoadingPatients(false);
     }
   };
+
 
 
   const handleCampClick = (camp) => {
@@ -552,71 +532,23 @@ const handleSubmitPatient = async (e) => {
 
 
   const handleSearch = (e) => {
-    const term = e.target.value.toLowerCase();
+    const term = e.target.value;
     setSearchTerm(term);
     
-    if (term === '') {
-      setPatients(originalPatients);
-    } else {
-      const filtered = originalPatients.filter(patient => 
-        patient.name.toLowerCase().includes(term) ||
-        patient.unique_patient_id.toLowerCase().includes(term) ||
-        patient.phone.includes(term) ||
-        patient.services.some(service => service.toLowerCase().includes(term))
-      );
-      setPatients(filtered);
-    }
+    const filtered = onsiteUtils.filterPatients(originalPatients, term);
+    setPatients(filtered);
   };
 
 
 const handlePrintQR = async (patient) => {
   try {
-    // ✅ 1. Make API call to mark patient as checked-in & trigger thermal print
-    const response = await fetch('http://127.0.0.1:8000/api/campmanager/print-thermal-slips/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ patient_ids: [patient.id] }),
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      console.error('Print API error:', result);
-      alert('Something went wrong while printing.');
-      return;
-    }
-
-    // ✅ 2. Open print window with patient QR
+    // Make API call to mark patient as checked-in & trigger thermal print
+    const result = await onsiteAPI.printThermalSlips([patient.id]);
+    
+    // Open print window with patient QR
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Patient Details - ${patient.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .patient-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; }
-            .qr-code { max-width: 200px; margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="patient-card">
-            <h2>Patient Details</h2>
-            <p><strong>Name:</strong> ${patient.name}</p>
-            <p><strong>Patient ID:</strong> ${patient.unique_patient_id}</p>
-            <p><strong>Age:</strong> ${patient.age}</p>
-            <p><strong>Gender:</strong> ${patient.gender}</p>
-            <p><strong>Phone:</strong> ${patient.phone}</p>
-            <p><strong>Services:</strong> ${patient.services.join(', ')}</p>
-            <div>
-              <strong>QR Code:</strong><br>
-              <img src="${patient.qr_code_url}" alt="QR Code" class="qr-code">
-            </div>
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `);
+    const printContent = onsiteAPI.generatePrintContent(patient);
+    printWindow.document.write(printContent);
 
   } catch (error) {
     console.error('Failed to print QR:', error);
@@ -625,31 +557,15 @@ const handlePrintQR = async (patient) => {
 };
 
 
+
   const handleCampStatus = (patientId) => {
     // Add camp status logic here
     console.log('Camp status for patient:', patientId);
   };
 
 
-  const formatDate = (dateString) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-IN', {
-        year: 'numeric', month: 'short', day: 'numeric'
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-
-  const getCampStatus = (startDate, endDate) => {
-    const today = new Date();
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (today < start) return { status: 'Upcoming', color: 'bg-blue-100 text-blue-800' };
-    else if (today >= start && today <= end) return { status: 'Active', color: 'bg-green-100 text-green-800' };
-    else return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
-  };
+  const formatDate = onsiteUtils.formatDate;
+  const getCampStatus = onsiteUtils.getCampStatus;
 
 
   // Add the missing render functions

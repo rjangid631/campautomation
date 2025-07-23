@@ -1,5 +1,23 @@
 import axios from 'axios';
 
+
+
+// ✅ ADD this utility function after imports
+const retryRequest = async (requestFn, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      
+      console.warn(`Request failed, retrying... (${i + 1}/${maxRetries})`, error.message);
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+    }
+  }
+};
+
+
+
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 const api = axios.create({
@@ -11,10 +29,16 @@ const api = axios.create({
 });
 
 // ✅ Attach token for authenticated requests
+// ✅ Enhanced request interceptor with dual token support
 api.interceptors.request.use(
   (config) => {
+    // Check for both token types
     const token = localStorage.getItem('token');
-    if (token) {
+    const accessToken = localStorage.getItem('access_token');
+    
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    } else if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
     return config;
@@ -24,20 +48,26 @@ api.interceptors.request.use(
   }
 );
 
+
 // ✅ Response interceptor for better error handling
+// ✅ Enhanced response interceptor
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
+      // Clear all authentication tokens
       localStorage.removeItem('token');
+      localStorage.removeItem('access_token'); 
+      localStorage.removeItem('clientId');
+      localStorage.removeItem('companyName');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
+
 
 // ✅ LOGIN: Customer
 export const loginAsCustomer = async (email, password) => {
@@ -56,18 +86,23 @@ export const loginAsCustomer = async (email, password) => {
       throw new Error(data.detail || 'Login failed');
     }
 
-    // Use client_id instead of clientId
     if (!data.access || !data.client_id) {
       console.error("Login response:", data);
       throw new Error("Authentication data incomplete");
     }
 
+    // ✅ ADD THESE LINES - Store tokens and user info for CustomerDashboard
+    localStorage.setItem('access_token', data.access);
+    localStorage.setItem('refresh_token', data.refresh);
+    localStorage.setItem('clientId', data.client_id);
+    localStorage.setItem('companyName', data.name || 'Company');
+
     return {
-      token: data.access,  // Using access token
+      token: data.access,  
       refreshToken: data.refresh,
-      role: data.login_type,  // Using login_type as role
-      username: data.name,    // Using name as username
-      clientId: data.client_id,  // Using client_id
+      role: data.login_type,  
+      username: data.name,    
+      clientId: data.client_id,  
       userId: data.user_id
     };
   } catch (error) {
@@ -75,6 +110,7 @@ export const loginAsCustomer = async (email, password) => {
     throw error;
   }
 };
+
 
 // ✅ LOGIN: Technician
 export const loginAsTechnician = async (email, password) => {
@@ -291,14 +327,27 @@ export const submitCostSummary = async (data) => {
   }
 };
 
+// ✅ Enhanced authentication headers helper
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Token ${token}`,
-    },
-  };
+  const accessToken = localStorage.getItem('access_token');
+  
+  if (accessToken) {
+    return {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
+  } else if (token) {
+    return {
+      headers: {
+        Authorization: `Token ${token}`,
+      },
+    };
+  }
+  return { headers: {} };
 };
+
 
 // ✅ API ENDPOINTS - Centralized endpoint management
 export const apiEndpoints = {
@@ -340,16 +389,25 @@ export const apiEndpoints = {
   costDetails: `${BASE_URL}/api/cost_details/`,
   costSummaries: `${BASE_URL}/api/costsummaries/`,
   testCaseData: `${BASE_URL}/api/test-case-data/`,
+  uploadReport: `${BASE_URL}/api/campmanager/upload/`,
+  downloadReports: (campId) => `${BASE_URL}/api/technician/report-links/${campId}`,
+  onsiteCamps: `${BASE_URL}/api/campmanager/camps/`,
+  onsitePackagePatients: (campId, packageId) => `${BASE_URL}/api/campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`,
+  addPatient: `${BASE_URL}/api/campmanager/patients/`,
+  printThermalSlips: `${BASE_URL}/api/campmanager/print-thermal-slips/`,
+  // ADD this line in apiEndpoints
+ campReportsDetail: (campId) => `${BASE_URL}/api/campmanager/detail/${campId}/`,
 };
 
 // API handlers object
 export const apiHandlers = {
   // Client Dashboard API
   getClientDashboard: async (clientId) => {
-    try {
-      if (!clientId || clientId.includes("undefined")) {
+  try {
+    if (!clientId || clientId.includes("undefined")) {
       throw new Error("Invalid client ID");
     }
+    
     const formattedClientId = clientId.startsWith('CL-') ? clientId : `CL-${clientId}`;
     
     const response = await axios.get(`${BASE_URL}/api/client-dashboard/`, {
@@ -358,36 +416,64 @@ export const apiHandlers = {
       },
       headers: {
         Authorization: `Bearer ${localStorage.getItem('access_token')}`
-      }
+      },
+      timeout: 15000 // Add timeout
     });
+    
     if (!response.data) {
-      throw new Error("No data received");
+      throw new Error("No data received from server");
     }
+    
     return response.data;
+  } catch (error) {
+    console.error('Error fetching client dashboard:', error);
+    
+    // Enhanced error messaging
+    if (error.response?.status === 404) {
+      throw new Error("Client data not found. Please verify your account.");
+    } else if (error.response?.status === 403) {
+      throw new Error("Access denied. Please contact administrator.");
+    } else if (error.code === 'ECONNABORTED') {
+      throw new Error("Request timeout. Please try again.");
+    }
+    
+    throw error;
+  }
+},
+
+   
+
+  checkConnection: async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/health/`, {
+        timeout: 5000,
+        headers: getAuthHeaders().headers
+      });
+      return response.status === 200;
     } catch (error) {
-      console.error('Error fetching client dashboard:', error);
-      throw error;
+      console.error('Connection check failed:', error);
+      return false;
     }
   },
-
   // Camp Manager API - Get all camps
-  getCamps: async (clientId) => {
-    try {
+   getCamps: async (clientId) => {
+    return retryRequest(async () => {
       const response = await axios.get(
         `${BASE_URL}/api/camps/?client_id=${clientId}`,
         getAuthHeaders()
       );
-
-      // Now response.data is an array
+  
+      if (!Array.isArray(response.data)) {
+        console.warn('Unexpected response format:', response.data);
+        return [];
+      }
+  
       const filteredCamps = response.data.filter(camp => camp.ready_to_go === true);
-      
       return filteredCamps;
-    } catch (error) {
-      console.error('Error fetching camps:', error);
-      throw error;
-    }
+    });
   },
-
+  
+  
   // Get specific camp details
   getCampDetails: async (campId) => {
     try {
@@ -466,6 +552,41 @@ export const apiHandlers = {
       throw error;
     }
   },
+  // ADD this method in apiHandlers object
+  getCampReports: async (campId) => {
+    try {
+      console.log(`📤 Fetching camp reports for camp ID: ${campId}`);
+      const response = await fetch(`${BASE_URL}/api/campmanager/detail/${campId}/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log("✅ Camp reports data received:", data);
+      
+      // Clean up Google Drive link format
+      if (data.google_drive_link) {
+        data.google_drive_link = data.google_drive_link.replace(/^\[|\]$/g, '');
+        const linkMatch = data.google_drive_link.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        if (linkMatch) {
+          data.google_drive_link = linkMatch[2];
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("❌ Error fetching camp reports:", error);
+      return null;
+    }
+  },
+
 
   // Create new camp
   createCamp: async (campData) => {
@@ -645,6 +766,17 @@ export const apiService = {
   dashboard: {
     getClient: (clientId) => apiHandlers.getClientDashboard(clientId),
   },
+
+  
+  // ADD these new sections after dashboard:
+  invoices: {
+    getHistory: (campId) => apiHandlers.getInvoiceHistory(campId),
+  },
+  
+  reports: {
+    getAll: (campId) => apiHandlers.getReports(campId),
+    getCampReports: (campId) => apiHandlers.getCampReports(campId),
+  },
   
   // Generic methods
   get: (url) => apiHandlers.get(url),
@@ -732,5 +864,281 @@ export const fetchPackagesByCamp = async (campId) => {
     throw error;
   }
 };
+
+// ✅ NEW: Dashboard specific API functions for shared code reuse
+export const dashboardAPI = {
+  // Get all camps for dashboard
+  getAllCamps: async () => {
+    try {
+      const response = await api.get('campmanager/camps/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching camps:', error);
+      throw error;
+    }
+  },
+
+  // Get camp details with packages
+  getCampDetails: async (campId) => {
+    try {
+      const response = await api.get(`campmanager/camps/${campId}/details/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching camp details:', error);
+      throw error;
+    }
+  },
+
+  // Delete a camp
+  deleteCamp: async (campId) => {
+    try {
+      await api.delete(`campmanager/camps/${campId}/`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting camp:', error);
+      throw error;
+    }
+  },
+
+  // Get patients for a specific package
+  getPackagePatients: async (campId, packageId) => {
+    try {
+      const response = await api.get(`campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching package patients:', error);
+      throw error;
+    }
+  },
+
+  // Upload report
+  uploadReport: async (campId, driveLink) => {
+    try {
+      const response = await api.post('campmanager/upload/', {
+        camp: campId,
+        google_drive_link: driveLink
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading report:', error);
+      throw error;
+    }
+  },
+
+  // Get download reports
+  getDownloadReports: async (campId) => {
+    try {
+      const response = await api.get(`technician/report-links/${campId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching download reports:', error);
+      throw error;
+    }
+  },
+
+  // Upload Excel file (if needed)
+  uploadExcel: async (campId, formData) => {
+    try {
+      const response = await api.post(`camps/${campId}/upload-excel/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading Excel:', error);
+      throw error;
+    }
+  }
+};
+
+
+
+// ✅ NEW: OnSite Dashboard specific API functions
+export const onsiteAPI = {
+  // Get all camps for onsite dashboard
+  getAllCamps: async () => {
+    try {
+      const response = await api.get('campmanager/camps/');
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch camps: ${error.message}`);
+    }
+  },
+
+  // Get camp details with packages
+  getCampDetails: async (campId) => {
+    try {
+      const response = await api.get(`campmanager/camps/${campId}/details/`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch camp details: ${error.message}`);
+    }
+  },
+
+  // Get camps ready to go
+  getReadyCamps: async () => {
+    try {
+      const response = await api.get('campmanager/camps/');
+      return response.data.filter(camp => camp.ready_to_go === true);
+    } catch (error) {
+      throw new Error(`Failed to fetch ready camps: ${error.message}`);
+    }
+  },
+
+  // Get patients for a specific package
+  getPackagePatients: async (campId, packageId) => {
+    try {
+      const response = await api.get(`campmanager/patients/filter/?camp_id=${campId}&package_id=${packageId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to fetch package patients: ${error.message}`);
+    }
+  },
+
+  // Add new patient
+  addPatient: async (patientData) => {
+    try {
+      const response = await api.post('campmanager/patients/', patientData);
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to add patient';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Validate patient data before submission
+  validatePatientData: (patientData) => {
+    const errors = [];
+    const requiredFields = ['patient_id', 'name', 'age', 'gender', 'phone', 'services'];
+    
+    requiredFields.forEach(field => {
+      if (!patientData[field] || (typeof patientData[field] === 'string' && !patientData[field].trim())) {
+        errors.push(field.replace('_', ' ').toUpperCase());
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors
+    };
+  },
+
+  // Format patient data for API submission
+  formatPatientData: (formData, selectedCamp, selectedPackage) => {
+    return {
+      patient_id: formData.patient_id.trim(),
+      name: formData.name.trim(),
+      age: parseInt(formData.age),
+      gender: formData.gender,
+      phone: formData.phone.trim(),
+      services: formData.services.split(',').map(s => s.trim()).filter(s => s),
+      package_id: selectedPackage.id,
+      camp_id: selectedCamp.id
+    };
+  },
+
+  // Print thermal slips for patients
+  printThermalSlips: async (patientIds) => {
+    try {
+      const response = await api.post('campmanager/print-thermal-slips/', {
+        patient_ids: patientIds
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to print thermal slips: ${error.message}`);
+    }
+  },
+
+  // Generate print window content
+  generatePrintContent: (patient) => {
+    return `
+      <html>
+        <head>
+          <title>Patient Details - ${patient.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .patient-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; }
+            .qr-code { max-width: 200px; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="patient-card">
+            <h2>Patient Details</h2>
+            <p><strong>Name:</strong> ${patient.name}</p>
+            <p><strong>Patient ID:</strong> ${patient.unique_patient_id}</p>
+            <p><strong>Age:</strong> ${patient.age}</p>
+            <p><strong>Gender:</strong> ${patient.gender}</p>
+            <p><strong>Phone:</strong> ${patient.phone}</p>
+            <p><strong>Services:</strong> ${patient.services.join(', ')}</p>
+            <div>
+              <strong>QR Code:</strong><br>
+              <img src="${patient.qr_code_url}" alt="QR Code" class="qr-code">
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+  }
+};
+
+
+
+// ✅ NEW: Utility functions for OnSite Dashboard
+export const onsiteUtils = {
+  // Format date for display
+  formatDate: (dateString) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  },
+
+  // Get camp status based on dates
+  getCampStatus: (startDate, endDate) => {
+    const today = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (today < start) {
+      return { status: 'Upcoming', color: 'bg-blue-100 text-blue-800' };
+    } else if (today >= start && today <= end) {
+      return { status: 'Active', color: 'bg-green-100 text-green-800' };
+    } else {
+      return { status: 'Completed', color: 'bg-gray-100 text-gray-800' };
+    }
+  },
+
+  // Filter patients based on search term
+  filterPatients: (patients, searchTerm) => {
+    if (!searchTerm) return patients;
+    
+    const term = searchTerm.toLowerCase();
+    return patients.filter(patient => 
+      patient.name.toLowerCase().includes(term) ||
+      patient.unique_patient_id.toLowerCase().includes(term) ||
+      patient.phone.includes(term) ||
+      patient.services.some(service => service.toLowerCase().includes(term))
+    );
+  },
+
+  // Group camps by client
+  groupCampsByClient: (camps) => {
+    return camps.reduce((acc, camp) => {
+      if (!acc[camp.client]) acc[camp.client] = [];
+      acc[camp.client].unshift(camp);
+      return acc;
+    }, {});
+  }
+};
+
+
+
 
 export default api;
