@@ -158,11 +158,11 @@ export const loginAsCoordinator = async (username, password) => {
 
   if (username === coordinatorCredentials.username && 
       password === coordinatorCredentials.password) {
-    return { role: "Coordinator", username };
+    return { role: "Coordinator", username , token: "hardcoded-coordinator-token-123456" };
   } 
   else if (username === onsiteCoordinatorCredentials.username && 
            password === onsiteCoordinatorCredentials.password) {
-    return { role: "OnsiteCoordinator", username };
+    return { role: "OnsiteCoordinator", username , token: "hardcoded-onsite-coordinator-token-789012"};
   } 
   else {
     throw new Error("Invalid coordinator credentials.");

@@ -48,21 +48,41 @@ const handleCoordinatorLogin = async (e) => {
   const { username, password } = formData;
 
   try {
-    const { role, username: user } = await loginAsCoordinator(username, password);
-    localStorage.setItem("role", role);
-    localStorage.setItem("username", user);
-    onLogin(role);
+    const response = await loginAsCoordinator(username, password);
+    
+    // Debug: See what the API returns
+    console.log('🔐 Coordinator login response:', response);
+    
+    // Store existing data
+    localStorage.setItem("role", response.role);
+    localStorage.setItem("username", response.username);
+    localStorage.setItem("loginType", "Coordinator"); // Add this for consistency
+    
+    // ✅ ADD TOKEN STORAGE - Check what key your API uses
+    if (response.token) {
+      localStorage.setItem("token", response.token);
+      console.log('✅ Coordinator token stored');
+    } else if (response.access_token) {
+      localStorage.setItem("token", response.access_token);
+      console.log('✅ Coordinator access_token stored as token');
+    } else {
+      console.error('❌ No token found in coordinator login response');
+      console.log('Available keys:', Object.keys(response));
+    }
+    
+    onLogin(response.role);
     
     // Redirect based on role
-    if (role === "OnsiteCoordinator") {
-      navigate("/onsite-dashboard"); // Simplified dashboard
+    if (response.role === "OnsiteCoordinator") {
+      navigate("/onsite-dashboard");
     } else {
-      navigate("/dashboard"); // Full dashboard
+      navigate("/dashboard");
     }
   } catch (error) {
     setErrorMessage(error.message);
   }
 };
+
 
 const handleCustomerLogin = async (e) => {
   e.preventDefault();

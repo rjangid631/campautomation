@@ -13,6 +13,7 @@ const CampDetails = ({ onNext }) => {
   const clientIdFromContext = companyId || localStorage.getItem('clientId');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clients, setClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]); // STEP 3: Added filtered clients state
   const [clientDetails, setClientDetails] = useState(null);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
 
@@ -28,6 +29,14 @@ const CampDetails = ({ onNext }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  // STEP 1: Debug localStorage contents
+  console.log('🔍 STEP 1: Complete localStorage contents:');
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const value = localStorage.getItem(key);
+    console.log(`${key}: ${value ? value.substring(0, 50) + '...' : 'null'}`);
+  }
+
   // Fetch all clients - ONLY for Coordinator login type
   useEffect(() => {
     console.log('🔍 CLIENT FETCH EFFECT TRIGGERED');
@@ -39,21 +48,33 @@ const CampDetails = ({ onNext }) => {
       return;
     }
 
-    // Check multiple possible token storage keys
-    const token = localStorage.getItem('token') || 
-                 localStorage.getItem('authToken') || 
-                 localStorage.getItem('access_token') ||
-                 localStorage.getItem('accessToken');
-    
-    console.log('📋 Checking token in localStorage...');
-    console.log('📋 token key:', localStorage.getItem('token'));
-    console.log('📋 authToken key:', localStorage.getItem('authToken'));
-    console.log('📋 access_token key:', localStorage.getItem('access_token'));
-    console.log('📋 accessToken key:', localStorage.getItem('accessToken'));
-    console.log('📋 All localStorage keys:', Object.keys(localStorage));
-    
-    console.log('📋 Token exists:', !!token);
-    console.log('📋 Token value:', token ? token.substring(0, 20) + '...' : 'No token');
+    // STEP 2: Better token retrieval
+    const possibleTokenKeys = ['token', 'authToken', 'access_token', 'accessToken', 'auth_token', 'Token', 'AUTH_TOKEN'];
+    let token = null;
+
+    // Check localStorage first
+    for (const key of possibleTokenKeys) {
+      const storedToken = localStorage.getItem(key);
+      if (storedToken && storedToken !== 'null' && storedToken !== 'undefined' && storedToken.trim() !== '') {
+        token = storedToken;
+        console.log(`✅ Found token with key: ${key}`);
+        break;
+      }
+    }
+
+    // Check sessionStorage as fallback
+    if (!token) {
+      for (const key of possibleTokenKeys) {
+        const storedToken = sessionStorage.getItem(key);
+        if (storedToken && storedToken !== 'null' && storedToken !== 'undefined' && storedToken.trim() !== '') {
+          token = storedToken;
+          console.log(`✅ Found token in sessionStorage with key: ${key}`);
+          break;
+        }
+      }
+    }
+
+    console.log('📋 Final token found:', !!token);
     
     if (!token) {
       console.log('❌ No token found in any common storage key');
@@ -66,6 +87,7 @@ const CampDetails = ({ onNext }) => {
     console.log('🚀 Starting client fetch for coordinator...');
     console.log('🌐 API URL:', 'http://127.0.0.1:8000/api/clients/');
 
+    // STEP 6: Better error handling in axios call
     axios.get('http://127.0.0.1:8000/api/clients/', {
       headers: {
         Authorization: `Token ${token}`,
@@ -86,30 +108,28 @@ const CampDetails = ({ onNext }) => {
               client_id: client.client_id,
               name: client.name,
               email: client.email,
-              login_type: client.login_type, // Added this to debug
-              user_type: client.user_type    // Added this in case it's named differently
+              login_type: client.login_type,
+              user_type: client.user_type
             });
           });
+          setClients(res.data);
+          setError(''); // Clear any previous errors
         } else {
           console.log('❌ Data is not an array:', res.data);
+          setClients([]);
+          setError('Invalid data format received from server');
         }
-        
-        setClients(res.data);
-        setError(''); // Clear any previous errors
       })
       .catch(err => {
         console.log('❌ CLIENT FETCH ERROR');
-        console.error('Full error object:', err);
-        console.error('Error response:', err.response);
-        console.error('Error status:', err.response?.status);
-        console.error('Error data:', err.response?.data);
+        console.error('Full error:', err);
         
-        if (err.response && err.response.status === 401) {
-          setError('Session expired or unauthorized. Please log in again.');
-          console.log('❌ 401 Unauthorized error');
+        if (err.response?.status === 401) {
+          setError('Session expired. Please log in again.');
+        } else if (err.response?.status === 403) {
+          setError('Access denied. You do not have permission to view clients.');
         } else {
-          setError('Error fetching clients: ' + (err.message || 'Unknown error'));
-          console.log('❌ Other error:', err.message);
+          setError(`Error fetching clients: ${err.response?.data?.message || err.message || 'Unknown error'}`);
         }
         setClients([]);
       })
@@ -118,6 +138,24 @@ const CampDetails = ({ onNext }) => {
         setIsLoadingClients(false);
       });
   }, [loginType]); // Only depend on loginType
+
+  // STEP 4: Filter clients when clients array changes
+  useEffect(() => {
+    if (!Array.isArray(clients)) {
+      setFilteredClients([]);
+      return;
+    }
+    
+    console.log('🔍 Filtering clients. Total clients:', clients.length);
+    
+    const filtered = clients.filter(client => 
+      client.login_type === 'Client' || 
+      (client.login_type === undefined && client.user_type === 'Client')
+    );
+    
+    console.log('🎯 Filtered clients count:', filtered.length);
+    setFilteredClients(filtered);
+  }, [clients]);
 
   // Fetch selected client details when a client is selected
   useEffect(() => {
@@ -280,33 +318,6 @@ const CampDetails = ({ onNext }) => {
     }
   };
 
-  // Helper function to filter clients - ONLY show clients with login_type === 'Client'
-  const getFilteredClients = () => {
-    if (!Array.isArray(clients)) return [];
-    
-    // Debug: Log all clients and their login_type values
-    console.log('🔍 All clients for filtering:', clients.map(c => ({
-      id: c.id,
-      name: c.name,
-      login_type: c.login_type,
-      user_type: c.user_type
-    })));
-    
-    // Filter to show ONLY clients (not doctors, dentists, technicians, etc.)
-    const filteredClients = clients.filter(client => 
-      client.login_type === 'Client' || 
-      (client.login_type === undefined && client.user_type === 'Client')
-    );
-    
-    console.log('🎯 Filtered clients:', filteredClients.map(c => ({
-      id: c.id,
-      name: c.name,
-      login_type: c.login_type || c.user_type
-    })));
-    
-    return filteredClients;
-  };
-
   return (
     <div className="bg-gray-100 min-h-screen p-6">
       <h2 className="text-3xl font-semibold mb-6">Camp Details</h2>
@@ -326,7 +337,7 @@ const CampDetails = ({ onNext }) => {
               onChange={e => setSelectedClientId(e.target.value)}
             >
               <option value="">-- Select Client --</option>
-              {getFilteredClients().map(client => (
+              {filteredClients.map(client => (
                 <option key={client.id} value={client.id}>
                   {client.name} ({client.email})
                 </option>
@@ -335,10 +346,10 @@ const CampDetails = ({ onNext }) => {
           )}
           
           {clients.length === 0 && !isLoadingClients && (
-            <p className="text-gray-500 mt-2">No clients available</p>
+            <p className="text-gray-500 mt-2">No clients available - Check your authentication</p>
           )}
           
-          {getFilteredClients().length === 0 && clients.length > 0 && !isLoadingClients && (
+          {filteredClients.length === 0 && clients.length > 0 && !isLoadingClients && (
             <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
               <p className="text-orange-700">
                 No clients found. Total users available: {clients.length}
