@@ -651,6 +651,9 @@ function DentalConsultationForm() {
                         <div className="border border-gray-200 rounded p-4 mb-4">
                           {/* Teeth diagram image would go here */}
                           <div className="text-center py-8 bg-gray-100 rounded">
+                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                          </div>
+                          <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
                         </div>
@@ -951,6 +954,9 @@ function DentalConsultationForm() {
                         <div className="border border-gray-200 rounded p-4">
                           {/* Teeth diagram image would go here */}
                           <div className="text-center py-8 bg-gray-100 rounded">
+                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                          </div>
+                          <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
                         </div>
@@ -967,6 +973,9 @@ function DentalConsultationForm() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-gray-200 rounded p-4">
                           {/* Teeth diagram image would go here */}
+                          <div className="text-center py-8 bg-gray-100 rounded">
+                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                          </div>
                           <div className="text-center py-8 bg-gray-100 rounded">
                             Teeth Diagram Placeholder
                           </div>
@@ -1056,6 +1065,9 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                    </div>
                     <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
                     </div>
@@ -1276,6 +1288,9 @@ function DentalConsultationForm() {
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
                     <div className="text-center py-8 bg-gray-100 rounded">
+                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                    </div>
+                    <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
                     </div>
                   </div>
@@ -1308,6 +1323,9 @@ function DentalConsultationForm() {
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
                     <div className="text-center py-8 bg-gray-100 rounded">
+                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                    </div>
+                    <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
                     </div>
                   </div>
@@ -1339,6 +1357,9 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
+                    <div className="text-center py-8 bg-gray-100 rounded">
+                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                    </div>
                     <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
                     </div>

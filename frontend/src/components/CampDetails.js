@@ -411,8 +411,19 @@ const CampDetails = ({ onNext }) => {
           placeholder="Camp Pin Code"
           className="border rounded-lg p-3 mb-4 w-full shadow-md focus:outline-none focus:ring-2 focus:ring-[#11a8a4] focus:border-[#11a8a4]"
           value={campPinCode}
-          onChange={(e) => setCampPinCode(e.target.value)}
+          maxLength={6}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow numeric characters and limit to 6 characters
+            if (/^\d*$/.test(value) && value.length <= 6) {
+              setCampPinCode(value);
+            }
+          }}
         />
+        {/* Optional: Add validation message */}
+        {campPinCode.length > 0 && campPinCode.length < 6 && (
+          <p className="text-red-500 text-sm mb-2">Pin code must be exactly 6 digits</p>
+        )}
         <input
           type="text"
           placeholder="Camp Landmark"

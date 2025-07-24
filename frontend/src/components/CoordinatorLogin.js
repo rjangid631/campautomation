@@ -25,8 +25,27 @@ function CoordinatorLogin({ onLogin }) {
   const [showSignup, setShowSignup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loginMode, setLoginMode] = useState("default");
+  
+  // Add validation errors state
+  const [validationErrors, setValidationErrors] = useState({});
 
   const navigate = useNavigate();
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateContactNumber = (number) => {
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(number);
+  };
+
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    return passwordRegex.test(password);
+  };
 
   const handleOnChange = (e) => {
     setFormData((prevData) => ({
@@ -37,77 +56,111 @@ function CoordinatorLogin({ onLogin }) {
   };
 
   const handleSignupChange = (e) => {
+    const { name, value } = e.target;
     setSignupData((prevData) => ({
       ...prevData,
-      [e.target.name]: e.target.value,
+      [name]: value,
+    }));
+
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Add validation on blur
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    let error = '';
+
+    switch (name) {
+      case 'email':
+        if (value && !validateEmail(value)) {
+          error = 'Please enter a valid email address with @';
+        }
+        break;
+      case 'contact_number':
+        if (value && !validateContactNumber(value)) {
+          error = 'Contact number must be exactly 10 digits';
+        }
+        break;
+      case 'password':
+        if (value && !validatePassword(value)) {
+          error = 'Password must contain at least one letter, one number, and one special character';
+        }
+        break;
+      default:
+        break;
+    }
+
+    setValidationErrors(prev => ({
+      ...prev,
+      [name]: error
     }));
   };
 
-const handleCoordinatorLogin = async (e) => {
-  e.preventDefault();
-  const { username, password } = formData;
+  const handleCoordinatorLogin = async (e) => {
+    e.preventDefault();
+    const { username, password } = formData;
 
-  try {
-    const response = await loginAsCoordinator(username, password);
-    
-    // Debug: See what the API returns
-    console.log('🔐 Coordinator login response:', response);
-    
-    // Store existing data
-    localStorage.setItem("role", response.role);
-    localStorage.setItem("username", response.username);
-    localStorage.setItem("loginType", "Coordinator"); // Add this for consistency
-    
-    // ✅ ADD TOKEN STORAGE - Check what key your API uses
-    if (response.token) {
-      localStorage.setItem("token", response.token);
-      console.log('✅ Coordinator token stored');
-    } else if (response.access_token) {
-      localStorage.setItem("token", response.access_token);
-      console.log('✅ Coordinator access_token stored as token');
-    } else {
-      console.error('❌ No token found in coordinator login response');
-      console.log('Available keys:', Object.keys(response));
+    try {
+      const response = await loginAsCoordinator(username, password);
+      
+      console.log('🔐 Coordinator login response:', response);
+      
+      localStorage.setItem("role", response.role);
+      localStorage.setItem("username", response.username);
+      localStorage.setItem("loginType", "Coordinator");
+      
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+        console.log('✅ Coordinator token stored');
+      } else if (response.access_token) {
+        localStorage.setItem("token", response.access_token);
+        console.log('✅ Coordinator access_token stored as token');
+      } else {
+        console.error('❌ No token found in coordinator login response');
+        console.log('Available keys:', Object.keys(response));
+      }
+      
+      onLogin(response.role);
+      
+      if (response.role === "OnsiteCoordinator") {
+        navigate("/onsite-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      setErrorMessage(error.message);
     }
-    
-    onLogin(response.role);
-    
-    // Redirect based on role
-    if (response.role === "OnsiteCoordinator") {
-      navigate("/onsite-dashboard");
-    } else {
-      navigate("/dashboard");
+  };
+
+  const handleCustomerLogin = async (e) => {
+    e.preventDefault();
+    const { username, password } = formData;
+
+    try {
+      const response = await loginAsCustomer(username, password);
+      
+      console.log("Login success:", response);
+      
+      localStorage.setItem("access_token", response.token);
+      localStorage.setItem("refresh_token", response.refreshToken);
+      localStorage.setItem("role", response.role);
+      localStorage.setItem("username", response.username);
+      localStorage.setItem("clientId", response.clientId);
+      localStorage.setItem("userId", response.userId);
+      
+      onLogin(response.role, response.clientId);
+      navigate("/customer-dashboard");
+    } catch (error) {
+      console.error("Login failed:", error);
+      setErrorMessage(error.message || "Login failed. Please try again.");
     }
-  } catch (error) {
-    setErrorMessage(error.message);
-  }
-};
-
-
-const handleCustomerLogin = async (e) => {
-  e.preventDefault();
-  const { username, password } = formData;
-
-  try {
-    const response = await loginAsCustomer(username, password);
-    
-    console.log("Login success:", response);
-    
-    // Store all auth data
-    localStorage.setItem("access_token", response.token);
-    localStorage.setItem("refresh_token", response.refreshToken);
-    localStorage.setItem("role", response.role);
-    localStorage.setItem("username", response.username);
-    localStorage.setItem("clientId", response.clientId);
-    localStorage.setItem("userId", response.userId);
-    
-    onLogin(response.role, response.clientId);
-    navigate("/customer-dashboard");
-  } catch (error) {
-    console.error("Login failed:", error);
-    setErrorMessage(error.message || "Login failed. Please try again.");
-  }
-};
+  };
 
   const handleTechnicianLogin = async (e) => {
     e.preventDefault();
@@ -131,10 +184,39 @@ const handleCustomerLogin = async (e) => {
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields before submission
+    const errors = {};
+    
+    if (!validateEmail(signupData.email)) {
+      errors.email = 'Please enter a valid email address with @';
+    }
+    
+    if (!validateContactNumber(signupData.contact_number)) {
+      errors.contact_number = 'Contact number must be exactly 10 digits';
+    }
+    
+    if (!validatePassword(signupData.password)) {
+      errors.password = 'Password must contain at least one letter, one number, and one special character';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
     try {
       const successMessage = await signupUser(signupData);
       alert(successMessage);
       setShowSignup(false);
+      // Clear form data
+      setSignupData({
+        name: "",
+        email: "",
+        password: "",
+        contact_number: "",
+      });
+      setValidationErrors({});
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -282,7 +364,7 @@ const handleCustomerLogin = async (e) => {
         >
           {showSignup ? (
             <>
-              {/* Sign Up Fields */}
+              {/* Sign Up Fields with Validation */}
               <label className="w-full">
                 <p className="mb-2 text-sm font-semibold" style={{ color: '#3c3b3f' }}>
                   Name <sup className="text-red-500">*</sup>
@@ -303,6 +385,7 @@ const handleCustomerLogin = async (e) => {
                 />
               </label>
 
+              {/* Email with validation */}
               <label className="w-full">
                 <p className="mb-2 text-sm font-semibold" style={{ color: '#3c3b3f' }}>
                   Email <sup className="text-red-500">*</sup>
@@ -313,16 +396,23 @@ const handleCustomerLogin = async (e) => {
                   name="email"
                   value={signupData.email}
                   onChange={handleSignupChange}
+                  onBlur={handleBlur}
                   placeholder="Enter your email"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80 ${
+                    validationErrors.email ? 'border-red-500' : 'border-gray-200'
+                  }`}
                   style={{ 
-                    '--tw-ring-color': '#0cc0df',
-                    borderColor: '#0cc0df'
+                    '--tw-ring-color': validationErrors.email ? '#ef4444' : '#0cc0df',
+                    borderColor: validationErrors.email ? '#ef4444' : '#0cc0df'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#0cc0df'}
+                  onFocus={(e) => e.target.style.borderColor = validationErrors.email ? '#ef4444' : '#0cc0df'}
                 />
+                {validationErrors.email && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.email}</p>
+                )}
               </label>
 
+              {/* Contact Number with validation */}
               <label className="w-full">
                 <p className="mb-2 text-sm font-semibold" style={{ color: '#3c3b3f' }}>
                   Contact Number <sup className="text-red-500">*</sup>
@@ -333,16 +423,30 @@ const handleCustomerLogin = async (e) => {
                   name="contact_number"
                   value={signupData.contact_number}
                   onChange={handleSignupChange}
-                  placeholder="Enter your contact number"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80"
+                  onBlur={handleBlur}
+                  placeholder="Enter your 10-digit contact number"
+                  maxLength={10}
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80 ${
+                    validationErrors.contact_number ? 'border-red-500' : 'border-gray-200'
+                  }`}
                   style={{ 
-                    '--tw-ring-color': '#0cc0df',
-                    borderColor: '#0cc0df'
+                    '--tw-ring-color': validationErrors.contact_number ? '#ef4444' : '#0cc0df',
+                    borderColor: validationErrors.contact_number ? '#ef4444' : '#0cc0df'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#0cc0df'}
+                  onFocus={(e) => e.target.style.borderColor = validationErrors.contact_number ? '#ef4444' : '#0cc0df'}
+                  onKeyPress={(e) => {
+                    // Only allow numbers
+                    if (!/[0-9]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
+                {validationErrors.contact_number && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.contact_number}</p>
+                )}
               </label>
 
+              {/* Password with validation */}
               <label className="relative">
                 <p className="mb-2 text-sm font-semibold" style={{ color: '#3c3b3f' }}>
                   Password <sup className="text-red-500">*</sup>
@@ -353,18 +457,20 @@ const handleCustomerLogin = async (e) => {
                   name="password"
                   value={signupData.password}
                   onChange={handleSignupChange}
+                  onBlur={handleBlur}
                   placeholder="Enter Password"
-                  className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80"
+                  className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white/80 ${
+                    validationErrors.password ? 'border-red-500' : 'border-gray-200'
+                  }`}
                   style={{ 
-                    '--tw-ring-color': '#0cc0df',
-                    borderColor: '#0cc0df'
+                    '--tw-ring-color': validationErrors.password ? '#ef4444' : '#0cc0df',
+                    borderColor: validationErrors.password ? '#ef4444' : '#0cc0df'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#0cc0df'}
+                  onFocus={(e) => e.target.style.borderColor = validationErrors.password ? '#ef4444' : '#0cc0df'}
                 />
                 <span
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-4 top-11 cursor-pointer text-gray-400 transition-colors"
-                  style={{ ':hover': { color: '#0cc0df' } }}
                   onMouseEnter={(e) => e.target.style.color = '#0cc0df'}
                   onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
                 >
@@ -374,6 +480,34 @@ const handleCustomerLogin = async (e) => {
                     <AiOutlineEye fontSize={24} fill="#AFB2BF" />
                   )}
                 </span>
+                {validationErrors.password && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.password}</p>
+                )}
+                
+                {/* Password strength indicator */}
+                {signupData.password && (
+                  <div className="mt-2 text-xs">
+                    <p className="font-medium text-gray-600 mb-1">Password must contain:</p>
+                    <ul className="space-y-1">
+                      <li className={`flex items-center ${/[a-zA-Z]/.test(signupData.password) ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="mr-2">{/[a-zA-Z]/.test(signupData.password) ? '✓' : '○'}</span>
+                        At least one letter
+                      </li>
+                      <li className={`flex items-center ${/\d/.test(signupData.password) ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="mr-2">{/\d/.test(signupData.password) ? '✓' : '○'}</span>
+                        At least one number
+                      </li>
+                      <li className={`flex items-center ${/[@$!%*?&]/.test(signupData.password) ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="mr-2">{/[@$!%*?&]/.test(signupData.password) ? '✓' : '○'}</span>
+                        At least one special character (@$!%*?&)
+                      </li>
+                      <li className={`flex items-center ${signupData.password.length >= 6 ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="mr-2">{signupData.password.length >= 6 ? '✓' : '○'}</span>
+                        Minimum 6 characters
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </label>
             </>
           ) : (
@@ -440,9 +574,6 @@ const handleCustomerLogin = async (e) => {
               className="mt-6 rounded-xl py-3 text-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
               style={{ 
                 background: 'linear-gradient(135deg, #0cc0df 0%, #7ed957 100%)',
-                ':hover': {
-                  background: 'linear-gradient(135deg, #0aa8c4 0%, #6bc749 100%)'
-                }
               }}
               onMouseEnter={(e) => {
                 e.target.style.background = 'linear-gradient(135deg, #0aa8c4 0%, #6bc749 100%)';
@@ -464,7 +595,10 @@ const handleCustomerLogin = async (e) => {
                     style={{ color: '#0cc0df' }}
                     onMouseEnter={(e) => e.target.style.color = '#0aa8c4'}
                     onMouseLeave={(e) => e.target.style.color = '#0cc0df'}
-                    onClick={() => setShowSignup(false)}
+                    onClick={() => {
+                      setShowSignup(false);
+                      setValidationErrors({});
+                    }}
                   >
                     Login here
                   </button>
