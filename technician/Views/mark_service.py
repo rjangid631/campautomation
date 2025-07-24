@@ -66,6 +66,8 @@ def mark_service_done(request):
     })
 
 
+from django.db.models import F
+
 @api_view(['GET'])
 def get_camp_progress(request, camp_id):
     try:
@@ -112,6 +114,35 @@ def get_camp_progress(request, camp_id):
         .annotate(total=Count('id'), completed=Count('id', filter=Q(is_completed=True)))
     )
 
+    # 🔹 Per patient progress
+    patient_progress = (
+        service_statuses
+        .values('patient__id', 'patient__patient_name')
+        .annotate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(is_completed=True)),
+        )
+    )
+
+    for p in patient_progress:
+        p['pending'] = p['total'] - p['completed']
+        p['progress_percent'] = round((p['completed'] / p['total']) * 100, 2) if p['total'] > 0 else 0
+
+    # 🔹 Total and Completed patients
+    total_patients = PatientData.objects.filter(service_statuses__in=service_statuses).distinct().count()
+
+    completed_patients = (
+        PatientData.objects
+        .filter(service_statuses__in=service_statuses)
+        .annotate(
+            total=Count('service_statuses'),
+            completed=Count('service_statuses', filter=Q(service_statuses__is_completed=True))
+        )
+        .filter(total=F('completed'))
+        .distinct()
+        .count()
+    )
+
     return Response({
         "camp_id": camp.id,
         "camp_name": str(camp),
@@ -121,8 +152,13 @@ def get_camp_progress(request, camp_id):
         "progress_percent": progress_percent,
         "is_completed": camp.is_completed,
         "technician_summary": list(technician_summary),
-        "service_summary": list(service_summary)
+        "service_summary": list(service_summary),
+        "patient_progress": list(patient_progress),
+        "total_patients": total_patients,              # ✅ Added
+        "completed_patients": completed_patients       # ✅ Added
     })
+
+
 
 
 @api_view(['GET'])

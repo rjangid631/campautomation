@@ -142,9 +142,10 @@ function StatusTracking() {
   const getClientName = () => (allCamps.length ? allCamps[0].client : '');
   const groupedCamps = getGroupedCampsByLocation();
 
-  const getTotalPatients = () => {
-    return Object.values(campDetailsMap).reduce((total, camp) => total + (camp.completed_patients || 0), 0);
-  };
+  const getTotalPatients = () =>
+  Object.values(campDetailsMap).reduce(
+    (sum, camp) => sum + (camp.completed_patients || 0), 0
+  );
 
   const getCompletionRate = () => {
     const completedCamps = Object.values(campDetailsMap).filter(camp => camp.is_completed).length;
@@ -159,9 +160,11 @@ function StatusTracking() {
     return Object.values(campDetailsMap).reduce((total, camp) => total + (camp.total_services || 0), 0);
   };
 
-  const getTotalPatientsTotal = () => {
-    return Object.values(campDetailsMap).reduce((total, camp) => total + (camp.total_patients || 0), 0);
-  };
+  const getTotalPatientsTotal = () =>
+    Object.values(campDetailsMap).reduce(
+      (sum, camp) => sum + (camp.total_patients || 0), 0
+    );
+
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
@@ -379,13 +382,24 @@ function StatusTracking() {
                             percentage={progressPercentage}
                             color={colors.aqua}
                           />
-                          <ProgressCard
-                            title="Patients Served"
-                            current={details.completed_patients}
-                            total={details.total_patients}
-                            percentage={patientProgressPercentage}
-                            color={colors.purple}
-                          />
+                          <div>
+                            <p className="text-sm">Patient Progress</p>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                              <div
+                                className="h-2.5 rounded-full"
+                                style={{
+                                  width: `${details.total_patients > 0 
+                                    ? Math.round((details.completed_patients / details.total_patients) * 100)
+                                    : 0}%`,
+                                  backgroundColor: colors.purple,
+                                }}
+                              ></div>
+                            </div>
+                            <div className="text-xs text-right text-purple-600">
+                              {details.completed_patients || 0} / {details.total_patients || 0}
+                            </div>
+                          </div>
+
                         </div>
 
                         {details.technician_summary?.length > 0 && (
