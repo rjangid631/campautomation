@@ -1,6 +1,7 @@
 // src/components/StatusTracking.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { campService, dataProcessors, apiService } from './api.js';
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -24,11 +25,7 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const apiEndpoints = {
-  camps: "http://127.0.0.1:8000/api/campmanager/camps/",
-  allCamps: "http://127.0.0.1:8000/api/camps/",
-  campDetails: (campId) => `http://127.0.0.1:8000/api/technician/camp/${campId}/progress/`,
-};
+
 
 const colors = {
   aqua: '#0cc0df',
@@ -46,97 +43,65 @@ function StatusTracking() {
   const [serviceStats, setServiceStats] = useState([]);
 
   useEffect(() => {
-    axios.get(apiEndpoints.camps)
-      .then(res => {
-        const readyCamps = res.data.filter(camp => camp.ready_to_go === true);
-        setActiveCamps(readyCamps);
-      })
+    // Use the new service methods
+    campService.getActiveCamps()
+      .then(readyCamps => setActiveCamps(readyCamps))
       .catch(err => console.error('Error fetching active camps:', err));
-
-    axios.get(apiEndpoints.allCamps)
-      .then(res => setAllCamps(res.data))
+  
+    campService.getAllCamps()
+      .then(camps => setAllCamps(camps))
       .catch(err => console.error('Error fetching all camps:', err));
   }, []);
 
   useEffect(() => {
     const fetchDetails = async () => {
-      const map = {};
-      const technicianSet = new Set();
-      const serviceCountMap = {};
-
-      for (let camp of activeCamps) {
-        try {
-          const res = await axios.get(apiEndpoints.campDetails(camp.id));
-          const campData = res.data;
-          map[camp.id] = campData;
-
-          // Count unique technicians (excluding null entries)
-          campData.technician_summary?.forEach(tech => {
-            if (tech.technician__id !== null) {
-              technicianSet.add(tech.technician__id);
-            }
-          });
-
-          // Count completed services by service name
-          campData.service_summary?.forEach(service => {
-            const name = service.service__name;
-            serviceCountMap[name] = (serviceCountMap[name] || 0) + service.completed;
-          });
-
-        } catch (err) {
-          console.error(`Failed to fetch camp details for ${camp.id}`, err);
-        }
+      if (activeCamps.length === 0) return;
+  
+      try {
+        const campIds = activeCamps.map(camp => camp.id);
+        const campDetailsMap = await campService.getMultipleCampDetails(campIds);
+        
+        setCampDetailsMap(campDetailsMap);
+        setTotalTechnicians(dataProcessors.calculateUniqueTechnicians(campDetailsMap));
+        
+        const { serviceCountMap, serviceStatsArray } = dataProcessors.processServiceStats(campDetailsMap);
+        setServiceStats(serviceStatsArray);
+        
+        // Create service chart data with existing color scheme
+        const serviceNames = Object.keys(serviceCountMap);
+        const chartColors = [
+          colors.aqua,
+          colors.green,
+          colors.purple,
+          colors.aqua + '80',
+          colors.green + '80',
+          colors.purple + '80',
+          colors.darkGrey + '80'
+        ];
+  
+        setServiceChartData({
+          labels: serviceNames,
+          datasets: [
+            {
+              label: 'Services Executed',
+              data: Object.values(serviceCountMap),
+              backgroundColor: chartColors.slice(0, serviceNames.length),
+              borderColor: '#ffffff',
+              borderWidth: 2,
+            },
+          ],
+        });
+        
+      } catch (error) {
+        console.error('Error fetching camp details:', error);
       }
-
-      setCampDetailsMap(map);
-      setTotalTechnicians(technicianSet.size);
-
-      // Create service chart data with new color scheme
-      const serviceNames = Object.keys(serviceCountMap);
-      const chartColors = [
-        colors.aqua,
-        colors.green,
-        colors.purple,
-        colors.aqua + '80',
-        colors.green + '80',
-        colors.purple + '80',
-        colors.darkGrey + '80'
-      ];
-
-      setServiceChartData({
-        labels: serviceNames,
-        datasets: [
-          {
-            label: 'Services Executed',
-            data: Object.values(serviceCountMap),
-            backgroundColor: chartColors.slice(0, serviceNames.length),
-            borderColor: '#ffffff',
-            borderWidth: 2,
-          },
-        ],
-      });
-
-      // Calculate service statistics for progress bars
-      const total = Object.values(serviceCountMap).reduce((sum, count) => sum + count, 0);
-      const serviceStatsArray = Object.entries(serviceCountMap).map(([name, count]) => ({
-        name,
-        count,
-        percentage: Math.round((count / total) * 100)
-      }));
-
-      setServiceStats(serviceStatsArray);
     };
-
-    if (activeCamps.length) fetchDetails();
+  
+    fetchDetails();
   }, [activeCamps]);
 
   const getGroupedCampsByLocation = () => {
-    const grouped = {};
-    activeCamps.forEach(camp => {
-      if (!grouped[camp.location]) grouped[camp.location] = [];
-      grouped[camp.location].push(camp);
-    });
-    return grouped;
+    return dataProcessors.groupCampsByLocation(activeCamps);
   };
 
   const getClientName = () => (allCamps.length ? allCamps[0].client : '');

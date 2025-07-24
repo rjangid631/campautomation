@@ -397,6 +397,10 @@ export const apiEndpoints = {
   printThermalSlips: `${BASE_URL}/api/campmanager/print-thermal-slips/`,
   // ADD this line in apiEndpoints
  campReportsDetail: (campId) => `${BASE_URL}/api/campmanager/detail/${campId}/`,
+
+  statusCamps: `${BASE_URL}/api/campmanager/camps/`,
+  statusAllCamps: `${BASE_URL}/api/camps/`,
+  statusCampDetails: (campId) => `${BASE_URL}/api/technician/camp/${campId}/progress/`,
 };
 
 // API handlers object
@@ -776,6 +780,17 @@ export const apiService = {
   reports: {
     getAll: (campId) => apiHandlers.getReports(campId),
     getCampReports: (campId) => apiHandlers.getCampReports(campId),
+  },
+
+  status: {
+    getActiveCamps: () => campService.getActiveCamps(),
+    getAllCamps: () => campService.getAllCamps(),
+    getCampDetails: (campId) => campService.getCampDetails(campId),
+    getMultipleCampDetails: (campIds) => campService.getMultipleCampDetails(campIds),
+    processServiceStats: (campDetailsMap) => dataProcessors.processServiceStats(campDetailsMap),
+    calculateUniqueTechnicians: (campDetailsMap) => dataProcessors.calculateUniqueTechnicians(campDetailsMap),
+    groupCampsByLocation: (camps) => dataProcessors.groupCampsByLocation(camps),
+    calculateMetrics: (campDetailsMap) => dataProcessors.calculateMetrics(campDetailsMap),
   },
   
   // Generic methods
@@ -1164,6 +1179,129 @@ export const onsiteUtils = {
     }, {});
   }
 };
+
+
+
+// ✅ NEW: Camp Service Functions for StatusTracking Dashboard
+export const campService = {
+  // Get active camps (ready to go)
+  getActiveCamps: async () => {
+    try {
+      const response = await api.get('campmanager/camps/');
+      return response.data.filter(camp => camp.ready_to_go === true);
+    } catch (error) {
+      console.error('Error fetching active camps:', error);
+      throw error;
+    }
+  },
+
+  // Get all camps
+  getAllCamps: async () => {
+    try {
+      const response = await api.get('camps/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all camps:', error);
+      throw error;
+    }
+  },
+
+  // Get camp details by ID
+  getCampDetails: async (campId) => {
+    try {
+      const response = await api.get(`technician/camp/${campId}/progress/`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch camp details for ${campId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get details for multiple camps
+  getMultipleCampDetails: async (campIds) => {
+    try {
+      const promises = campIds.map(id => campService.getCampDetails(id));
+      const results = await Promise.allSettled(promises);
+      
+      const campDetailsMap = {};
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          campDetailsMap[campIds[index]] = result.value;
+        } else {
+          console.error(`Failed to fetch details for camp ${campIds[index]}:`, result.reason);
+        }
+      });
+      
+      return campDetailsMap;
+    } catch (error) {
+      console.error('Error fetching multiple camp details:', error);
+      throw error;
+    }
+  }
+};
+
+
+// ✅ NEW: Data Processing Utilities for StatusTracking
+export const dataProcessors = {
+  // Calculate unique technicians from camp details
+  calculateUniqueTechnicians: (campDetailsMap) => {
+    const technicianSet = new Set();
+    Object.values(campDetailsMap).forEach(camp => {
+      camp.technician_summary?.forEach(tech => {
+        if (tech.technician__id !== null) {
+          technicianSet.add(tech.technician__id);
+        }
+      });
+    });
+    return technicianSet.size;
+  },
+
+  // Process service statistics for charts
+  processServiceStats: (campDetailsMap) => {
+    const serviceCountMap = {};
+    
+    Object.values(campDetailsMap).forEach(camp => {
+      camp.service_summary?.forEach(service => {
+        const name = service.service__name;
+        serviceCountMap[name] = (serviceCountMap[name] || 0) + service.completed;
+      });
+    });
+
+    const total = Object.values(serviceCountMap).reduce((sum, count) => sum + count, 0);
+    const serviceStatsArray = Object.entries(serviceCountMap).map(([name, count]) => ({
+      name,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0
+    }));
+
+    return { serviceCountMap, serviceStatsArray };
+  },
+
+  // Group camps by location
+  groupCampsByLocation: (camps) => {
+    const grouped = {};
+    camps.forEach(camp => {
+      if (!grouped[camp.location]) grouped[camp.location] = [];
+      grouped[camp.location].push(camp);
+    });
+    return grouped;
+  },
+
+  // Calculate aggregate metrics
+  calculateMetrics: (campDetailsMap) => {
+    const values = Object.values(campDetailsMap);
+    
+    return {
+      totalPatients: values.reduce((sum, camp) => sum + (camp.completed_patients || 0), 0),
+      totalPatientsTotal: values.reduce((sum, camp) => sum + (camp.total_patients || 0), 0),
+      totalCompletedServices: values.reduce((sum, camp) => sum + (camp.completed_services || 0), 0),
+      totalServices: values.reduce((sum, camp) => sum + (camp.total_services || 0), 0),
+      completedCamps: values.filter(camp => camp.is_completed).length
+    };
+  }
+};
+
+
 
 
 

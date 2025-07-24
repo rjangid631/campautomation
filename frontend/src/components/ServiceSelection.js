@@ -20,6 +20,8 @@ function ServiceSelection({ userType }) {
     }
   ]);
 
+  
+
   const services = [
     'X-ray', 'ECG', 'PFT', 'Audiometry', 'Optometry',
     'Doctor Consultation', 'Pathology', 'Dental Consultation',
