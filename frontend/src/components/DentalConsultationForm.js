@@ -33,47 +33,47 @@ function DentalConsultationForm() {
 
   // State for form data
   const [formData, setFormData] = useState({
-    patient_id: '',
-    patient_name: '',
-    age: '',
-    gender: '',
-    contact_number: '',
-    screening_date: '',
-    family_diabetes: 'no',
-    family_diabetes_years: '',
-    family_diabetes_relation: '',
-    family_hypertension: 'no',
-    family_hypertension_years: '',
-    family_hypertension_relation: '',
-    family_other: '',
-    medical_diabetes: 'no',
-    medical_diabetes_years: '',
-    medical_hypertension: 'no',
-    medical_hypertension_years: '',
-    current_medications: 'no',
-    medications_list: '',
-    past_surgeries: '',
+  patient_id: '',
+  patient_name: '',
+  age: '',
+  gender: '',
+  contact_number: '',
+  screening_date: '',
+  family_diabetes: 'no',
+  family_diabetes_years: '',
+  family_diabetes_relation: '',
+  family_hypertension: 'no',
+  family_hypertension_years: '',
+  family_hypertension_relation: '',
+  family_other: '',
+  medical_diabetes: 'no',
+  medical_diabetes_years: '',
+  medical_hypertension: 'no',
+  medical_hypertension_years: '',
+  current_medications: 'no',
+  medications_list: '',
+  past_surgeries: '',
     complaints: [],
-    pain_regions: [],
-    pain_days: '',
+  pain_regions: [],
+  pain_days: '',
     sensitivity_type: [],
-    cold_regions: [],
-    hot_regions: [],
-    sweet_regions: [],
-    sour_regions: [],
-    other_complaints: '',
+  cold_regions: [],
+  hot_regions: [],
+  sweet_regions: [],
+  sour_regions: [],
+  other_complaints: '',
     examination: [],
-    gingiva_condition: '',
-    occlusion_type: '',
-    malocclusion_type: '',
-    crowding_location: [],
-    spacing_location: [],
-    protrusion_type: [],
-    other_findings: '',
+  gingiva_condition: '',
+  occlusion_type: '',
+  malocclusion_type: '',
+  crowding_location: [],
+  spacing_location: [],
+  protrusion_type: [],
+  other_findings: '',
     advice: [],
-    medications: '',
+  medications: '',
     other_advice: ''
-  });
+});
   useEffect(() => {
     if (!patientId) {
       console.warn("⛔ No patientId found. Skipping API call.");
@@ -133,11 +133,11 @@ function DentalConsultationForm() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (type === 'checkbox') {
       if (checked) {
         setFormData(prev => ({
-          ...prev,
+            ...prev,
           [name]: [...prev[name], value]
         }));
       } else {
@@ -156,15 +156,55 @@ function DentalConsultationForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-     console.log("🧪 technicianId before submit:", technicianId); // ✅ Check this log
+    const mapBooleanFromArray = (key, arr) => arr.includes(key);
 
     const submissionData = {
       ...formData,
       technician_id: parseInt(technicianId),
-      patient_unique_id: formData.patient_id, // ✅ Add this line
-      selected_pain_teeth: Array.from(selectedTeeth.pain).join(','),
-      missing_teeth_input: Array.from(selectedTeeth.missing).join(','),
-      sensitivity_type_input: formData.sensitivity_type.join(','),
+      patient_unique_id: formData.patient_id,
+
+      // 🧠 Booleans from checkbox sections
+      pain_teeth: mapBooleanFromArray('pain_teeth', formData.complaints),
+      sensitivity: mapBooleanFromArray('sensitivity', formData.complaints),
+      bleeding_gums: mapBooleanFromArray('bleeding_gums', formData.complaints),
+
+      dental_caries: mapBooleanFromArray('dental_caries', formData.examination),
+      gingiva: mapBooleanFromArray('gingiva', formData.examination),
+      missing_teeth: mapBooleanFromArray('missing_teeth', formData.examination),
+      occlusion: mapBooleanFromArray('occlusion', formData.examination),
+
+      restoration_required: mapBooleanFromArray('restoration', formData.advice),
+      rct_required: mapBooleanFromArray('rct', formData.advice),
+      iopa_required: mapBooleanFromArray('iopa', formData.advice),
+      oral_prophylaxis_required: mapBooleanFromArray('oral_prophylaxis', formData.advice),
+      replacement_required: mapBooleanFromArray('replacement', formData.advice),
+
+      // 🧠 Process teeth selections
+      pain_teeth_numbers: Array.from(selectedTeeth.pain).join(','),
+      missing_teeth_numbers: Array.from(selectedTeeth.missing).join(','),
+      restoration_teeth: Array.from(selectedTeeth.restoration).join(','),
+      rct_teeth: Array.from(selectedTeeth.rct).join(','),
+      iopa_teeth: Array.from(selectedTeeth.iopa).join(','),
+
+      // 🧠 Convert sensitivity types to boolean flags
+      sensitivity_cold: formData.sensitivity_type.includes('cold'),
+      sensitivity_hot: formData.sensitivity_type.includes('hot'),
+      sensitivity_sweet: formData.sensitivity_type.includes('sweet'),
+      sensitivity_sour: formData.sensitivity_type.includes('sour'),
+
+      // 🧠 Build JSON fields for region details
+      sensitivity_regions: {
+        cold: formData.cold_regions,
+        hot: formData.hot_regions,
+        sweet: formData.sweet_regions,
+        sour: formData.sour_regions
+      },
+
+      malocclusion_details: {
+        crowding: formData.crowding_location,
+        spacing: formData.spacing_location,
+        protrusion: formData.protrusion_type
+      }
     };
 
     console.log('🚀 Submitting consultation form:', submissionData);
@@ -173,8 +213,6 @@ function DentalConsultationForm() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Include token if needed
-        // 'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(submissionData),
     })
@@ -185,8 +223,6 @@ function DentalConsultationForm() {
       .then((data) => {
         console.log('✅ Submission success:', data);
         alert("Consultation form submitted successfully!");
-        // Optionally navigate or reset form
-        // navigate("/success-page");
       })
       .catch((error) => {
         console.error('❌ Error submitting consultation form:', error);
@@ -195,10 +231,11 @@ function DentalConsultationForm() {
   };
 
 
+
   // Render tooth selection grid
   const renderTeethGrid = (type) => {
-    const upperRight = [1, 2, 3, 4, 5, 6, 7, 8];
-    const upperLeft = [9, 10, 11, 12, 13, 14, 15, 16];
+  const upperRight = [1, 2, 3, 4, 5, 6, 7, 8];
+  const upperLeft = [9, 10, 11, 12, 13, 14, 15, 16];
     const lowerRight = [32, 31, 30, 29, 28, 27, 26, 25];
     const lowerLeft = [24, 23, 22, 21, 20, 19, 18, 17];
 
@@ -666,7 +703,7 @@ function DentalConsultationForm() {
                           {renderTeethGrid('pain')}
                         </div>
                       </div>
-                      
+
                       {/* Right side - Pain Details */}
                       <div>
                         {/* Region Selection */}
