@@ -866,6 +866,7 @@ export const fetchPatientData = async (patientId) => {
 };
 
 
+
 export const fetchPackagesByCamp = async (campId) => {
   try {
     const response = await api.get(`serviceselection/?camp=${campId}`);
@@ -875,7 +876,7 @@ export const fetchPackagesByCamp = async (campId) => {
       
       return serviceSelection.packages.map((pkg, index) => ({
         id: `${serviceSelection.id}-${index}`, // Generate a unique ID
-        packageId: `${serviceSelection.id}-${index}`, // Add packageId for backward compatibility
+        packageId: `${serviceSelection.id}-${index}`, 
         package_name: pkg.package_name,
         services: Object.keys(pkg.services || {}), // Extract service names
         start_date: pkg.start_date,
