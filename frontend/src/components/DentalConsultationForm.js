@@ -650,12 +650,16 @@ function DentalConsultationForm() {
                       <div>
                         <div className="border border-gray-200 rounded p-4 mb-4">
                           {/* Teeth diagram image would go here */}
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                          <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
                           </div>
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            Teeth Diagram Placeholder
-                          </div>
+                          {/* <div className="text-center py-8 bg-gray-100 rounded">
+                            
+                          </div> */}
                         </div>
                         <div className="border border-gray-200 rounded p-4 bg-white">
                           <label className="block mb-2">Select Affected Teeth:</label>
@@ -953,11 +957,12 @@ function DentalConsultationForm() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-gray-200 rounded p-4">
                           {/* Teeth diagram image would go here */}
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
-                          </div>
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            Teeth Diagram Placeholder
+                          <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
                           </div>
                         </div>
                         <div className="border border-gray-200 rounded p-4 bg-white">
@@ -973,11 +978,12 @@ function DentalConsultationForm() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-gray-200 rounded p-4">
                           {/* Teeth diagram image would go here */}
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
-                          </div>
-                          <div className="text-center py-8 bg-gray-100 rounded">
-                            Teeth Diagram Placeholder
+                          <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
                           </div>
                         </div>
                         <div className="border border-gray-200 rounded p-4 bg-white">
@@ -1015,7 +1021,7 @@ function DentalConsultationForm() {
                                       onChange={handleInputChange}
                   className="mr-2"
                 />
-                <label htmlFor="gingiva">Gingival Issues Present</label>
+                <label htmlFor="gingiva">Gingiva Issues Present</label>
               </div>
               
               {formData.examination.includes('gingiva') && (
@@ -1065,12 +1071,16 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
-                    <div className="text-center py-8 bg-gray-100 rounded">
-                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                      <img
+                        src="/dental.png"
+                        alt="Dental Diagram"
+                        className="object-contain h-full"
+                      />
                     </div>
-                    <div className="text-center py-8 bg-gray-100 rounded">
-                      Teeth Diagram Placeholder
-                    </div>
+                    {/* <div className="text-center py-8 bg-gray-100 rounded bg-white">
+                      
+                    </div> */}
                   </div>
                   <div className="border border-gray-200 rounded p-4 bg-white">
                     <label className="block mb-2">Select Missing Teeth:</label>
@@ -1287,12 +1297,16 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
-                    <div className="text-center py-8 bg-gray-100 rounded">
-                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
-                    </div>
-                    <div className="text-center py-8 bg-gray-100 rounded">
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
+                      </div>
+                    {/* <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
-                    </div>
+                    </div> */}
                   </div>
                   <div className="border border-gray-200 rounded p-4 bg-white">
                     <label className="block mb-2">Select Teeth for Restoration:</label>
@@ -1322,12 +1336,16 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
-                    <div className="text-center py-8 bg-gray-100 rounded">
-                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
-                    </div>
-                    <div className="text-center py-8 bg-gray-100 rounded">
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
+                          </div>
+                    {/* <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
-                    </div>
+                    </div> */}
                   </div>
                   <div className="border border-gray-200 rounded p-4 bg-white">
                     <label className="block mb-2">Select Teeth for RCT:</label>
@@ -1357,12 +1375,16 @@ function DentalConsultationForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border border-gray-200 rounded p-4">
                     {/* Teeth diagram image would go here */}
-                    <div className="text-center py-8 bg-gray-100 rounded">
-                      <img src="/dental.png" alt="Dental Diagram" className="mx-auto max-w-full h-auto" />
-                    </div>
-                    <div className="text-center py-8 bg-gray-100 rounded">
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 flex justify-center items-center h-64">
+                            <img
+                              src="/dental.png"
+                              alt="Dental Diagram"
+                              className="object-contain h-full"
+                            />
+                     </div>
+                    {/* <div className="text-center py-8 bg-gray-100 rounded">
                       Teeth Diagram Placeholder
-                    </div>
+                    </div> */}
                   </div>
                   <div className="border border-gray-200 rounded p-4 bg-white">
                     <label className="block mb-2">Select Teeth for IOPA:</label>
@@ -1385,7 +1407,7 @@ function DentalConsultationForm() {
                   onChange={handleInputChange}
                   className="mr-2"
                 />
-                <label htmlFor="oral_prophylaxis">Oral Prophylaxis Required</label>
+                <label htmlFor="oral_prophylaxis">Oral Prophylaxis </label>
               </div>
             </div>
 

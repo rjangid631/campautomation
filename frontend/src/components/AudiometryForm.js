@@ -40,15 +40,17 @@ const AudiometryApp = () => {
     .then((res) => res.json())
     .then((data) => {
       setFormData(prev => ({
-        ...prev,
-        PatientId: data.unique_patient_id || '',
-        PatientName: data.patient_name || '',
-        age: data.age || '',
-        gender: data.gender || '',
-        contact_number: data.contact_number || '',
-        TestDate: data.test_date || '',
-        ReportDate: data.report_date || ''
-      }));
+      ...prev,
+      patient_excel_id: data.patient_excel_id || '',
+      unique_patient_id: data.unique_patient_id || '',
+      PatientId: data.unique_patient_id || '',  // Keep this if used elsewhere
+      PatientName: data.patient_name || '',
+      age: data.age || '',
+      gender: data.gender || '',
+      contact_number: data.contact_number || '',
+      TestDate: data.test_date || '',
+      ReportDate: data.report_date || ''
+    }));
     })
     .catch((err) => console.error("❌ Fetch failed:", err));
 }, [patientId]);
@@ -673,9 +675,9 @@ const handleMarkCompleted = async () => {
         <div className="text-gray-800 font-bold">
           Total number of Patients: {patients.length}
         </div>
-        <button className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+        {/* <button className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
           Logout
-        </button>
+        </button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -890,25 +892,33 @@ const handleMarkCompleted = async () => {
                   <td className="border px-2 py-1 font-semibold">Patient Name:</td>
                   <td className="border px-2 py-1">{selectedPatient?.PatientName || ''}</td>
                   <td className="border px-2 py-1 font-semibold">XRAi ID:</td>
-                  <td className="border px-2 py-1"></td>
+                  <td className="border px-2 py-1">{selectedPatient?.unique_patient_id || ''}</td>
                 </tr>
                 <tr>
                   <td className="border px-2 py-1 font-semibold">Patient Age:</td>
                   <td className="border px-2 py-1">{selectedPatient?.age || ''}</td>
                   <td className="border px-2 py-1 font-semibold">Patient <span className="underline">ID:</span></td>
-                  <td className="border px-2 py-1">{selectedPatient?.PatientId || ''}</td>
+                  <td className="border px-2 py-1">{selectedPatient?.patient_excel_id || ''}</td>
                 </tr>
                 <tr>
                   <td className="border px-2 py-1 font-semibold">Patient <span className="underline">Gender :</span></td>
                   <td className="border px-2 py-1">{selectedPatient?.gender || ''}</td>
                   <td className="border px-2 py-1 font-semibold">Report Date/Time:</td>
-                  <td className="border px-2 py-1">{selectedPatient?.ReportDate || ''}</td>
+                  <td className="border px-2 py-1">
+                  {selectedPatient?.ReportDate
+                    ? new Date(selectedPatient.ReportDate).toLocaleDateString('en-GB').replaceAll('/', '-')
+                    : ''}
+                </td>
                 </tr>
                 <tr>
                   <td className="border px-2 py-1 font-semibold">Test <span className="underline">Date :</span></td>
-                  <td className="border px-2 py-1">{selectedPatient?.TestDate || ''}</td>
+                  <td className="border px-2 py-1">
+                  {selectedPatient?.TestDate
+                    ? new Date(selectedPatient.TestDate).toLocaleDateString('en-GB').replaceAll('/', '-')
+                    : ''}
+                  </td>
                   <td className="border px-2 py-1 font-semibold">Referral Dr:</td>
-                  <td className="border px-2 py-1"> {/* Add referral doctor field if available */}</td>
+                  <td className="border px-2 py-1">NA</td>
                 </tr>
               </tbody>
             </table>
