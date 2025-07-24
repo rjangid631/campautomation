@@ -8,20 +8,14 @@ from clients.models.camp import Camp
 from technician.Models.servicestatus import ServiceStatus
 
 @api_view(['GET'])
-def get_patients_with_services(request, camp_id):
-    try:
-        camp = Camp.objects.get(id=camp_id)
-    except Camp.DoesNotExist:
-        return Response({"status": "error", "message": "Camp not found"}, status=404)
-
-    excel_uploads = ExcelUpload.objects.filter(camp=camp)
-    patients = PatientData.objects.filter(excel_upload__in=excel_uploads)
+def get_all_patients_with_services(request):
+    patients = PatientData.objects.all().select_related('package', 'excel_upload')
 
     data = []
 
     for patient in patients:
         service_statuses = ServiceStatus.objects.filter(patient=patient).select_related('service', 'technician__user')
-        
+
         services = []
         for status in service_statuses:
             services.append({
@@ -33,6 +27,7 @@ def get_patients_with_services(request, camp_id):
 
         data.append({
             "unique_patient_id": patient.unique_patient_id,
+            "patient_excel_id": patient.patient_excel_id,
             "name": patient.patient_name,
             "age": patient.age,
             "gender": patient.gender,
@@ -44,7 +39,6 @@ def get_patients_with_services(request, camp_id):
 
     return Response({
         "status": "success",
-        "camp_id": camp_id,
         "total_patients": patients.count(),
         "patients": data
     })

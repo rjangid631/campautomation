@@ -8,7 +8,7 @@ from camp_manager.views.campmanager_auth import CampManagerLoginView, CampManage
 from camp_manager.views.campupload import CampReportDetailView, CampReportUploadView
 from camp_manager.views.createapiview import AddPatientView
 from camp_manager.views.patient_detail import check_in_patient, get_patient_details
-from camp_manager.views.patient_services import get_patients_with_services
+from camp_manager.views.patient_services import get_all_patients_with_services
 from camp_manager.views.uploadview import UploadExcelViewSet, get_patients_by_camp_and_package, print_thermal_slips
 
 # For manual route
@@ -32,7 +32,7 @@ urlpatterns = [
     path('patients/', AddPatientView.as_view(), name='add-patient'),
     path('upload/', CampReportUploadView.as_view(), name='upload-camp-report'),
     path('detail/<int:camp__id>/', CampReportDetailView.as_view(), name='camp-report-detail'),
-    path('camp/<int:camp_id>/patients-with-services/', get_patients_with_services, name='patients-with-services'),
+    path('all-patients-with-services/', get_all_patients_with_services, name='all-patients-with-services'),
 ]
 
 # ✅ Append static media files URL
