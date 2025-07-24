@@ -123,36 +123,40 @@ class VitalsSerializer(serializers.ModelSerializer):
             bmi = round(float(vitals.weight) / ((float(vitals.height) / 100) ** 2), 1)
 
         vitals_data = [
-            ['Parameter', 'Value'],
-            ['Height (cm)', str(vitals.height)],
-            ['Weight (kg)', str(vitals.weight)],
+            ['Parameters', 'Values'],
+            ['Height (in cm)', str(vitals.height) if vitals.height else 'N/A'],
+            ['Weight (in kg)', str(vitals.weight) if vitals.weight else 'N/A'],
             ['BMI (kg/m²)', str(bmi) if bmi is not None else 'N/A'],
-            ['Blood Pressure (mmHg)', vitals.bp or 'N/A'],
-            ['Pulse (bpm)', str(vitals.pulse) or 'N/A'],
-            ['Chest Inhale', 'None'],
-            ['Chest Exhale', 'None'],
-            ['Abdomen', 'None'],
+            ['Blood Pressure (mmHg)', vitals.bp if vitals.bp else 'N/A'],
+            ['Pulse (bpm)', str(vitals.pulse) if vitals.pulse else 'N/A'],
+            ['Chest Inhale', vitals.chest_inhale if hasattr(vitals, 'chest_inhale') and vitals.chest_inhale else 'N/A'],
+            ['Chest Exhale', vitals.chest_exhale if hasattr(vitals, 'chest_exhale') and vitals.chest_exhale else 'N/A'],
+            ['Abdomen', vitals.abdomen if hasattr(vitals, 'abdomen') and vitals.abdomen else 'N/A'],
         ]
 
+
         # Wider columns, tall rows
-        row_height = 22 * mm   # generous vertical space
+        row_height = 12 * mm   # generous vertical space
         vitals_table = Table(
             vitals_data,
             colWidths=[0.55 * usable_width, 0.45 * usable_width],
-            rowHeights=[row_height] * len(vitals_data)
+            rowHeights=None  # Let it auto adjust
         )
+        vitals_table._argW[0] = 0.55 * usable_width
+        vitals_table._argW[1] = 0.45 * usable_width
 
         vitals_table.setStyle(TableStyle([
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F5F5F5')),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('PADDING', (0, 0), (-1, -1), 10),   # comfortable padding
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
         ]))
         elements.append(vitals_table)
-        elements.append(Spacer(1, 30))
+        elements.append(Spacer(1, 10))
         # # ------------------------------------------------------------------
         # # Signature Block
         # # ------------------------------------------------------------------
