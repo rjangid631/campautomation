@@ -109,18 +109,15 @@ class DoctorConsultationSerializer(serializers.ModelSerializer):
 
         # Consultation Details
         fields = [
-            ("Has Medical Conditions", consultation.has_medical_conditions),
-            ("Medical Conditions", consultation.medical_conditions),
-            ("Has Medications", consultation.has_medications),
-            ("Medications", consultation.medications),
-            ("Has Allergies", consultation.has_allergies),
-            ("Allergies", consultation.allergies),
             ("Chief Complaint", consultation.chief_complaint),
-            ("History", consultation.history),
             ("Diagnostic Tests", consultation.diagnostic_tests),
+            ("Existing Medical", consultation.medical_conditions),
             ("Advice", consultation.advice),
-            ("Fitness Status", consultation.fitness_status),
-            ("Unfit Reason", consultation.unfit_reason),
+            ("Medications", consultation.medications),
+            ("Medical Fitness", consultation.fitness_status),
+            ("Family/Own History", consultation.history),
+            ("Allergies", consultation.allergies),
+            
         ]
 
         valid_fields = [(label, str(value)) for label, value in fields if value not in [None, '']]
