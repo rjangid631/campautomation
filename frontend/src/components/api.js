@@ -290,12 +290,11 @@ export const submitCostDetails = async (companyId, payload) => {
     console.log('🔧 API: Sending payload to backend:', payload);
     console.log('🔧 API: CostDetails type:', typeof payload.costDetails);
     
-    const response = await fetch('http://localhost:8000/api/cost_details/', {
+    const response = await fetch(`${BASE_URL}/api/cost_details/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // ✅ ONLY stringify the entire payload here, not individual parts
       body: JSON.stringify(payload)
     });
     
@@ -401,6 +400,7 @@ export const apiEndpoints = {
   statusCamps: `${BASE_URL}/api/campmanager/camps/`,
   statusAllCamps: `${BASE_URL}/api/camps/`,
   statusCampDetails: (campId) => `${BASE_URL}/api/technician/camp/${campId}/progress/`,
+  audiometristSignature: (technicianId) => `${BASE_URL}/api/technician/audiometrist-signature/?technician_id=${technicianId}`,
 };
 
 // API handlers object
@@ -757,6 +757,7 @@ export const apiService = {
   technicians: {
     getAll: () => apiHandlers.getTechnicians(),
     getCamps: (technicianId) => apiHandlers.getTechnicianCamps(technicianId),
+    getSignature: (technicianId) => fetchAudiometristSignature(technicianId),
   },
   
   // Services
@@ -878,6 +879,18 @@ export const fetchPatientData = async (patientId) => {
   }
 
   return await response.json();
+};
+
+
+
+export const fetchAudiometristSignature = async (technicianId) => {
+  try {
+    const response = await api.get(apiEndpoints.audiometristSignature(technicianId));
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to fetch signature:', error);
+    throw new Error(error.response?.data?.message || "Signature not found");
+  }
 };
 
 
@@ -1302,7 +1315,7 @@ export const dataProcessors = {
 // Fetch patients for technician dashboard
 export const fetchTechnicianPatients = async ({ technicianId, packageId, campId }) => {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
+    `${BASE_URL}/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch patients.");
@@ -1313,7 +1326,7 @@ export const fetchTechnicianPatients = async ({ technicianId, packageId, campId 
 
 // Fetch service ID by name
 export const fetchServiceIdByName = async (serviceName) => {
-  const response = await fetch(`http://127.0.0.1:8000/api/service-id/?name=${encodeURIComponent(serviceName)}`);
+  const response = await fetch(`${BASE_URL}/api/service-id/?name=${encodeURIComponent(serviceName)}`);
   if (!response.ok) {
     throw new Error("Failed to fetch service ID for: " + serviceName);
   }
@@ -1323,7 +1336,7 @@ export const fetchServiceIdByName = async (serviceName) => {
 
 // Mark service as done (for ECG/X-ray)
 export const submitTechnicianServiceDone = async ({ patientId, technicianId, serviceId }) => {
-  const response = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+  const response = await fetch(`${BASE_URL}/api/technician/submit/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1500,7 +1513,7 @@ export default api;
 // Fetch technician assignments
 export const fetchTechnicianAssignments = async (technicianId) => {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/technician/assignments/?technician_id=${technicianId}`
+   `${BASE_URL}/api/technician/assignments/?technician_id=${technicianId}`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch technician assignments");
@@ -1541,7 +1554,7 @@ export const fetchTechnicianAssignments = async (technicianId) => {
 // Fetch camp details
 export const fetchCampDetails = async (campId) => {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`
+    `${BASE_URL}/api/campmanager/camps/${campId}/details/`
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch camp details for ID: ${campId}`);
@@ -1552,7 +1565,7 @@ export const fetchCampDetails = async (campId) => {
 // Fetch patients for a package
 export const fetchPatientsForPackage = async ({ technicianId, packageId, campId }) => {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
+    `${BASE_URL}/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
   );
   if (!response.ok) {
     const errorData = await response.json();
@@ -1561,8 +1574,3 @@ export const fetchPatientsForPackage = async ({ technicianId, packageId, campId 
   const data = await response.json();
   return data.patients || [];
 };
-
-
-
-
-
