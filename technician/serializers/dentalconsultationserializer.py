@@ -109,7 +109,8 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         
         section_style = ParagraphStyle(
             'SectionTitle',
-            parent=styles['Heading4'],
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
             fontSize=10,
             leading=12,
             spaceBefore=8,
@@ -216,7 +217,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
             
             if dental.dental_caries:
                 if dental.grossly_carious:
-                    findings.append(f"Grossly Carious in {dental.grossly_carious}")
+                    findings.append(f"Grossly Carious w.r.t {dental.grossly_carious}")
                 if dental.pit_fissure_caries:
                     findings.append(f"Pit w.r.t {dental.pit_fissure_caries}")
                 if dental.other_caries:
@@ -234,7 +235,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
                     findings.append("Severe inflammatory Gingivitis.")
             
             if dental.missing_teeth and dental.missing_teeth_numbers:
-                findings.append(f"Teeth missing w.r.t {dental.missing_teeth_numbers}")
+                findings.append(f"Missing Teeth w.r.t {dental.missing_teeth_numbers}")
             
             if dental.occlusion:
                 if dental.occlusion_type and dental.occlusion_type.lower() == "normal":
@@ -316,7 +317,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         complaint_lines = chief_complaint.split('\n')
         
         # Add chief complaint header
-        story.append(Paragraph("<b>• CHIEF COMPLAINT/S:</b>", complaint_style))
+        story.append(Paragraph("<b>Chief Complaints:</b>", section_style))
         
         for line in complaint_lines:
             if line.strip():
@@ -339,48 +340,55 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         story.append(Spacer(1, 5))
         
         # Personal History
+        # Personal History
+        # --- Personal History Section ---
+        story.append(Paragraph("Personal History:", section_style))
+
         personal_history_parts = []
         if consultation.medical_diabetes == 'yes':
             diabetes_text = 'History of diabetes'
             if consultation.medical_diabetes_years:
                 diabetes_text += f' since {consultation.medical_diabetes_years} years'
             personal_history_parts.append(diabetes_text)
-        
+
         if consultation.medical_hypertension == 'yes':
             hyper_text = 'History of Hypertension'
             if consultation.medical_hypertension_years:
                 hyper_text += f' since {consultation.medical_hypertension_years} years'
             personal_history_parts.append(hyper_text)
-        
+
         if consultation.current_medications == 'yes':
             med_text = 'Patient is on medications'
-            if consultation.medications_list.lower() != 'no':
+            if consultation.medications_list and consultation.medications_list.lower() != 'no':
                 med_text += f': {consultation.medications_list}'
             personal_history_parts.append(med_text)
 
         if consultation.past_surgeries:
             personal_history_parts.append(f'Past surgeries: {consultation.past_surgeries}')
-        
-        personal_history_text = '. '.join(personal_history_parts) + '.' if personal_history_parts else 'N/A'
-        story.append(Paragraph(f"<b>• PERSONAL HISTORY:</b> {personal_history_text}", complaint_style))
-        
-        # Family History
+
+        personal_history_text = '<br/>'.join(personal_history_parts) if personal_history_parts else 'N/A'
+        story.append(Paragraph(personal_history_text, custom_style))
+        story.append(Spacer(1, 10))
+
+        # --- Family History Section ---
+        story.append(Paragraph("Family History:", section_style))
+
         family_history_parts = []
         if consultation.family_diabetes == 'yes':
             diabetes_text = 'Family History of diabetes'
             if consultation.family_diabetes_relation:
                 diabetes_text += f' in {consultation.family_diabetes_relation}'
             family_history_parts.append(diabetes_text)
-        
+
         if consultation.family_hypertension == 'yes':
             hyper_text = 'Family History of Hypertension'
             if consultation.family_hypertension_relation:
                 hyper_text += f' in {consultation.family_hypertension_relation}'
             family_history_parts.append(hyper_text)
 
-        family_history_text = '. '.join(family_history_parts) + '.' if family_history_parts else 'N/A'
-        story.append(Paragraph(f"<b>• FAMILY HISTORY:</b> {family_history_text}", complaint_style))
-        story.append(Spacer(1, 8))
+        family_history_text = '<br/>'.join(family_history_parts) if family_history_parts else 'N/A'
+        story.append(Paragraph(family_history_text, custom_style))
+        story.append(Spacer(1, 10))
 
         # Oral Examination
         story.append(Paragraph("<b>Oral Examination:</b>", section_style))
