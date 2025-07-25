@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  fetchTechnicianAssignments,
+  fetchCampDetails,
+  fetchPatientsForPackage,
+} from "./api";
 
 function TechnicalDashboard() {
   const [assignedCamps, setAssignedCamps] = useState([]);
@@ -27,56 +32,22 @@ function TechnicalDashboard() {
         name: technicianName,
         email: technicianEmail,
       });
-      fetchTechnicianAssignments(technicianId);
+      loadTechnicianAssignments(technicianId);
     } else {
       setError("No technician information found. Please login again.");
       setLoading(false);
     }
   }, []);
 
-  const fetchTechnicianAssignments = async (technicianId) => {
+  // Refactored: Use API from api.js
+  const loadTechnicianAssignments = async (technicianId) => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/technician/assignments/?technician_id=${technicianId}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch technician assignments");
-      }
-      const data = await response.json();
-
-      const assignments = data.assignments || [];
-      const campsMap = new Map();
-      assignments.forEach((assignment) => {
-        const campId = assignment.camp_id;
-        if (!campsMap.has(campId)) {
-          campsMap.set(campId, {
-            camp: {
-              id: campId,
-              location: assignment.camp_location || "Unknown Location",
-              district: "N/A",
-              state: "N/A",
-              pin_code: "N/A",
-              start_date: null,
-              end_date: null,
-              ready_to_go: false,
-              client: "N/A",
-            },
-            services: [],
-          });
-        }
-        const camp = campsMap.get(campId);
-        camp.services.push({
-          id: assignment.service_id,
-          name: assignment.service_name,
-        });
-      });
-
-      const processedCamps = Array.from(campsMap.values());
+      const processedCamps = await fetchTechnicianAssignments(technicianId);
       setAssignedCamps(processedCamps);
       if (processedCamps.length > 0) {
         setSelectedCamp(processedCamps[0]);
-        fetchCampDetails(processedCamps[0].camp.id);
+        loadCampDetails(processedCamps[0].camp.id);
       }
     } catch (err) {
       setError(err.message);
@@ -92,16 +63,11 @@ function TechnicalDashboard() {
     navigate("/login");
   };
 
-  const fetchCampDetails = async (campId) => {
+  // Refactored: Use API from api.js
+  const loadCampDetails = async (campId) => {
     try {
       setCampDetailsLoading(true);
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch camp details for ID: ${campId}`);
-      }
-      const data = await response.json();
+      const data = await fetchCampDetails(campId);
       setCampDetails(data);
       setSelectedCamp((prev) => ({
         ...prev,
@@ -117,7 +83,8 @@ function TechnicalDashboard() {
     }
   };
 
-  const fetchPatients = async (packageId) => {
+  // Refactored: Use API from api.js
+  const loadPatients = async (packageId) => {
     try {
       setPatientsLoading(true);
       setPatientsError(null);
@@ -131,16 +98,12 @@ function TechnicalDashboard() {
         );
       }
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.error || "Failed to fetch patients data");
-      }
-      const data = await response.json();
-      setPatients(data.patients || []);
+      const patientsData = await fetchPatientsForPackage({
+        technicianId,
+        packageId,
+        campId,
+      });
+      setPatients(patientsData);
       setShowPatients(true);
     } catch (err) {
       setPatientsError(err.message);
@@ -155,7 +118,7 @@ function TechnicalDashboard() {
     setSelectedPackage(null);
     setShowPatients(false);
     setCampDetails(null);
-    fetchCampDetails(camp.camp.id);
+    loadCampDetails(camp.camp.id);
   };
 
   const handleViewPackagesClick = () => {
@@ -170,7 +133,7 @@ function TechnicalDashboard() {
 
   const handlePackageClick = (pkg) => {
     setSelectedPackage(pkg);
-    fetchPatients(pkg.id);
+    loadPatients(pkg.id);
   };
 
   const handleBackToPackages = () => {
@@ -250,7 +213,7 @@ function TechnicalDashboard() {
           <p className="text-red-600">{error}</p>
           <button
             onClick={() =>
-              technicianInfo && fetchTechnicianAssignments(technicianInfo.id)
+              technicianInfo && loadTechnicianAssignments(technicianInfo.id)
             }
             className="mt-4 px-4 py-2 text-white rounded transition-colors"
             style={{ background: "#11a8a4" }}
@@ -582,7 +545,7 @@ function TechnicalDashboard() {
                       </p>
                       <p className="text-red-600 text-sm">{patientsError}</p>
                       <button
-                        onClick={() => fetchPatients(selectedPackage.id)}
+                        onClick={() => loadPatients(selectedPackage.id)}
                         className="mt-2 px-3 py-1 text-white rounded text-sm transition-colors"
                         style={{ background: "#11a8a4" }}
                         onMouseOver={e =>

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { dashboardAPI } from './api'; // or import { apiHandlers } from './api';
 
 const COLORS = {
   aquaBlue: '#11a8a4',
@@ -44,10 +45,13 @@ const DownloadReports = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://127.0.0.1:8000/api/technician/report-links/${campId}/`);
-      
+      // Use the centralized API
+      const reportsData = await dashboardAPI.getDownloadReports(campId);
+      // Optionally fetch camp info if needed
+      // const campInfoData = await dashboardAPI.getCampInfo(campId);
+
       // Group reports by patient name
-      const reports = response.data || [];
+      const reports = reportsData || [];
       const grouped = reports.reduce((acc, report) => {
         const patientName = report.patient_name;
         if (!acc[patientName]) {
@@ -62,13 +66,13 @@ const DownloadReports = () => {
         });
         return acc;
       }, {});
-      
+
       // Extract unique report types for filter buttons
       const uniqueTypes = [...new Set(reports.map(report => report.report_type))].sort();
       setReportTypes(['All', ...uniqueTypes]);
-      
+
       setGroupedReports(grouped);
-      setCampInfo(response.data.camp_info || null);
+      // setCampInfo(campInfoData || null); // Uncomment if you fetch camp info
       setError('');
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -444,7 +448,7 @@ const DownloadReports = () => {
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                   Download All ({getFilteredReportsCount()})
                 </>

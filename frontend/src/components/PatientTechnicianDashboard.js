@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  fetchTechnicianPatients,
+  fetchServiceIdByName,
+  submitTechnicianServiceDone
+} from "./api";
 
 function PatientTechnicianDashboard() {
   const location = useLocation();
@@ -23,14 +28,8 @@ function PatientTechnicianDashboard() {
 
   const fetchPatients = async () => {
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch patients.");
-      }
-      const data = await response.json();
-      setPatients(data.patients || []);
+      const data = await fetchTechnicianPatients({ technicianId, packageId, campId });
+      setPatients(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,42 +76,42 @@ function PatientTechnicianDashboard() {
     return serviceRoutes[normalized] || null;
   };
 
-  const fetchServiceIdByName = async (serviceName) => {
-    try {
-      const response = await fetch(`http://127.0.0.1:8000/api/service-id/?name=${encodeURIComponent(serviceName)}`);
-      if (!response.ok) {
-        console.error("❌ Failed to fetch service ID for:", serviceName);
-        return null;
-      }
-      const data = await response.json();
-      return data.id;
-    } catch (err) {
-      console.error("❌ Error fetching service ID:", err);
-      return null;
-    }
-  };
-
   const handleServiceClick = async (serviceName, patient) => {
     const trimmedService = serviceName.trim();
     const route = getServiceRoute(trimmedService);
+
+    // Always fetch serviceId for all services
+    let serviceId;
+    try {
+      serviceId = await fetchServiceIdByName(trimmedService);
+    } catch (err) {
+      alert(`Service ID not found for: "${trimmedService}"`);
+      return;
+    }
+
+    // Special handling for ECG and X-ray
+    if (["ecg", "x-ray"].includes(trimmedService.toLowerCase())) {
+      if (window.confirm("You want to done")) {
+        try {
+          await submitTechnicianServiceDone({
+            patientId: patient.unique_patient_id,
+            technicianId,
+            serviceId
+          });
+          alert("Service marked as done!");
+        } catch (err) {
+          alert("Error: " + err.message);
+        }
+      }
+      return; // Do not navigate
+    }
 
     if (!route) {
       alert(`No route defined for service: "${trimmedService}"`);
       return;
     }
 
-    const serviceId = await fetchServiceIdByName(trimmedService);
-    if (!serviceId) {
-      alert(`Service ID not found for: "${trimmedService}"`);
-      return;
-    }
-
-    console.log("🔁 Navigating to form with:", {
-      patientId: patient.unique_patient_id,
-      technicianId,
-      serviceId
-    });
-
+    // Default navigation for other services
     navigate(route, {
       state: {
         patientId: patient.unique_patient_id,

@@ -970,7 +970,7 @@ export const dashboardAPI = {
   // Get download reports
   getDownloadReports: async (campId) => {
     try {
-      const response = await api.get(`technician/report-links/${campId}`);
+      const response = await api.get(`technician/report-links/${campId}/`);
       return response.data;
     } catch (error) {
       console.error('Error fetching download reports:', error);
@@ -978,20 +978,16 @@ export const dashboardAPI = {
     }
   },
 
-  // Upload Excel file (if needed)
-  uploadExcel: async (campId, formData) => {
+  // Optionally, add a method to fetch camp info if needed
+  getCampInfo: async (campId) => {
     try {
-      const response = await api.post(`camps/${campId}/upload-excel/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
-      });
+      const response = await api.get(`campmanager/detail/${campId}/`);
       return response.data;
     } catch (error) {
-      console.error('Error uploading Excel:', error);
+      console.error('Error fetching camp info:', error);
       throw error;
     }
-  }
+  },
 };
 
 
@@ -1303,7 +1299,270 @@ export const dataProcessors = {
 
 
 
+// Fetch patients for technician dashboard
+export const fetchTechnicianPatients = async ({ technicianId, packageId, campId }) => {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch patients.");
+  }
+  const data = await response.json();
+  return data.patients || [];
+};
+
+// Fetch service ID by name
+export const fetchServiceIdByName = async (serviceName) => {
+  const response = await fetch(`http://127.0.0.1:8000/api/service-id/?name=${encodeURIComponent(serviceName)}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch service ID for: " + serviceName);
+  }
+  const data = await response.json();
+  return data.id;
+};
+
+// Mark service as done (for ECG/X-ray)
+export const submitTechnicianServiceDone = async ({ patientId, technicianId, serviceId }) => {
+  const response = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patient_id: patientId,
+      technician_id: technicianId,
+      service_id: serviceId
+    })
+  });
+  if (!response.ok) {
+    throw new Error("Failed to submit service completion.");
+  }
+  return await response.json();
+};
 
 
 
+
+// Camp Management APIs (for ViewServiceSelection component)
+export const campApi = {
+  // Get camp details with packages
+  getCampDetails: async (campId) => {
+    try {
+      const response = await api.get(`campmanager/camps/${campId}/details/`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching camp details:', error);
+      throw error;
+    }
+  },
+
+  // Update camp (e.g., ready_to_go status)
+  updateCamp: async (campId, data) => {
+    try {
+      const response = await api.patch(`camps/${campId}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating camp:', error);
+      throw error;
+    }
+  },
+
+  // Upload Excel file for patient data
+  uploadExcel: async (file, packageId, campId) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('package_id', packageId);
+      formData.append('camp_id', campId);
+
+      const response = await api.post('campmanager/upload-excel/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading Excel file:', error);
+      throw error;
+    }
+  },
+};
+
+// Technician Management APIs (for ViewServiceSelection component)
+export const technicianApi = {
+  // Get all technicians
+  getAllTechnicians: async () => {
+    try {
+      const response = await api.get('technician/technicians/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching technicians:', error);
+      throw error;
+    }
+  },
+
+  // Assign technicians to package with services
+  assignPackage: async (campId, packageId, assignments) => {
+    try {
+      const payload = {
+        camp_id: parseInt(campId),
+        package_id: packageId,
+        assignments: assignments
+      };
+      
+      const response = await api.post('technician/assign-package/', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error assigning technicians to package:', error);
+      throw error;
+    }
+  },
+};
+
+// Service Management APIs (for ViewServiceSelection component)
+export const serviceApi = {
+  // Service mapping (can be fetched from API if needed)
+  getServiceMap: () => {
+    return {
+      1: "ECG",
+      2: "X-ray",
+      3: "PFT",
+      4: "Audiometry",
+      5: "Optometry",
+      6: "Doctor Consultation",
+      7: "Pathology",
+      8: "Dental Consultation",
+      9: "Vitals",
+      10: "Form 7",
+      11: "BMD",
+      12: "Tetanus Vaccine",
+      13: "Typhoid Vaccine",
+      14: "Coordinator",
+      15: "CBC",
+      16: "Complete Hemogram",
+      17: "Hemoglobin",
+      18: "Urine Routine",
+      19: "Stool Examination",
+      20: "Lipid Profile",
+      21: "Kidney Profile",
+      22: "LFT",
+      23: "KFT",
+      24: "Random Blood Glucose",
+      25: "Blood Grouping"
+    };
+  },
+
+  // Get service name by ID
+  getServiceName: (serviceId) => {
+    const serviceMap = serviceApi.getServiceMap();
+    return serviceMap[serviceId] || `Service ${serviceId}`;
+  },
+};
+
+// Utility functions (for ViewServiceSelection component)
+export const utils = {
+  // Format date for display
+  formatDate: (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  // Handle API errors
+  handleApiError: (error) => {
+    if (error.response) {
+      // Server responded with error status
+      console.error('API Error Response:', error.response.data);
+      return error.response.data.message || 'Server error occurred';
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('API Error Request:', error.request);
+      return 'Network error - please check your connection';
+    } else {
+      // Something else happened
+      console.error('API Error:', error.message);
+      return error.message || 'An unexpected error occurred';
+    }
+  },
+};
+
+// Combined API object for easy import (for ViewServiceSelection component)
+const API = {
+  camp: campApi,
+  technician: technicianApi,
+  service: serviceApi,
+  utils: utils,
+};
+
+// Individual exports for convenience
 export default api;
+
+// Fetch technician assignments
+export const fetchTechnicianAssignments = async (technicianId) => {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/technician/assignments/?technician_id=${technicianId}`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch technician assignments");
+  }
+  const data = await response.json();
+
+  // Process assignments into camps and services
+  const assignments = data.assignments || [];
+  const campsMap = new Map();
+  assignments.forEach((assignment) => {
+    const campId = assignment.camp_id;
+    if (!campsMap.has(campId)) {
+      campsMap.set(campId, {
+        camp: {
+          id: campId,
+          location: assignment.camp_location || "Unknown Location",
+          district: "N/A",
+          state: "N/A",
+          pin_code: "N/A",
+          start_date: null,
+          end_date: null,
+          ready_to_go: false,
+          client: "N/A",
+        },
+        services: [],
+      });
+    }
+    const camp = campsMap.get(campId);
+    camp.services.push({
+      id: assignment.service_id,
+      name: assignment.service_name,
+    });
+  });
+
+  return Array.from(campsMap.values());
+};
+
+// Fetch camp details
+export const fetchCampDetails = async (campId) => {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch camp details for ID: ${campId}`);
+  }
+  return await response.json();
+};
+
+// Fetch patients for a package
+export const fetchPatientsForPackage = async ({ technicianId, packageId, campId }) => {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/technician/patients/?technician_id=${technicianId}&package_id=${packageId}&camp_id=${campId}`
+  );
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData?.error || "Failed to fetch patients data");
+  }
+  const data = await response.json();
+  return data.patients || [];
+};
+
+
+
+
+

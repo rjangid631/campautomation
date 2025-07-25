@@ -100,6 +100,7 @@ const handleSubmitPatient = async (e) => {
     
     alert('Patient added successfully!');
   } catch (error) {
+    console.error(patientForm);
     console.error('Error adding patient:', error);
     alert(`Error: ${error.response?.data?.message || 'Failed to add patient'}`);
   } finally {

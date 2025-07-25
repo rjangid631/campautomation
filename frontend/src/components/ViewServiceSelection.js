@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { campApi, technicianApi, serviceApi, utils } from './api';
 
 const ViewServiceSelection = () => {
   const { campId } = useParams();
@@ -19,24 +19,17 @@ const ViewServiceSelection = () => {
   const [readySuccess, setReadySuccess] = useState(false);
   const [readyError, setReadyError] = useState(null);
 
-  const SERVICE_MAP = {
-    1: "ECG", 2: "X-ray", 3: "PFT", 4: "Audiometry", 5: "Optometry",
-    6: "Doctor Consultation", 7: "Pathology", 8: "Dental Consultation", 9: "Vitals",
-    10: "Form 7", 11: "BMD", 12: "Tetanus Vaccine", 13: "Typhoid Vaccine", 14: "Coordinator",
-    15: "CBC", 16: "Complete Hemogram", 17: "Hemoglobin", 18: "Urine Routine",
-    19: "Stool Examination", 20: "Lipid Profile", 21: "Kidney Profile", 22: "LFT",
-    23: "KFT", 24: "Random Blood Glucose", 25: "Blood Grouping"
-  };
+  const SERVICE_MAP = serviceApi.getServiceMap();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const campRes = await axios.get(`http://127.0.0.1:8000/api/campmanager/camps/${campId}/details/`);
-        setCampData(campRes.data.camp);
-        setPackages(campRes.data.packages);
+        const campData = await campApi.getCampDetails(campId);
+        setCampData(campData.camp);
+        setPackages(campData.packages);
 
-        const techRes = await axios.get(`http://127.0.0.1:8000/api/technician/technicians/`);
-        setTechnicians(techRes.data);
+        const techniciansData = await technicianApi.getAllTechnicians();
+        setTechnicians(techniciansData);
       } catch (err) {
         console.error("Error fetching data", err);
       } finally {
@@ -87,12 +80,7 @@ const ViewServiceSelection = () => {
     }));
 
     try {
-      const response = await axios.post(`http://127.0.0.1:8000/api/technician/assign-package/`, {
-        camp_id: parseInt(campId),
-        package_id: pkgId,
-        assignments: assignments
-      });
-
+      await technicianApi.assignPackage(campId, pkgId, assignments);
       alert("Technicians assigned to selected services successfully!");
     } catch (err) {
       console.error("Assignment error:", err);
@@ -105,15 +93,8 @@ const ViewServiceSelection = () => {
     setUploading(prev => ({ ...prev, [pkgId]: true }));
     setUploadMsg(prev => ({ ...prev, [pkgId]: '' }));
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('package_id', pkgId);
-    formData.append('camp_id', campId);
-
     try {
-      await axios.post('http://127.0.0.1:8000/api/campmanager/upload-excel/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await campApi.uploadExcel(file, pkgId, campId);
       setUploadMsg(prev => ({ ...prev, [pkgId]: 'Upload successful!' }));
       setExcelUploaded(prev => ({ ...prev, [pkgId]: true }));
     } catch (err) {
@@ -127,9 +108,7 @@ const ViewServiceSelection = () => {
     setReadyLoading(true);
     setReadyError(null);
     try {
-      await axios.patch(`http://127.0.0.1:8000/api/camps/${campId}/`, {
-        ready_to_go: true,
-      });
+      await campApi.updateCamp(campId, { ready_to_go: true });
       setReadySuccess(true);
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (err) {
@@ -138,12 +117,7 @@ const ViewServiceSelection = () => {
     setReadyLoading(false);
   };
 
-  const formatDate = (d) =>
-    new Date(d).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const formatDate = utils.formatDate;
 
   const isAnyExcelUploaded = Object.values(excelUploaded).some(Boolean);
 
