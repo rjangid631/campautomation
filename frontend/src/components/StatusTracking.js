@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { campService, dataProcessors, apiService } from './api.js';
+import PatientStatus from './PatientStatus';
+import { FileText } from 'lucide-react'; 
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -41,6 +43,7 @@ function StatusTracking() {
   const [totalTechnicians, setTotalTechnicians] = useState(0);
   const [serviceChartData, setServiceChartData] = useState(null);
   const [serviceStats, setServiceStats] = useState([]);
+  const [showPatientStatus, setShowPatientStatus] = useState(false);
 
   useEffect(() => {
     // Use the new service methods
@@ -131,8 +134,15 @@ function StatusTracking() {
     );
 
 
+
+  if (showPatientStatus) {
+    return <PatientStatus onBack={() => setShowPatientStatus(false)} />;
+  }
+
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
+      {/* Header */}
       {/* Header */}
       <div className="px-6 py-4 shadow-sm" style={{ backgroundColor: colors.darkGrey }}>
         <div className="flex items-center justify-between">
@@ -143,12 +153,24 @@ function StatusTracking() {
               {getClientName()}
             </p>
           </div>
-          <div className="text-right text-white">
-            <p className="text-sm opacity-75">Last updated</p>
-            <p className="font-semibold">{new Date().toLocaleString()}</p>
+          <div className="flex items-center gap-4">
+            {/* Patient Status Button */}
+            <button
+              onClick={() => setShowPatientStatus(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: colors.aqua }}
+            >
+              <FileText size={18} />
+              Patient Status
+            </button>
+            <div className="text-right text-white">
+              <p className="text-sm opacity-75">Last updated</p>
+              <p className="font-semibold">{new Date().toLocaleString()}</p>
+            </div>
           </div>
         </div>
       </div>
+      
 
       {/* Stats Cards */}
       <div className="p-6">
