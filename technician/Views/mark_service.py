@@ -6,7 +6,7 @@ from technician.Models.servicestatus import ServiceStatus, ServiceLog
 from technician.Models.technician import Technician
 from clients.models.package import Package
 from clients.models.camp import Camp
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 
 
 @api_view(['POST'])
@@ -66,7 +66,6 @@ def mark_service_done(request):
     })
 
 
-from django.db.models import F
 
 @api_view(['GET'])
 def get_camp_progress(request, camp_id):
@@ -99,22 +98,44 @@ def get_camp_progress(request, camp_id):
                 pkg.is_completed = True
                 pkg.save()
 
-    # Per technician summary
-    technician_summary = (
+    # ✅ Per technician with assigned service summary
+    technician_summary_raw = (
         service_statuses
         .filter(technician__isnull=False)
-        .values('technician__user__name')
-        .annotate(total=Count('id'), completed=Count('id', filter=Q(is_completed=True)))
+        .values('technician__user__name', 'service__name')
+        .annotate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(is_completed=True))
+        )
     )
 
-    # Per service summary
+    technician_summary = {}
+    for item in technician_summary_raw:
+        tech_name = item['technician__user__name']
+        service_name = item['service__name']
+
+        if tech_name not in technician_summary:
+            technician_summary[tech_name] = {
+                "technician": tech_name,
+                "services": []
+            }
+
+        technician_summary[tech_name]["services"].append({
+            "service_name": service_name,
+            "total": item["total"],
+            "completed": item["completed"]
+        })
+
+    technician_summary = list(technician_summary.values())
+
+    # ✅ Per service summary
     service_summary = (
         service_statuses
         .values('service__name')
         .annotate(total=Count('id'), completed=Count('id', filter=Q(is_completed=True)))
     )
 
-    # 🔹 Per patient progress
+    # ✅ Per patient progress
     patient_progress = (
         service_statuses
         .values('patient__id', 'patient__patient_name')
@@ -128,7 +149,7 @@ def get_camp_progress(request, camp_id):
         p['pending'] = p['total'] - p['completed']
         p['progress_percent'] = round((p['completed'] / p['total']) * 100, 2) if p['total'] > 0 else 0
 
-    # 🔹 Total and Completed patients
+    # ✅ Total and Completed patients
     total_patients = PatientData.objects.filter(service_statuses__in=service_statuses).distinct().count()
 
     completed_patients = (
@@ -151,11 +172,11 @@ def get_camp_progress(request, camp_id):
         "pending_services": pending_services,
         "progress_percent": progress_percent,
         "is_completed": camp.is_completed,
-        "technician_summary": list(technician_summary),
+        "technician_summary": technician_summary,
         "service_summary": list(service_summary),
         "patient_progress": list(patient_progress),
-        "total_patients": total_patients,              # ✅ Added
-        "completed_patients": completed_patients       # ✅ Added
+        "total_patients": total_patients,
+        "completed_patients": completed_patients
     })
 
 
