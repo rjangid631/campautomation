@@ -200,6 +200,9 @@ function DentalConsultationForm() {
         sour: formData.sour_regions
       },
 
+      grossly_carious: Array.from(selectedTeeth.caries).join(','),            // ✅ This line is missing
+      pit_fissure_caries: Array.from(selectedTeeth.fissure).join(','),
+
       malocclusion_details: {
         crowding: formData.crowding_location,
         spacing: formData.spacing_location,

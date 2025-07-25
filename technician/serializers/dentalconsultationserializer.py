@@ -144,7 +144,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
             ["Test Date:", test_date, "Referral Dr:", "N/A"],
         ]
 
-        table = Table(data, colWidths=[70, 140, 70, 140])
+        table = Table(data, colWidths=[100, 170, 100, 170])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -192,7 +192,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
                             regions = dental.sensitivity_regions.get(sens_type, [])
 
                         if regions:
-                            complaints.append(f"Sensitivity to {sens_type.capitalize()}:")
+                            # complaints.append(f"Sensitivity to {sens_type.capitalize()}:")
                             for region in regions:
                                 region_formatted = region.replace('_', ' ')
                                 complaints.append(f"{counter}. Sensitivity to {sens_type} in {region_formatted} region since")
@@ -308,7 +308,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
             return advice if advice else ["No specific advice"]
 
         # Complain Section
-        story.append(Paragraph("<b>Complain:</b>", section_style))
+        # story.append(Paragraph("<b>Complain:</b>", section_style))
         
         # Chief Complaint with improved formatting
         chief_complaint = build_chief_complaint(consultation)
