@@ -574,10 +574,10 @@ const CampStatusPage = () => {
                         fontSize: '14px',
                         fontWeight: 'bold'
                       }}>
-                        {tech.technician__name ? tech.technician__name.charAt(0).toUpperCase() : '?'}
+                        {tech.technician ? tech.technician.charAt(0).toUpperCase() : '?'}
                       </div>
                       <h3 style={{ margin: 0, fontSize: '16px', color: COLORS.darkText, fontWeight: '600' }}>
-                        {tech.technician__user__name || 'Unassigned'}
+                        {tech.technician || 'Unassigned'}
                       </h3>
                     </div>
                     <span style={{ 
@@ -602,6 +602,19 @@ const CampStatusPage = () => {
                   <div style={{ marginTop: '12px', fontSize: '14px', color: COLORS.mediumText, textAlign: 'center' }}>
                     {tech.total > 0 ? `${((tech.completed / tech.total) * 100).toFixed(1)}% completed` : 'No tasks assigned'}
                   </div>
+                  <div style={{ marginTop: '12px' }}>
+                    {tech.services?.length > 0 ? (
+                      <ul style={{ paddingLeft: '16px', fontSize: '14px', color: COLORS.darkText }}>
+                        {tech.services.map((service, idx) => (
+                          <li key={idx}>
+                            {service.service_name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div style={{ fontSize: '14px', color: COLORS.mediumText }}>No services assigned</div>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
@@ -618,7 +631,7 @@ const CampStatusPage = () => {
         </div>
 
         {/* Package Summary */}
-        <div style={{ 
+        {/* <div style={{ 
           backgroundColor: COLORS.white, 
           padding: '32px', 
           borderRadius: '16px', 
@@ -697,7 +710,7 @@ const CampStatusPage = () => {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Footer with Last Updated */}
         <div style={{ 

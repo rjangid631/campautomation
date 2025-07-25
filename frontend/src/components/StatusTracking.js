@@ -40,6 +40,23 @@ function StatusTracking() {
   const [activeCamps, setActiveCamps] = useState([]);
   const [allCamps, setAllCamps] = useState([]);
   const [campDetailsMap, setCampDetailsMap] = useState({});
+  for (const campId in campDetailsMap) {
+  const camp = campDetailsMap[campId];
+
+  // Only if technician_summary exists
+  if (Array.isArray(camp.technician_summary)) {
+    camp.technician_summary = camp.technician_summary.map(tech => {
+      // Calculate total and completed services
+      const total = tech.services?.reduce((sum, s) => sum + (Number(s.total) || 0), 0) || 0;
+      const completed = tech.services?.reduce((sum, s) => sum + (Number(s.completed) || 0), 0) || 0;
+
+      return {
+        ...tech,
+        total,
+        completed
+      };
+    });
+  }}
   const [totalTechnicians, setTotalTechnicians] = useState(0);
   const [serviceChartData, setServiceChartData] = useState(null);
   const [serviceStats, setServiceStats] = useState([]);
@@ -399,16 +416,17 @@ function StatusTracking() {
                               {details.technician_summary.map((tech, idx) => (
                                 <div key={idx} className="border rounded-lg p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">{tech.technician__user__name || 'Unassigned'}</span>
+                                    <span className="font-medium text-sm">{tech.technician || 'Unassigned'}</span>
                                     <span className="text-xs text-gray-500">{tech.completed}/{tech.total}</span>
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-2">
                                     <div 
                                       className="h-2 rounded-full transition-all duration-300"
                                       style={{ 
-                                        width: `${tech.total > 0 ? Math.round((tech.completed / tech.total) * 100) : 0}%`,
+                                        width: `${tech?.total && tech?.completed !== undefined ? Math.round((tech.completed / tech.total) * 100) : 0}%`,
                                         backgroundColor: colors.green 
                                       }}
+
                                     ></div>
                                   </div>
                                 </div>
