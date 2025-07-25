@@ -106,7 +106,7 @@ class OptometrySerializer(serializers.ModelSerializer):
         elements.append(Spacer(1, 20))
 
         # Visual Activity Table
-        elements.append(Paragraph("Visual Activity", styles['Heading2']))
+        elements.append(Paragraph("Visual Acuity", styles['Heading2']))
         elements.append(Spacer(1, 10))
 
         acuity_data = [
@@ -161,7 +161,7 @@ class OptometrySerializer(serializers.ModelSerializer):
         elements.append(Spacer(1, 12))
 
         # Summary
-        summary = f"""<b>Visual Activity:</b><br/>
+        summary = f"""<b>Visual Acuity:</b><br/>
         Distance (Far): {optometry.far_vision_right or 'N/A'} right – {optometry.near_vision_right or 'N/A'} near.<br/>
         Distance (Far): {optometry.far_vision_left or 'N/A'} left – {optometry.near_vision_left or 'N/A'} near."""
         elements.append(Paragraph(summary, styles['Normal']))

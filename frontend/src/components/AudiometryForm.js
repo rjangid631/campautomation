@@ -3,6 +3,7 @@ import { submitAudiometryData, fetchPatientData, markServiceCompleted } from './
 import { useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useNavigate } from 'react-router-dom';
 
 const AudiometryApp = () => {
   const [patients, setPatients] = useState([]);
@@ -15,6 +16,7 @@ const AudiometryApp = () => {
   const { patientId, patientName, technicianId, serviceId } = location.state || {};
   const [signatureInfo, setSignatureInfo] = useState(null);
   const pdfRef = useRef(null);
+  const navigate = useNavigate();
 
   // Form states
   const [formData, setFormData] = useState({
@@ -429,6 +431,26 @@ const handleSaveAndUploadPdf = async (e) => {
       return [...prev, newPatient];
     });
 
+    // 🔄 Mark service as completed
+    if (serviceId && technicianId) {
+      const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: formData.PatientId,
+          technician_id: technicianId,
+          service_id: serviceId,
+        }),
+      });
+
+      if (!completeRes.ok) {
+        const completeData = await completeRes.json();
+        throw new Error(completeData?.message || "Failed to mark service as completed");
+      }
+
+      console.log("✅ Service marked as completed");
+    }
+
     setFormData({
       PatientName: '',
       PatientId: '',
@@ -446,12 +468,14 @@ const handleSaveAndUploadPdf = async (e) => {
     });
 
     showNotification('Patient data and PDF saved successfully!');
+    navigate(-1);
   } catch (error) {
     setError(error.message || 'Failed to save patient data');
   } finally {
     setLoading(false);
   }
 };
+
 
 
 const handlePatientSelect = (patient) => {
