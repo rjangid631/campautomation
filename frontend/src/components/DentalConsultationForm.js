@@ -109,6 +109,7 @@ function DentalConsultationForm() {
     navigate(-1);
   };
   
+  const serviceId = location?.state?.serviceId || '';
   // Toggle functions
   const toggleSection = (section, setter) => {
     setter(!section);
@@ -153,82 +154,116 @@ function DentalConsultationForm() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const mapBooleanFromArray = (key, arr) => arr.includes(key);
+  const mapBooleanFromArray = (key, arr) => arr.includes(key);
 
-    const submissionData = {
-      ...formData,
-      technician_id: parseInt(technicianId),
-      patient_unique_id: formData.patient_id,
+  const submissionData = {
+    ...formData,
+    technician_id: parseInt(technicianId),
+    patient_unique_id: formData.patient_id,
 
-      // 🧠 Booleans from checkbox sections
-      pain_teeth: mapBooleanFromArray('pain_teeth', formData.complaints),
-      sensitivity: mapBooleanFromArray('sensitivity', formData.complaints),
-      bleeding_gums: mapBooleanFromArray('bleeding_gums', formData.complaints),
+    // Booleans from checkbox sections
+    pain_teeth: mapBooleanFromArray('pain_teeth', formData.complaints),
+    sensitivity: mapBooleanFromArray('sensitivity', formData.complaints),
+    bleeding_gums: mapBooleanFromArray('bleeding_gums', formData.complaints),
 
-      dental_caries: mapBooleanFromArray('dental_caries', formData.examination),
-      gingiva: mapBooleanFromArray('gingiva', formData.examination),
-      missing_teeth: mapBooleanFromArray('missing_teeth', formData.examination),
-      occlusion: mapBooleanFromArray('occlusion', formData.examination),
+    dental_caries: mapBooleanFromArray('dental_caries', formData.examination),
+    gingiva: mapBooleanFromArray('gingiva', formData.examination),
+    missing_teeth: mapBooleanFromArray('missing_teeth', formData.examination),
+    occlusion: mapBooleanFromArray('occlusion', formData.examination),
 
-      restoration_required: mapBooleanFromArray('restoration', formData.advice),
-      rct_required: mapBooleanFromArray('rct', formData.advice),
-      iopa_required: mapBooleanFromArray('iopa', formData.advice),
-      oral_prophylaxis_required: mapBooleanFromArray('oral_prophylaxis', formData.advice),
-      replacement_required: mapBooleanFromArray('replacement', formData.advice),
+    restoration_required: mapBooleanFromArray('restoration', formData.advice),
+    rct_required: mapBooleanFromArray('rct', formData.advice),
+    iopa_required: mapBooleanFromArray('iopa', formData.advice),
+    oral_prophylaxis_required: mapBooleanFromArray('oral_prophylaxis', formData.advice),
+    replacement_required: mapBooleanFromArray('replacement', formData.advice),
 
-      // 🧠 Process teeth selections
-      pain_teeth_numbers: Array.from(selectedTeeth.pain).join(','),
-      missing_teeth_numbers: Array.from(selectedTeeth.missing).join(','),
-      restoration_teeth: Array.from(selectedTeeth.restoration).join(','),
-      rct_teeth: Array.from(selectedTeeth.rct).join(','),
-      iopa_teeth: Array.from(selectedTeeth.iopa).join(','),
+    // Process teeth selections
+    pain_teeth_numbers: Array.from(selectedTeeth.pain).join(','),
+    missing_teeth_numbers: Array.from(selectedTeeth.missing).join(','),
+    restoration_teeth: Array.from(selectedTeeth.restoration).join(','),
+    rct_teeth: Array.from(selectedTeeth.rct).join(','),
+    iopa_teeth: Array.from(selectedTeeth.iopa).join(','),
 
-      // 🧠 Convert sensitivity types to boolean flags
-      sensitivity_cold: formData.sensitivity_type.includes('cold'),
-      sensitivity_hot: formData.sensitivity_type.includes('hot'),
-      sensitivity_sweet: formData.sensitivity_type.includes('sweet'),
-      sensitivity_sour: formData.sensitivity_type.includes('sour'),
+    // Sensitivity flags
+    sensitivity_cold: formData.sensitivity_type.includes('cold'),
+    sensitivity_hot: formData.sensitivity_type.includes('hot'),
+    sensitivity_sweet: formData.sensitivity_type.includes('sweet'),
+    sensitivity_sour: formData.sensitivity_type.includes('sour'),
 
-      // 🧠 Build JSON fields for region details
-      sensitivity_regions: {
-        cold: formData.cold_regions,
-        hot: formData.hot_regions,
-        sweet: formData.sweet_regions,
-        sour: formData.sour_regions
-      },
+    // Region details
+    sensitivity_regions: {
+      cold: formData.cold_regions,
+      hot: formData.hot_regions,
+      sweet: formData.sweet_regions,
+      sour: formData.sour_regions
+    },
 
-      malocclusion_details: {
-        crowding: formData.crowding_location,
-        spacing: formData.spacing_location,
-        protrusion: formData.protrusion_type
-      }
-    };
+    // Caries
+    grossly_carious: Array.from(selectedTeeth.caries).join(','),
+    pit_fissure_caries: Array.from(selectedTeeth.fissure).join(','),
 
-    console.log('🚀 Submitting consultation form:', submissionData);
+    // Malocclusion
+    malocclusion_details: {
+      crowding: formData.crowding_location,
+      spacing: formData.spacing_location,
+      protrusion: formData.protrusion_type
+    }
+  };
 
-    fetch('http://127.0.0.1:8000/api/technician/dental-consultation/', {
+  console.log('🚀 Submitting consultation form:', submissionData);
+
+  try {
+    // Step 1: Submit consultation data
+    const consultationResponse = await fetch('http://127.0.0.1:8000/api/technician/dental-consultation/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(submissionData),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('❌ Failed to submit form');
-        return response.json();
-      })
-      .then((data) => {
-        console.log('✅ Submission success:', data);
-        alert("Consultation form submitted successfully!");
-      })
-      .catch((error) => {
-        console.error('❌ Error submitting consultation form:', error);
-        alert("Failed to submit form. Please try again.");
-      });
-  };
+    });
+
+    if (!consultationResponse.ok) {
+      throw new Error('❌ Failed to submit consultation form');
+    }
+
+    const consultationResult = await consultationResponse.json();
+    console.log('✅ Consultation submission success:', consultationResult);
+
+    // Step 2: Final confirmation
+    const finalPayload = {
+      technician_id: parseInt(technicianId),
+      patient_id: formData.patient_id,  // 👈 match what your working code sends
+      service_id: serviceId             // 👈 add if required
+    };
+
+    console.log("📤 Submitting final confirmation with:", finalPayload);
+
+    const finalResponse = await fetch('http://127.0.0.1:8000/api/technician/submit/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(finalPayload),
+    });
+
+    const finalResult = await finalResponse.json();
+
+    if (!finalResponse.ok) {
+      throw new Error(finalResult.message || '❌ Final submission failed');
+    }
+
+    console.log('✅ Final submit success:', finalResult);
+    alert("Consultation submitted and finalized successfully!");
+    navigate(-1);
+
+  } catch (error) {
+    console.error('❌ Error during submission:', error);
+    alert(`Submission failed: ${error.message}`);
+  }
+};
 
 
 
@@ -1498,7 +1533,8 @@ function DentalConsultationForm() {
 
           <div className="mt-6 text-center">
             <button 
-              type="submit" 
+              type="button"
+              onClick={handleSubmit}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
             >
               Submit Consultation Form
