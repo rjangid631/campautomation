@@ -16,6 +16,10 @@ const OnsiteDashboard = () => {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [idFile, setIdFile] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDetailPatient, setSelectedDetailPatient] = useState(null);
 
 
 
@@ -56,6 +60,16 @@ const OnsiteDashboard = () => {
     e.stopPropagation(); // Prevent package selection
     setShowAddPatientModal(true);
   };
+
+// for addd patient modal
+const handlePhotoChange = (e) => {
+  setPhotoFile(e.target.files[0]);
+};
+
+const handleIdChange = (e) => {
+  setIdFile(e.target.files[0]);
+};
+
   
   const handlePatientFormChange = (field, value) => {
     setPatientForm(prev => ({
@@ -514,6 +528,27 @@ const handleSubmitPatient = async (e) => {
   };
 
 
+  const handleAddDetailClick = (patient) => {
+  setSelectedDetailPatient(patient);
+  setShowDetailModal(true);
+  setPhotoFile(null);
+  setIdFile(null);
+};
+
+
+
+const handleCloseDetailModal = () => {
+  setShowDetailModal(false);
+  setPhotoFile(null);
+  setIdFile(null);
+};
+
+
+
+
+
+
+
 
   const handleCampClick = (camp) => {
     setSelectedCamp(camp);
@@ -539,6 +574,9 @@ const handleSubmitPatient = async (e) => {
     const filtered = onsiteUtils.filterPatients(originalPatients, term);
     setPatients(filtered);
   };
+
+
+
 
 
 const handlePrintQR = async (patient) => {
@@ -825,6 +863,28 @@ const handlePrintQR = async (patient) => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddDetailClick(patient); // set the patient context and show modal
+                          }}
+                          style={{
+                            backgroundColor: COLORS.mediumGrey,
+                            color: COLORS.darkText,
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          Add detail
+                        </button>
+                        
+                        
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -855,6 +915,172 @@ const handlePrintQR = async (patient) => {
       </div>
     );
   };
+
+
+  const renderDetailModal = () => {
+    console.log('Modal state:', { showDetailModal, selectedDetailPatient }); // Debug log
+
+    if (!showDetailModal || !selectedDetailPatient) {
+      return null;
+    }
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1100
+      }}>
+        <div style={{
+          backgroundColor: COLORS.white,
+          borderRadius: '12px',
+          padding: '24px',
+          maxWidth: '400px',
+          width: '100%',
+          boxShadow: '0 10px 20px rgba(0,0,0,0.2)'
+        }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Upload Patient Details</h2>
+          <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+            <p style={{ margin: '0', color: COLORS.darkText }}>
+              <strong>Patient ID:</strong> {selectedDetailPatient.unique_patient_id}
+            </p>
+            <p style={{ margin: '4px 0 0', color: COLORS.darkText }}>
+              <strong>Name:</strong> {selectedDetailPatient.name}
+            </p>
+          </div>
+
+          <form onSubmit={handleDetailSubmit}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block',
+                fontWeight: '500', 
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Patient Photo *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+                required
+                style={{ 
+                  width: '100%',
+                  padding: '8px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '6px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block',
+                fontWeight: '500', 
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Aadhar ID Document *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleIdChange}
+                required
+                style={{ 
+                  width: '100%',
+                  padding: '8px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '6px'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={handleCloseDetailModal}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: COLORS.lightGrey,
+                  color: COLORS.darkText
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUploading}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: isUploading ? COLORS.mediumGrey : COLORS.success,
+                  color: COLORS.white,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isUploading ? (
+                  <>
+                    <div style={{ width: '16px', height: '16px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Uploading...
+                  </>
+                ) : 'Upload Files'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+
+
+  const [isUploading, setIsUploading] = useState(false);
+
+const handleDetailSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!photoFile || !idFile) {
+    alert('Please select both photo and Aadhar ID files');
+    return;
+  }
+
+  setIsUploading(true);
+  
+  try {
+    const formData = new FormData();
+    formData.append('photo', photoFile);
+    formData.append('document_file', idFile);
+    formData.append('unique_patient_id', selectedDetailPatient.unique_patient_id); // Changed from patient_id
+
+    console.log('Uploading details for patient:', selectedDetailPatient.unique_patient_id);
+    
+    await onsiteAPI.uploadPatientDetails(formData);
+    
+    alert('Files uploaded successfully!');
+    handleCloseDetailModal();
+    
+    // Refresh patient list after successful upload
+    if (selectedCamp && selectedPackage) {
+      await fetchPackagePatients(selectedCamp.id, selectedPackage.id);
+    }
+  } catch (error) {
+    console.error('Error uploading files:', error);
+    alert(error.message || 'Error uploading files. Please try again.');
+  } finally {
+    setIsUploading(false);
+  }
+};
+  
 
 
   const renderDashboardContent = () => {
@@ -964,87 +1190,85 @@ const handlePrintQR = async (patient) => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
-      {/* ADD PATIENT Modal - MOVED TO CORRECT POSITION */}
-      {renderAddPatientModal()}
-      
-      {/* Simplified Sidebar */}
-      <div style={{ width: '256px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: '1px solid #e5e7eb' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Onsite Coordinator</h2>
-          <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Limited Access Dashboard</p>
-        </div>
-        <nav style={{ marginTop: '24px' }}>
-          {menuItems.map((item) => (
-            <button 
-              key={item.id} 
-              onClick={() => handleMenuClick(item.id)}
-              style={{
-                width: '100%', 
-                textAlign: 'left', 
-                padding: '12px 24px',
-                fontSize: '18px', 
-                fontWeight: '500', 
-                transition: 'all 0.2s',
-                border: 'none', 
-                cursor: 'pointer',
-                backgroundColor: activeMenuItem === item.id ? '#eff6ff' : 'transparent',
-                borderRight: activeMenuItem === item.id ? '4px solid #3b82f6' : 'none',
-                color: {
-                  'text-blue-600': '#2563eb', 
-                  'text-indigo-600': '#4f46e5', 
-                  'text-red-600': '#dc2626'
-                }[item.color]
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
+    {/* Modal Renders */}
+    {renderDetailModal()}
+    {renderAddPatientModal()}
+    
+    {/* Sidebar */}
+    <div style={{ width: '256px', backgroundColor: 'white', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', borderRight: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Onsite Coordinator</h2>
+        <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Limited Access Dashboard</p>
       </div>
-      
-      {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-            {activeMenuItem === 'dashboard' ? 'Dashboard' : 'Camp Progress'}
-          </h1>
-        </div>
+      <nav style={{ marginTop: '24px' }}>
+        {menuItems.map((item) => (
+          <button 
+            key={item.id} 
+            onClick={() => handleMenuClick(item.id)}
+            style={{
+              width: '100%', 
+              textAlign: 'left', 
+              padding: '12px 24px',
+              fontSize: '18px', 
+              fontWeight: '500', 
+              transition: 'all 0.2s',
+              border: 'none', 
+              cursor: 'pointer',
+              backgroundColor: activeMenuItem === item.id ? '#eff6ff' : 'transparent',
+              borderRight: activeMenuItem === item.id ? '4px solid #3b82f6' : 'none',
+              color: {
+                'text-blue-600': '#2563eb', 
+                'text-indigo-600': '#4f46e5', 
+                'text-red-600': '#dc2626'
+              }[item.color]
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+    
+    {/* Main Content */}
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+          {activeMenuItem === 'dashboard' ? 'Dashboard' : 'Camp Progress'}
+        </h1>
+      </div>
 
-
-        <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-          {activeMenuItem === 'camp-progress' ? (
-            loading ? (
-              <div style={loaderContainerStyle}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={spinnerStyle}></div>
-                  <p style={loadingTextStyle}>Loading camp data...</p>
-                </div>
+      <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+        {activeMenuItem === 'camp-progress' ? (
+          loading ? (
+            <div style={loaderContainerStyle}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={spinnerStyle}></div>
+                <p style={loadingTextStyle}>Loading camp data...</p>
               </div>
-            ) : (
-              renderCampProgressContent()
-            )
+            </div>
           ) : (
-            loading ? (
-              <div style={loaderContainerStyle}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={spinnerStyle}></div>
-                  <p style={loadingTextStyle}>Loading camp data...</p>
-                </div>
-              </div>
-            ) : Array.isArray(data) && data.length > 0 ? (
-              renderDashboardContent()
-            ) : (
-              <div style={loaderContainerStyle}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={emptyStateIcon}></div>
-                  <p style={loadingTextStyle}>No camp data available</p>
-                </div>
-              </div>
-            )
-          )}
-        </div>
+            renderCampProgressContent()
+          )
+        ) : loading ? (
+          <div style={loaderContainerStyle}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={spinnerStyle}></div>
+              <p style={loadingTextStyle}>Loading camp data...</p>
+            </div>
+          </div>
+        ) : Array.isArray(data) && data.length > 0 ? (
+          renderDashboardContent()
+        ) : (
+          <div style={loaderContainerStyle}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={emptyStateIcon}></div>
+              <p style={loadingTextStyle}>No camp data available</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  </div>
   );
 };
 
@@ -1073,6 +1297,15 @@ const statusBadgeStyle = { padding: '2px 8px', borderRadius: '12px', fontSize: '
 const campGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' };
 const campSubText = { fontSize: '14px', color: '#6b7280', marginBottom: '4px' };
 const campInfo = { fontWeight: '500', marginBottom: '4px' };
+const buttonStyle = {
+  padding: '10px 16px',
+  border: 'none',
+  borderRadius: '8px',
+  fontWeight: '500',
+  fontSize: '14px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+};
 
 
 export default OnsiteDashboard;
