@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { submitAudiometryData, fetchPatientData, markServiceCompleted } from './api';
+import { 
+  submitAudiometryData, 
+  fetchPatientData, 
+  markServiceCompleted,
+  fetchAudiometristSignature 
+} from './api';
 import { useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -35,24 +40,23 @@ const AudiometryApp = () => {
     xAxis: '250,500,1000,2000,4000,8000',
   });
 
-  useEffect(() => {
+useEffect(() => {
   if (!patientId) return;
 
-  fetch(`http://127.0.0.1:8000/api/campmanager/patient/${patientId}/`)
-    .then((res) => res.json())
+  fetchPatientData(patientId)
     .then((data) => {
       setFormData(prev => ({
-      ...prev,
-      patient_excel_id: data.patient_excel_id || '',
-      unique_patient_id: data.unique_patient_id || '',
-      PatientId: data.unique_patient_id || '',  // Keep this if used elsewhere
-      PatientName: data.patient_name || '',
-      age: data.age || '',
-      gender: data.gender || '',
-      contact_number: data.contact_number || '',
-      TestDate: data.test_date || '',
-      ReportDate: data.report_date || ''
-    }));
+        ...prev,
+        patient_excel_id: data.patient_excel_id || '',
+        unique_patient_id: data.unique_patient_id || '',
+        PatientId: data.unique_patient_id || '',
+        PatientName: data.patient_name || '',
+        age: data.age || '',
+        gender: data.gender || '',
+        contact_number: data.contact_number || '',
+        TestDate: data.test_date || '',
+        ReportDate: data.report_date || ''
+      }));
     })
     .catch((err) => console.error("❌ Fetch failed:", err));
 }, [patientId]);
@@ -60,15 +64,9 @@ const AudiometryApp = () => {
 useEffect(() => {
   if (!technicianId) return;
 
-  fetch(`http://127.0.0.1:8000/api/technician/audiometrist-signature/?technician_id=${technicianId}`)
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error("Audiometrist signature not found");
-      }
-      return res.json();
-    })
+  fetchAudiometristSignature(technicianId)
     .then((data) => {
-      setSignatureInfo(data);  // contains name, designation, signature_url
+      setSignatureInfo(data);
       console.log("✅ Signature fetched:", data);
     })
     .catch((err) => {
@@ -433,22 +431,11 @@ const handleSaveAndUploadPdf = async (e) => {
 
     // 🔄 Mark service as completed
     if (serviceId && technicianId) {
-      const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patient_id: formData.PatientId,
-          technician_id: technicianId,
-          service_id: serviceId,
-        }),
+      await markServiceCompleted({
+        patient_id: formData.PatientId,
+        technician_id: technicianId,
+        service_id: serviceId,
       });
-
-      if (!completeRes.ok) {
-        const completeData = await completeRes.json();
-        throw new Error(completeData?.message || "Failed to mark service as completed");
-      }
-
-      console.log("✅ Service marked as completed");
     }
 
     setFormData({
