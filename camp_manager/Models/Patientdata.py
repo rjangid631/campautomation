@@ -19,5 +19,8 @@ class PatientData(models.Model):
     pdf_slip = models.FileField(upload_to='pdf_slips/', null=True, blank=True)
     test_date = models.DateField(null=True, blank=True)
 
+    photo = models.ImageField(upload_to='patient_photos/', null=True, blank=True, help_text="Upload patient/employee photo")
+    loan_account_number = models.CharField(max_length=20, null=True, blank=True, help_text="10–20 digit loan account number")
+
     def __str__(self):
         return f"{self.patient_name} ({self.unique_patient_id})"

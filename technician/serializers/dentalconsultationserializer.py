@@ -164,7 +164,7 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
 
             # Pain in teeth numbers
             if dental.pain_teeth_numbers:
-                complaints.append(f"Patient complains of Pain in teeth numbers {dental.pain_teeth_numbers}")
+                complaints.append(f"Patient complains of Pain in teeth {dental.pain_teeth_numbers}")
 
             # Pain in regions
             region_text = ""
@@ -342,6 +342,8 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         # Personal History
         # Personal History
         # --- Personal History Section ---
+        # --- Personal History Section (Show Family History Data) ---
+        # --- Personal History Section ---
         story.append(Paragraph("Personal History:", section_style))
 
         personal_history_parts = []
@@ -366,29 +368,39 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         if consultation.past_surgeries:
             personal_history_parts.append(f'Past surgeries: {consultation.past_surgeries}')
 
+        # Final output for Personal History
         personal_history_text = '<br/>'.join(personal_history_parts) if personal_history_parts else 'N/A'
         story.append(Paragraph(personal_history_text, custom_style))
         story.append(Spacer(1, 10))
+
 
         # --- Family History Section ---
         story.append(Paragraph("Family History:", section_style))
 
         family_history_parts = []
+
         if consultation.family_diabetes == 'yes':
             diabetes_text = 'Family History of diabetes'
             if consultation.family_diabetes_relation:
                 diabetes_text += f' in {consultation.family_diabetes_relation}'
+            if consultation.family_diabetes_years:
+                diabetes_text += f' since {consultation.family_diabetes_years} years'
             family_history_parts.append(diabetes_text)
 
         if consultation.family_hypertension == 'yes':
             hyper_text = 'Family History of Hypertension'
             if consultation.family_hypertension_relation:
                 hyper_text += f' in {consultation.family_hypertension_relation}'
+            if consultation.family_hypertension_years:
+                hyper_text += f' since {consultation.family_hypertension_years} years'
             family_history_parts.append(hyper_text)
 
+        # Final output for Family History
         family_history_text = '<br/>'.join(family_history_parts) if family_history_parts else 'N/A'
         story.append(Paragraph(family_history_text, custom_style))
         story.append(Spacer(1, 10))
+
+
 
         # Oral Examination
         story.append(Paragraph("<b>Oral Examination:</b>", section_style))

@@ -4,6 +4,7 @@ from camp_manager.Models.Camp_manager import CampManager
 from camp_manager.Models.Upload_excel import ExcelUpload
 from camp_manager.Models.Patientdata import PatientData
 from camp_manager.Models.Camp_report import CampReport
+from camp_manager.Models.identity import Identity
 
 # ✅ 1. Custom Admin for CampManager
 class CampManagerAdmin(UserAdmin):
@@ -46,4 +47,11 @@ class PatientDataAdmin(admin.ModelAdmin):
 class CampReportAdmin(admin.ModelAdmin):
     list_display = ('camp', 'google_drive_link', 'uploaded_at')
     search_fields = ('camp__location',)
+    list_filter = ('uploaded_at',)
+
+@admin.register(Identity)
+class IdentityAdmin(admin.ModelAdmin):
+    list_display = ('id', 'patient', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
+    search_fields = ('patient__patient_name',)
     list_filter = ('uploaded_at',)

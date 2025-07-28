@@ -9,6 +9,11 @@ from camp_manager.Models.Patientdata import PatientData
 from camp_manager.Serializers.patientdataserializer import PatientDataSerializer
 import inspect
 from camp_manager.Models.Patientdata import PatientData as CorrectPatientData
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from camp_manager.Models.Patientdata import PatientData
+from camp_manager.Models.identity import Identity
 
 # GET: Patient Details by QR
 @api_view(['GET'])
@@ -40,3 +45,32 @@ def check_in_patient(request, unique_patient_id):
         )
 
     return Response({"message": "Patient checked in, but PDF not found."})
+
+
+class UploadPhotoAndIdentityView(APIView):
+    def post(self, request):
+        unique_patient_id = request.data.get('unique_patient_id')
+        photo = request.FILES.get('photo')
+        identity_file = request.FILES.get('document_file')
+
+        if not unique_patient_id:
+            return Response({'error': 'unique_patient_id is required'}, status=400)
+
+        try:
+            patient = PatientData.objects.get(unique_patient_id=unique_patient_id)
+        except PatientData.DoesNotExist:
+            return Response({'error': 'Patient not found'}, status=404)
+
+        # Save patient photo
+        if photo:
+            patient.photo = photo
+            patient.save()
+
+        # Save identity document
+        if identity_file:
+            Identity.objects.create(
+                patient=patient,
+                document_file=identity_file
+            )
+
+        return Response({'message': 'Photo and identity uploaded successfully'}, status=201)
