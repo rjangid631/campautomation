@@ -609,113 +609,113 @@ const CustomerDashboard = () => {
           </div>
         );
 
-      case 'invoiceHistory':
-        return (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Invoice History</h1>
-                  <p className="text-gray-600 mt-1">Track all your camp invoices and payments</p>
-                </div>
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+      // case 'invoiceHistory':
+      //   return (
+      //     <div className="space-y-6">
+      //       {/* Header */}
+      //       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      //         <div className="flex items-center justify-between">
+      //           <div>
+      //             <h1 className="text-3xl font-bold text-gray-900">Invoice History</h1>
+      //             <p className="text-gray-600 mt-1">Track all your camp invoices and payments</p>
+      //           </div>
+      //           <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+      //             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      //             </svg>
+      //           </div>
+      //         </div>
+      //       </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Camps List */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">Select Camp</h2>
-                  <p className="text-gray-600 mt-1">Choose a camp to view invoice history</p>
-                </div>
-                <div className="p-6 space-y-3 max-h-96 overflow-y-auto">
-                  {camps.filter(camp => camp.ready_to_go).map((camp) => (
-                    <div
-                      key={camp.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
-                        selectedCamp?.id === camp.id 
-                          ? 'border-2 shadow-md' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      style={{
-                        borderColor: selectedCamp?.id === camp.id ? colors.primary : undefined,
-                        backgroundColor: selectedCamp?.id === camp.id ? colors.primary + '05' : 'white'
-                      }}
-                      onClick={() => handleCampSelect(camp)}
-                    >
-                      <h3 className="font-semibold text-gray-900">{camp.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">Date: {camp.date}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      //       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      //         {/* Camps List */}
+      //         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      //           <div className="p-6 border-b border-gray-200">
+      //             <h2 className="text-xl font-semibold text-gray-900">Select Camp</h2>
+      //             <p className="text-gray-600 mt-1">Choose a camp to view invoice history</p>
+      //           </div>
+      //           <div className="p-6 space-y-3 max-h-96 overflow-y-auto">
+      //             {camps.filter(camp => camp.ready_to_go).map((camp) => (
+      //               <div
+      //                 key={camp.id}
+      //                 className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+      //                   selectedCamp?.id === camp.id 
+      //                     ? 'border-2 shadow-md' 
+      //                     : 'border-gray-200 hover:border-gray-300'
+      //                 }`}
+      //                 style={{
+      //                   borderColor: selectedCamp?.id === camp.id ? colors.primary : undefined,
+      //                   backgroundColor: selectedCamp?.id === camp.id ? colors.primary + '05' : 'white'
+      //                 }}
+      //                 onClick={() => handleCampSelect(camp)}
+      //               >
+      //                 <h3 className="font-semibold text-gray-900">{camp.name}</h3>
+      //                 <p className="text-sm text-gray-600 mt-1">Date: {camp.date}</p>
+      //               </div>
+      //             ))}
+      //           </div>
+      //         </div>
 
-              {/* Invoice History */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">Invoice History</h2>
-                  <p className="text-gray-600 mt-1">View and download invoices</p>
-                </div>
-                <div className="p-6">
-                  {selectedCamp ? (
-                    <div className="space-y-4">
-                      {invoiceHistory.map((invoice) => (
-                        <div key={invoice.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-gray-900">{invoice.invoice_no}</h4>
-                              <p className="text-sm text-gray-600 mt-1">Date: {invoice.date}</p>
-                              <p className="text-lg font-bold mt-2" style={{ color: colors.primary }}>
-                                ₹{invoice.amount.toLocaleString()}
-                              </p>
-                            </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium text-white`}
-                            style={{
-                              backgroundColor: invoice.status === 'Paid' ? colors.success :
-                                             invoice.status === 'Pending' ? colors.warning :
-                                             colors.primary
-                            }}>
-                              {invoice.status}
-                            </span>
-                          </div>
-                          <div className="flex space-x-3">
-                            <button 
-                              className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
-                              style={{ backgroundColor: colors.primary }}
-                            >
-                              View Invoice
-                            </button>
-                            <button 
-                              className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
-                              style={{ backgroundColor: colors.success }}
-                            >
-                              Download
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-600">Select a camp to view invoice history</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      //         {/* Invoice History */}
+      //         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      //           <div className="p-6 border-b border-gray-200">
+      //             <h2 className="text-xl font-semibold text-gray-900">Invoice History</h2>
+      //             <p className="text-gray-600 mt-1">View and download invoices</p>
+      //           </div>
+      //           <div className="p-6">
+      //             {selectedCamp ? (
+      //               <div className="space-y-4">
+      //                 {invoiceHistory.map((invoice) => (
+      //                   <div key={invoice.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+      //                     <div className="flex justify-between items-start mb-3">
+      //                       <div className="flex-1">
+      //                         <h4 className="font-semibold text-gray-900">{invoice.invoice_no}</h4>
+      //                         <p className="text-sm text-gray-600 mt-1">Date: {invoice.date}</p>
+      //                         <p className="text-lg font-bold mt-2" style={{ color: colors.primary }}>
+      //                           ₹{invoice.amount.toLocaleString()}
+      //                         </p>
+      //                       </div>
+      //                       <span className={`px-3 py-1 rounded-full text-xs font-medium text-white`}
+      //                       style={{
+      //                         backgroundColor: invoice.status === 'Paid' ? colors.success :
+      //                                        invoice.status === 'Pending' ? colors.warning :
+      //                                        colors.primary
+      //                       }}>
+      //                         {invoice.status}
+      //                       </span>
+      //                     </div>
+      //                     <div className="flex space-x-3">
+      //                       <button 
+      //                         className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
+      //                         style={{ backgroundColor: colors.primary }}
+      //                       >
+      //                         View Invoice
+      //                       </button>
+      //                       <button 
+      //                         className="px-4 py-2 rounded-lg text-white font-medium text-sm transition-colors duration-200 hover:opacity-90"
+      //                         style={{ backgroundColor: colors.success }}
+      //                       >
+      //                         Download
+      //                       </button>
+      //                     </div>
+      //                   </div>
+      //                 ))}
+      //               </div>
+      //             ) : (
+      //               <div className="text-center py-12">
+      //                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+      //                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      //                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      //                   </svg>
+      //                 </div>
+      //                 <p className="text-gray-600">Select a camp to view invoice history</p>
+      //               </div>
+      //             )}
+      //           </div>
+      //         </div>
+      //       </div>
+      //     </div>
+      //   );
 
       case 'reports':
         return (
@@ -907,7 +907,7 @@ const CustomerDashboard = () => {
               {[
                 { key: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
                 { key: 'campProgress', icon: 'progress', label: 'Camp Progress' },
-                { key: 'invoiceHistory', icon: 'invoice', label: 'Invoice History' },
+                // { key: 'invoiceHistory', icon: 'invoice', label: 'Invoice History' },
                 { key: 'reports', icon: 'reports', label: 'Reports' }
               ].map((item) => (
                 <button
@@ -922,7 +922,7 @@ const CustomerDashboard = () => {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {item.key === 'dashboard' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
                     {item.key === 'campProgress' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />}
-                    {item.key === 'invoiceHistory' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
+                    {/* {item.key === 'invoiceHistory' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />} */}
                     {item.key === 'reports' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />}
                   </svg>
                   <span className="font-medium">{item.label}</span>
