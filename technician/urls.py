@@ -10,6 +10,7 @@ from technician.Views.doctorconsultationviewset import DoctorConsultationViewSet
 from technician.Views.optometristviewset import OptometristViewSet
 from technician.Views.optometryviewset import OptometryViewSet  # ✅ Import new viewset
 from technician.Views.getassignedtech import get_technician_assignments
+from technician.Views.pathologyviewset import PathologyViewSet
 from technician.Views.patientreportview import PatientReportLinksView
 from technician.Views.technicains import get_all_technicians
 from technician.Views.technicianlogin import technician_login
@@ -30,6 +31,7 @@ router.register(r'optometrists', OptometristViewSet) # ✅ Register OptometristV
 router.register(r'service-logs', ServiceLogViewSet, basename='service-log')
 router.register(r'dental-consultation', DentalConsultationViewSet, basename='dental-consultation')
 router.register(r'dentists', DentistViewSet, basename='dentists')
+router.register(r'pathology', PathologyViewSet, basename='pathology')
 
 urlpatterns = [
     path('audiometry/upload-frontend-pdf/', UploadFrontendGeneratedPDFView.as_view(), name='upload-frontend-pdf'),

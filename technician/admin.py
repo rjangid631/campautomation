@@ -7,6 +7,7 @@ from technician.Models.dentist import Dentist
 from technician.Models.doctorconsultation import DoctorConsultation
 from technician.Models.doctors import Doctor
 from technician.Models.optometrists import Optometrist
+from technician.Models.pathology import Pathology
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
@@ -167,3 +168,22 @@ class AudiometristAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'designation', 'technician', 'user')
     search_fields = ('name', 'designation', 'technician__user__name', 'user__email')
     list_filter = ('designation',)
+
+@admin.register(Pathology)
+class PathologyAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'patient', 'get_age', 'get_gender',
+        'height', 'weight', 'bp', 'pulse',
+        'rbc', 'hb', 'lipid', 'random_blood_sugar', 'creatinine',
+        'egfr', 'total_bilirubin',
+    )
+    search_fields = ('patient__patient_name', 'patient__unique_patient_id')
+    list_filter = ('patient__gender',)
+
+    def get_age(self, obj):
+        return obj.patient.age
+    get_age.short_description = 'Age'
+
+    def get_gender(self, obj):
+        return obj.patient.gender
+    get_gender.short_description = 'Gender'
