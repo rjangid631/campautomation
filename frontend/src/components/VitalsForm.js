@@ -18,7 +18,12 @@ function VitalsForm() {
     height: "",
     weight: "",
     bp: "",
-    pulse: ""
+    pulse: "",
+    oxygen_saturation: "",
+    body_temperature: "",
+    inhale: "",
+    exhale: "",
+    abdomen: ""
   });
 
   useEffect(() => {
@@ -57,6 +62,18 @@ function VitalsForm() {
     if (formData.pulse && (parseInt(formData.pulse) < 30 || parseInt(formData.pulse) > 300)) {
       errors.push("Pulse should be between 30 and 300 bpm");
     }
+    if (formData.oxygen_saturation && (formData.oxygen_saturation < 0 || formData.oxygen_saturation > 100)) {
+      errors.push("Oxygen saturation should be between 0 and 100%");
+    }
+    if (formData.body_temperature && (formData.body_temperature < 30 || formData.body_temperature > 45)) {
+      errors.push("Body temperature should be between 30°C and 45°C");
+    }
+    if (formData.inhale && formData.inhale < 0) {
+      errors.push("Chest inhale must be a positive number");
+    }
+    if (formData.exhale && formData.exhale < 0) {
+      errors.push("Chest exhale must be a positive number");
+    }
 
     return errors;
   };
@@ -85,6 +102,11 @@ function VitalsForm() {
       if (submitData.height) submitData.height = parseFloat(submitData.height);
       if (submitData.weight) submitData.weight = parseFloat(submitData.weight);
       if (submitData.pulse) submitData.pulse = parseInt(submitData.pulse);
+      if (submitData.oxygen_saturation) submitData.oxygen_saturation = parseFloat(submitData.oxygen_saturation);
+      if (submitData.body_temperature) submitData.body_temperature = parseFloat(submitData.body_temperature);
+      if (submitData.inhale) submitData.inhale = parseFloat(submitData.inhale);
+      if (submitData.exhale) submitData.exhale = parseFloat(submitData.exhale);
+
 
       // 1. Submit vitals data
       const res = await fetch("http://127.0.0.1:8000/api/technician/vitals/", {
@@ -281,6 +303,70 @@ function VitalsForm() {
               </div>
             </div>
           )}
+          {/* Advanced Vitals */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Advanced Vitals</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Oxygen Saturation (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={formData.oxygen_saturation}
+                  onChange={(e) => handleInputChange("oxygen_saturation", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 98.5"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Body Temperature (°C)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="30"
+                  max="45"
+                  value={formData.body_temperature}
+                  onChange={(e) => handleInputChange("body_temperature", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 36.6"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Chest Inhale (sec/liters)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.inhale}
+                  onChange={(e) => handleInputChange("inhale", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 3.5"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-700">Chest Exhale (sec/liters)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.exhale}
+                  onChange={(e) => handleInputChange("exhale", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 2.8"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block mb-2 text-sm font-medium text-gray-700">Abdomen Notes</label>
+                <input
+                  type="text"
+                  value={formData.abdomen}
+                  onChange={(e) => handleInputChange("abdomen", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Soft, non-tender"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Submit */}
           <div className="flex justify-center">

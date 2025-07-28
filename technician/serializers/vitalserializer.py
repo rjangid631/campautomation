@@ -124,14 +124,16 @@ class VitalsSerializer(serializers.ModelSerializer):
 
         vitals_data = [
             ['Parameters', 'Values'],
-            ['Height (in cm)', str(vitals.height) if vitals.height else 'N/A'],
-            ['Weight (in kg)', str(vitals.weight) if vitals.weight else 'N/A'],
+            ['Height (cm)', str(vitals.height) if vitals.height else 'N/A'],
+            ['Weight (kg)', str(vitals.weight) if vitals.weight else 'N/A'],
             ['BMI (kg/m²)', str(bmi) if bmi is not None else 'N/A'],
             ['Blood Pressure (mmHg)', vitals.bp if vitals.bp else 'N/A'],
             ['Pulse (bpm)', str(vitals.pulse) if vitals.pulse else 'N/A'],
-            ['Chest Inhale', vitals.chest_inhale if hasattr(vitals, 'chest_inhale') and vitals.chest_inhale else 'N/A'],
-            ['Chest Exhale', vitals.chest_exhale if hasattr(vitals, 'chest_exhale') and vitals.chest_exhale else 'N/A'],
-            ['Abdomen', vitals.abdomen if hasattr(vitals, 'abdomen') and vitals.abdomen else 'N/A'],
+            ['Oxygen Saturation (%)', str(vitals.oxygen_saturation) if vitals.oxygen_saturation else 'N/A'],
+            ['Body Temperature (°C)', str(vitals.body_temperature) if vitals.body_temperature else 'N/A'],
+            ['Chest Inhale', str(vitals.inhale) if vitals.inhale else 'N/A'],
+            ['Chest Exhale', str(vitals.exhale) if vitals.exhale else 'N/A'],
+            ['Abdomen', vitals.abdomen if vitals.abdomen else 'N/A'],
         ]
 
 
