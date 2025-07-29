@@ -401,6 +401,13 @@ export const apiEndpoints = {
   statusAllCamps: `${BASE_URL}/api/camps/`,
   statusCampDetails: (campId) => `${BASE_URL}/api/technician/camp/${campId}/progress/`,
   audiometristSignature: (technicianId) => `${BASE_URL}/api/technician/audiometrist-signature/?technician_id=${technicianId}`,
+
+  // Add dental endpoints
+  dental: {
+    patientDetails: '/campmanager/patient/',
+    consultation: '/technician/dental-consultation/',
+    finalSubmit: '/technician/submit/'
+  }
 };
 
 // API handlers object
@@ -792,6 +799,40 @@ export const apiService = {
     calculateUniqueTechnicians: (campDetailsMap) => dataProcessors.calculateUniqueTechnicians(campDetailsMap),
     groupCampsByLocation: (camps) => dataProcessors.groupCampsByLocation(camps),
     calculateMetrics: (campDetailsMap) => dataProcessors.calculateMetrics(campDetailsMap),
+  },
+  
+  // Dental services
+  dental: {
+    getPatientDetails: async (patientId) => {
+      try {
+        const response = await api.get(`/campmanager/patient/${patientId}/`);
+        console.log("✅ Patient Data Fetched:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("❌ Error fetching patient details:", error);
+        throw error;
+      }
+    },
+    submitConsultation: async (submissionData) => {
+      try {
+        const response = await api.post('/technician/dental-consultation/', submissionData);
+        console.log('✅ Consultation submission success:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ Error submitting consultation:', error);
+        throw error;
+      }
+    },
+    submitFinal: async (finalPayload) => {
+      try {
+        const response = await api.post('/technician/submit/', finalPayload);
+        console.log('✅ Final submit success:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ Error in final submission:', error);
+        throw error;
+      }
+    }
   },
   
   // Generic methods
