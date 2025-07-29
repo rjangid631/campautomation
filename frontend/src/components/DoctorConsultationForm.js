@@ -9,6 +9,9 @@ import {
   XCircle,
   ArrowLeft
 } from 'lucide-react';
+import api from './api';
+
+const DOCTOR_CONSULTATION_URL = '/technician/doctor-consultation/';
 
 const DoctorConsultationForm = () => {
   const location = useLocation();
@@ -45,7 +48,6 @@ const DoctorConsultationForm = () => {
     unfit_reason: ''
   });
 
-  const API_BASE_URL = 'http://127.0.0.1:8000/api/technician/doctor-consultation/';
 
   useEffect(() => {
     if (!patientId || !patientName) {
@@ -59,8 +61,8 @@ const DoctorConsultationForm = () => {
         setInitialLoading(true);
 
         // Fetch existing consultations
-        const response = await fetch(API_BASE_URL);
-        const consultations = await response.json();
+        const response = await api.get(DOCTOR_CONSULTATION_URL);
+        const consultations = response.data;
 
         const existing = consultations.find(
           c => c.patient_unique_id === patientId || (c.patient?.unique_patient_id === patientId)
@@ -98,9 +100,9 @@ const DoctorConsultationForm = () => {
           }));
         } else {
           // 🩺 Fallback: Fetch patient details if no consultation exists
-          const patientRes = await fetch(`http://127.0.0.1:8000/api/campmanager/patient/${patientId}/`);
+          const patientRes = await api.get(`/campmanager/patient/${patientId}/`);
           if (patientRes.ok) {
-            const data = await patientRes.json();
+            const data = patientRes.data;
             setPatient({
               patient_name: data.patient_name || patientName || 'N/A',
               unique_patient_id: data.unique_patient_id || patientId,
@@ -122,9 +124,9 @@ const DoctorConsultationForm = () => {
         }
 
         // ✅ Fetch doctor information
-        const doctorRes = await fetch('http://127.0.0.1:8000/api/technician/doctors/');
+        const doctorRes = await api.get('/technician/doctors/');
         if (doctorRes.ok) {
-          const doctors = await doctorRes.json();
+          const doctors = doctorRes.data;
           const selectedDoctor = Array.isArray(doctors) ? doctors[0] : doctors;
           setDoctor(selectedDoctor);
         }
@@ -155,10 +157,9 @@ const DoctorConsultationForm = () => {
     setSuccess(false);
 
     try {
-      // Prepare submission data - remove empty strings for optional fields
-      const submitData = { ...formData, technician_id: technicianId};
-      
-      // Fields that should remain as-is (required or have default values)
+      const submitData = { ...formData, technician_id: technicianId };
+
+      // Fields that must stay as-is
       const requiredFields = [
         'patient_unique_id', 
         'has_medical_conditions', 
@@ -167,100 +168,57 @@ const DoctorConsultationForm = () => {
         'fitness_status'
       ];
 
-      // Convert empty strings to empty string (not null) for optional text fields
-      // The serializer will handle empty strings appropriately
+      // Convert null/undefined to empty string for optional fields
       Object.keys(submitData).forEach((key) => {
-        if (!requiredFields.includes(key)) {
-          if (submitData[key] === null || submitData[key] === undefined) {
-            submitData[key] = '';
-          }
+        if (!requiredFields.includes(key) && (submitData[key] === null || submitData[key] === undefined)) {
+          submitData[key] = '';
         }
       });
 
-      // Special handling for conditional fields
-      if (submitData.has_medical_conditions === 'No') {
-        submitData.medical_conditions = '';
-      }
-      if (submitData.has_medications === 'No') {
-        submitData.medications = '';
-      }
-      if (submitData.has_allergies === 'No') {
-        submitData.allergies = '';
-      }
-      if (submitData.fitness_status === 'FIT') {
-        submitData.unfit_reason = '';
-      }
+      // Clear dependent fields based on conditions
+      if (submitData.has_medical_conditions === 'No') submitData.medical_conditions = '';
+      if (submitData.has_medications === 'No') submitData.medications = '';
+      if (submitData.has_allergies === 'No') submitData.allergies = '';
+      if (submitData.fitness_status === 'FIT') submitData.unfit_reason = '';
 
       console.log("Submitting consultation payload:", submitData);
 
-      // 1. Submit or Update Doctor Consultation Data
-      const method = isEditing ? 'PUT' : 'POST';
-      const url = isEditing ? `${API_BASE_URL}${existingConsultationId}/` : API_BASE_URL;
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error Response:', errorData);
-        
-        // Handle validation errors
-        if (errorData.patient_unique_id) {
-          throw new Error(errorData.patient_unique_id[0] || errorData.patient_unique_id);
-        }
-        if (errorData.doctor) {
-          throw new Error(errorData.doctor[0] || errorData.doctor);
-        }
-        if (errorData.detail) {
-          throw new Error(errorData.detail);
-        }
-        if (errorData.message) {
-          throw new Error(errorData.message);
-        }
-        
-        throw new Error('Failed to submit consultation');
+      // 🔁 Submit or update consultation via Axios
+      let response;
+      if (isEditing) {
+        response = await api.put(`/technician/doctor-consultation/${existingConsultationId}/`, submitData);
+      } else {
+        response = await api.post('/technician/doctor-consultation/', submitData);
       }
 
-      const result = await response.json();
+      const result = response.data;
       console.log(`✅ Doctor consultation ${isEditing ? 'updated' : 'created'} successfully:`, result);
 
-      // 2. Mark Service as Completed (if serviceId and technicianId are provided)
+      // ✅ Mark service as completed
       if (serviceId && technicianId) {
-        const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patient_id: patientId,
-            technician_id: technicianId,
-            service_id: serviceId,
-          }),
+        const completeResponse = await api.post('/technician/submit/', {
+          patient_id: patientId,
+          technician_id: technicianId,
+          service_id: serviceId,
         });
 
-        if (!completeRes.ok) {
-          const completeData = await completeRes.json();
-          throw new Error(completeData?.message || "Failed to mark service as completed");
-        }
-
-        console.log("✅ Service marked as completed");
+        console.log("✅ Service marked as completed:", completeResponse.data);
       }
 
       setSuccess(true);
-      
-      // Navigate back after successful submission
+
+      // ⏳ Navigate back after 2 seconds
       setTimeout(() => {
         navigate(-1);
       }, 2000);
-
     } catch (err) {
-      console.error('Submission error:', err);
-      setError(err.message || 'Something went wrong.');
+      console.error('❌ Submission error:', err);
+      setError(err.response?.data?.message || err.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleBack = () => {
     navigate(-1);
