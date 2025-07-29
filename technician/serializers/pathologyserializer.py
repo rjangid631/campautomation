@@ -21,6 +21,15 @@ class PathologySerializer(serializers.ModelSerializer):
             patient = PatientData.objects.get(unique_patient_id=unique_id)
         except PatientData.DoesNotExist:
             raise serializers.ValidationError({'patient_unique_id': 'Patient not found with this ID'})
-        
-        pathology = Pathology.objects.create(patient=patient, **validated_data)
-        return pathology
+
+        # Check if pathology already exists
+        existing_pathology = Pathology.objects.filter(patient=patient).first()
+        if existing_pathology:
+            for attr, value in validated_data.items():
+                setattr(existing_pathology, attr, value)
+            existing_pathology.save()
+            return existing_pathology
+
+        # Create new if not exists
+        return Pathology.objects.create(patient=patient, **validated_data)
+
