@@ -30,6 +30,7 @@ class Pathology(models.Model):
     creatinine = models.FloatField(null=True, blank=True)
     egfr = models.FloatField(null=True, blank=True)
     total_bilirubin = models.FloatField(null=True, blank=True)
+    report = models.FileField(upload_to='pathology_reports/', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
