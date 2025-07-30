@@ -27,6 +27,7 @@ class Vitals(models.Model):
     protein_mass = models.FloatField(null=True, blank=True)
 
     pdf_report = models.FileField(upload_to='vitals_reports/', null=True, blank=True)
+    bmr_pdf = models.FileField(upload_to='bmr_reports/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property

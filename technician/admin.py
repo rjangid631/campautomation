@@ -8,6 +8,7 @@ from technician.Models.doctorconsultation import DoctorConsultation
 from technician.Models.doctors import Doctor
 from technician.Models.optometrists import Optometrist
 from technician.Models.pathology import Pathology
+from technician.Models.smartreport import SmartReport
 from technician.Models.technician import Technician
 from technician.Models.servicestatus import ServiceStatus
 from technician.Models.technicianserviceassignment import TechnicianServiceAssignment
@@ -186,3 +187,6 @@ class PathologyAdmin(admin.ModelAdmin):
     def get_gender(self, obj):
         return obj.patient.gender
     get_gender.short_description = 'Gender'
+
+
+admin.site.register(SmartReport)

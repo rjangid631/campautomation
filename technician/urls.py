@@ -12,12 +12,14 @@ from technician.Views.optometryviewset import OptometryViewSet  # ✅ Import new
 from technician.Views.getassignedtech import get_technician_assignments
 from technician.Views.pathologyviewset import PathologyViewSet
 from technician.Views.patientreportview import PatientReportLinksView
+from technician.Views.smartreportview import SmartReportDataView
 from technician.Views.technicains import get_all_technicians
 from technician.Views.technicianlogin import technician_login
 from technician.Views.getassigned import get_assigned_patients
 from technician.Views.mark_service import get_camp_progress, get_patient_service_summary, mark_service_done
 from technician.Views.assigntechnician import assign_technicians, assign_technicians_to_package
 from technician.Views.uploadaudiometry import UploadFrontendGeneratedPDFView
+from technician.Views.uploadsmartreport import UploadSmartReportPDF
 from technician.Views.vitalsviewset import VitalsViewSet
 from technician.Views.servicelogviewset import ServiceLogViewSet
 
@@ -47,5 +49,7 @@ urlpatterns = [
     path('patient/<str:patient_id>/summary/', get_patient_service_summary, name='get_patient_service_summary'),
     path('report-links/<int:camp_id>/', PatientReportLinksView.as_view(), name='report-links'),
     path('audiometrist-signature/', AudiometristSignatureView.as_view(), name='audiometrist-signature'),
+    path('smart-report/<str:patient_id>/', SmartReportDataView.as_view(), name='smart_report'),
+    path('smart-report/upload/', UploadSmartReportPDF.as_view(), name='upload_smart_report'),
 ]
 
