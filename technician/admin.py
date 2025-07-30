@@ -173,9 +173,8 @@ class AudiometristAdmin(admin.ModelAdmin):
 class PathologyAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'patient', 'get_age', 'get_gender',
-        'height', 'weight', 'bp', 'pulse',
-        'rbc', 'hb', 'lipid', 'random_blood_sugar', 'creatinine',
-        'egfr', 'total_bilirubin',
+        'rbc', 'hb', 'random_blood_sugar', 'creatinine',
+        'egfr', 'total_bilirubin', 'total_cholesterol', 'report', 'created_at'
     )
     search_fields = ('patient__patient_name', 'patient__unique_patient_id')
     list_filter = ('patient__gender',)
