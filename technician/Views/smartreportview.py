@@ -22,10 +22,11 @@ class SmartReportDataView(APIView):
 
             data = {
                 "patient": {
+                    "unique_patient_id": patient.unique_patient_id,
                     "name": patient.patient_name,
                     "age": patient.age,
                     "gender": patient.gender,
-                    "camp_name": patient.camp.camp_name if patient.camp else None,
+                    # "camp_name": patient.camp.camp_name if patient.camp else None,
                 },
                 "vitals": {
                     "height": vitals.height,
