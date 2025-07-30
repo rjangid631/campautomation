@@ -92,6 +92,17 @@ function PatientStatus({ onBack }) {
 
   // Function to get service status for matrix display
   const getServiceStatus = (patient, serviceName) => {
+
+    // Special handling for Registration - if patient is checked in, registration is done
+    if (serviceName === 'Registration') {
+      return {
+        service_name: 'Registration',
+        is_completed: patient.checked_in || false,
+        technician_name: patient.checked_in ? 'Front Desk' : null,
+        last_updated: patient.checked_in ? new Date().toISOString() : null
+      };
+    }
+
     if (!patient.services || patient.services.length === 0) return null;
     
     // Try to find exact match first
@@ -201,6 +212,7 @@ function PatientStatus({ onBack }) {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8fafc' }}>
