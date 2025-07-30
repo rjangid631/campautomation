@@ -11,7 +11,7 @@ from technician.Models.smartreport import SmartReport
 class SmartReportDataView(APIView):
     def get(self, request, patient_id):
         try:
-            patient = PatientData.objects.get(patient_unique_id=patient_id)
+            patient = PatientData.objects.get(unique_patient_id=patient_id)
             vitals = Vitals.objects.get(patient=patient)
             pathology = Pathology.objects.get(patient=patient)
 
