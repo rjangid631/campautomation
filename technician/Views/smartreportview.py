@@ -17,7 +17,7 @@ class SmartReportDataView(APIView):
 
             bmr_base64 = None
             if vitals.pdf_report:
-                with open(vitals.pdf_report.path, "rb") as f:
+                with open(vitals.bmr_pdf.path, "rb") as f:
                     bmr_base64 = base64.b64encode(f.read()).decode("utf-8")
 
             data = {
@@ -26,6 +26,7 @@ class SmartReportDataView(APIView):
                     "name": patient.patient_name,
                     "age": patient.age,
                     "gender": patient.gender,
+                    "photo_url": request.build_absolute_uri(patient.photo.url) if patient.photo else None,
                     # "camp_name": patient.camp.camp_name if patient.camp else None,
                 },
                 "vitals": {

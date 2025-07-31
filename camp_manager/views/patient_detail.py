@@ -52,6 +52,7 @@ class UploadPhotoAndIdentityView(APIView):
         unique_patient_id = request.data.get('unique_patient_id')
         photo = request.FILES.get('photo')
         identity_file = request.FILES.get('document_file')
+        loan_file = request.FILES.get('loan_document_file')  # ✅ NEW
 
         if not unique_patient_id:
             return Response({'error': 'unique_patient_id is required'}, status=400)
@@ -66,11 +67,12 @@ class UploadPhotoAndIdentityView(APIView):
             patient.photo = photo
             patient.save()
 
-        # Save identity document
-        if identity_file:
+        # Save identity (and optionally loan) document
+        if identity_file or loan_file:
             Identity.objects.create(
                 patient=patient,
-                document_file=identity_file
+                document_file=identity_file,
+                loan_document_file=loan_file  # ✅ Include loan doc
             )
 
-        return Response({'message': 'Photo and identity uploaded successfully'}, status=201)
+        return Response({'message': 'Photo and documents uploaded successfully'}, status=status.HTTP_201_CREATED)
