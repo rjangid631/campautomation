@@ -22,6 +22,7 @@ import {
   List,
   LayoutGrid
 } from 'lucide-react';
+import api from './api';
 
 const colors = {
   aqua: '#0cc0df',
@@ -60,8 +61,9 @@ function PatientStatus({ onBack }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:8000/api/campmanager/all-patients-with-services/');
-      
+
+      const response = await api.get('/campmanager/all-patients-with-services/');
+
       if (response.data && response.data.patients && Array.isArray(response.data.patients)) {
         setPatients(response.data.patients);
       } else if (Array.isArray(response.data)) {

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import api from './api';
 
 function OptometryForm() {
   const location = useLocation();
   const navigate = useNavigate();
+  const OPTOMETRY_URL = '/technician/optometry/';
+  const SUBMIT_SERVICE_URL = '/technician/submit/';
 
   const { patientId, patientName, technicianId, serviceId } = location.state || {};
 
@@ -144,56 +147,47 @@ function OptometryForm() {
 
   const handleSubmit = async () => {
     setLoading(true);
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     try {
-      const submitData = { ...formData,technician_id: technicianId };
+      // 📝 Prepare form data
+      const submitData = { ...formData, technician_id: technicianId };
 
-      // Convert empty strings to null (except for some fields)
+      // Fields that should NOT be set to null
+      const preservedFields = ["patient_unique_id", "color_vision_normal"];
+
+      // Replace empty strings with null for all other fields
       Object.keys(submitData).forEach((key) => {
-        if (!["patient_unique_id", "color_vision_normal"].includes(key)) {
-          if (submitData[key] === "") submitData[key] = null;
+        if (!preservedFields.includes(key) && submitData[key] === '') {
+          submitData[key] = null;
         }
       });
 
-      // 1. Submit Optometry Data
-      const res = await fetch("http://127.0.0.1:8000/api/technician/optometry/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submitData),
-      });
+      console.log("📤 Submitting optometry data:", submitData);
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data?.message || "Failed to save optometry data");
-      }
+      // 🔁 POST: Submit optometry data
+      const response = await api.post(OPTOMETRY_URL, submitData);
+      console.log("✅ Optometry data submitted:", response.data);
 
-      console.log("✅ Optometry data submitted");
-
-      // 2. Mark Service as Completed
-      const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // ✅ Mark service as completed
+      if (patientId && technicianId && serviceId) {
+        const completePayload = {
           patient_id: patientId,
           technician_id: technicianId,
           service_id: serviceId,
-        }),
-      });
+        };
 
-      if (!completeRes.ok) {
-        const data = await completeRes.json();
-        throw new Error(data?.message || "Failed to mark service as completed");
+        const completeRes = await api.post(SUBMIT_SERVICE_URL, completePayload);
+        console.log("✅ Service marked as completed:", completeRes.data);
       }
 
-      console.log("✅ Service marked as completed");
-
+      // ✅ Show success
       setSuccess("Optometry data saved and service marked as completed!");
       setTimeout(() => navigate(-1), 2000);
-
     } catch (err) {
-      setError(err.message || "Error submitting form");
+      console.error("❌ Submission error:", err);
+      setError(err.response?.data?.message || err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
