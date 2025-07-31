@@ -50,6 +50,6 @@ urlpatterns = [
     path('report-links/<int:camp_id>/', PatientReportLinksView.as_view(), name='report-links'),
     path('audiometrist-signature/', AudiometristSignatureView.as_view(), name='audiometrist-signature'),
     path('smart-report/<str:patient_id>/', SmartReportDataView.as_view(), name='smart_report'),
-    path('smart-report/upload/', UploadSmartReportPDF.as_view(), name='upload_smart_report'),
+    path('smart-report-upload/', UploadSmartReportPDF.as_view(), name='upload_smart_report'),
 ]
 

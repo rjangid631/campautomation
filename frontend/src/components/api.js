@@ -1125,6 +1125,7 @@ export const onsiteAPI = {
       gender: formData.gender,
       phone: formData.phone.trim(),
       services: formData.services.split(',').map(s => s.trim()).filter(s => s),
+      load_number: formData.load_number || null,
       package_id: selectedPackage.id,
       camp_id: selectedCamp.id
     };

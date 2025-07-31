@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
+import api from './api';
+
+
+const PathologyFormurl = '/technician/pathology';
 
 function PathologyForm() {
   const location = useLocation();
@@ -10,25 +14,6 @@ function PathologyForm() {
   const [formData, setFormData] = useState({
     name: patientName || '',
     id: patientId || '',
-    age: '',
-    gender: 'male',
-    height: '',
-    weight: '',
-    bp: '',
-    pulse: '',
-    bodyTemperature: '',
-    bodyFat: '',
-    visceralRate: '',
-    bmr: '',
-    muscleMass: '',
-    muscleRate: '',
-    skeletalMuscle: '',
-    boneMass: '',
-    proteinRate: '',
-    proteinMass: '',
-    oxygenSaturation: '',
-    heartRate: '',
-    lipid: '',
     rbc: '',
     hb: '',
     randomBloodSugar: '',
@@ -36,6 +21,7 @@ function PathologyForm() {
     egfr: '',
     totalBilirubin: ''
   });
+
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,7 +43,7 @@ function PathologyForm() {
     });
   };
 
-  const getReportHTML = () => {
+const getReportHTML = () => {
     return `
       <!DOCTYPE html>
       <html>
@@ -276,16 +262,6 @@ function PathologyForm() {
                 </div>
                 <table class="test-table">
                   <tr>
-                    <td>Direct Bilirubin</td>
-                    <td>${formData.totalBilirubin || '0'}</td>
-                    <td>0.2 - 1.2 mg/dL</td>
-                  </tr>
-                  <tr>
-                    <td>Indirect Bilirubin</td>
-                    <td>0</td>
-                    <td>0.0 - 0.3 mg/dL</td>
-                  </tr>
-                  <tr>
                     <td>Total Bilirubin</td>
                     <td>${formData.totalBilirubin || '0'}</td>
                     <td>0.1 - 1.0 mg/dL</td>
@@ -359,31 +335,6 @@ function PathologyForm() {
                     <td>${formData.rbc || '0'}</td>
                     <td>4.5</td>
                   </tr>
-                  <tr>
-                    <td></td>
-                    <td></td>
-                    <td>Mcells/mcL</td>
-                  </tr>
-                  <tr>
-                    <td>PCV</td>
-                    <td>0</td>
-                    <td>36-48 %</td>
-                  </tr>
-                  <tr>
-                    <td>MCV</td>
-                    <td>0</td>
-                    <td>80-100 fL</td>
-                  </tr>
-                  <tr>
-                    <td>MCH</td>
-                    <td>0</td>
-                    <td>27-33 pg</td>
-                  </tr>
-                  <tr>
-                    <td>MCHC</td>
-                    <td>0</td>
-                    <td>32-36 g/dL</td>
-                  </tr>
                 </table>
               </div>
               
@@ -400,7 +351,7 @@ function PathologyForm() {
               </div>
               
               <!-- Cardiovascular Risk -->
-              <div class="cardiovascular-section">
+              <!--<div class="cardiovascular-section">
                 <div class="cardio-header">
                   <div class="organ-icon heart-icon">🫀</div>
                   <div class="section-title">CARDIOVASCULAR<br>RISK</div>
@@ -448,6 +399,7 @@ function PathologyForm() {
                   </tr>
                 </table>
               </div>
+              -->
             </div>
           </div>
         </div>
@@ -455,6 +407,8 @@ function PathologyForm() {
       </html>
     `;
   };
+
+
 
   const generatePDFBlob = async () => {
     try {
@@ -473,7 +427,7 @@ function PathologyForm() {
         })
         .from(element)
         .outputPdf('blob');
-
+      console.log('PDF Blob generated successfully');
       document.body.removeChild(element);
       return pdfBlob;
     } catch (error) {
@@ -485,57 +439,38 @@ function PathologyForm() {
   const saveToAPI = async (pdfBlob) => {
     try {
       const formDataAPI = new FormData();
-      
-      // Append form data
+  
+      // Required API fields
       formDataAPI.append('patient_unique_id', formData.id);
-      formDataAPI.append('height', formData.height || '');
-      formDataAPI.append('weight', formData.weight || '');
-      formDataAPI.append('bp', formData.bp || '');
-      formDataAPI.append('pulse', formData.pulse || '');
-      formDataAPI.append('body_temperature', formData.bodyTemperature || '');
-      formDataAPI.append('body_fat', formData.bodyFat || '');
-      formDataAPI.append('visceral_rate', formData.visceralRate || '');
-      formDataAPI.append('bmr', formData.bmr || '');
-      formDataAPI.append('muscle_mass', formData.muscleMass || '');
-      formDataAPI.append('muscle_rate', formData.muscleRate || '');
-      formDataAPI.append('skeletal_muscle', formData.skeletalMuscle || '');
-      formDataAPI.append('bone_mass', formData.boneMass || '');
-      formDataAPI.append('protein_rate', formData.proteinRate || '');
-      formDataAPI.append('protein_mass', formData.proteinMass || '');
-      formDataAPI.append('oxygen_saturation', formData.oxygenSaturation || '');
-      formDataAPI.append('heart_rate', formData.heartRate || '');
-      formDataAPI.append('lipid', formData.lipid || '');
       formDataAPI.append('rbc', formData.rbc || '');
       formDataAPI.append('hb', formData.hb || '');
       formDataAPI.append('random_blood_sugar', formData.randomBloodSugar || '');
       formDataAPI.append('creatinine', formData.creatinine || '');
       formDataAPI.append('egfr', formData.egfr || '');
       formDataAPI.append('total_bilirubin', formData.totalBilirubin || '');
-      
-      // Append technician and service IDs
-      if (technicianId) formDataAPI.append('technician_id', technicianId);
-      if (serviceId) formDataAPI.append('service_id', serviceId);
-      
-      // Append PDF file
+  
+      // PDF Report File
       const pdfFile = new File([pdfBlob], 'health_report.pdf', { type: 'application/pdf' });
       formDataAPI.append('report', pdfFile);
-
+  
       const response = await fetch('http://127.0.0.1:8000/api/technician/pathology/', {
         method: 'POST',
         body: formDataAPI,
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save pathology data');
       }
-
+  
+      console.log('Data saved successfully:', response);
       return await response.json();
     } catch (error) {
       console.error('Error saving to API:', error);
       throw error;
     }
-  };
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -583,202 +518,62 @@ function PathologyForm() {
         
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            
-            {/* Basic Information */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3 style={{ color: '#555', borderBottom: '2px solid #007bff', paddingBottom: '5px' }}>Basic Information</h3>
-            </div>
-            
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Name *</label>
-              <input
-                required
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                readOnly={!!patientName}
-                style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '14px',
-                  backgroundColor: patientName ? '#f9f9f9' : 'white'
-                }}
-              />
-            </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>ID *</label>
-              <input
-                required
-                type="text"
-                name="id"
-                value={formData.id}
-                onChange={handleChange}
-                readOnly={!!patientId}
-                style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px', 
-                  fontSize: '14px',
-                  backgroundColor: patientId ? '#f9f9f9' : 'white'
-                }}
-              />
-            </div>
+  {/* Patient Information */}
+  <div style={{ gridColumn: '1 / -1' }}>
+    <h3 style={{ color: '#555', borderBottom: '2px solid #007bff', paddingBottom: '5px' }}>Patient Details</h3>
+  </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Age *</label>
-              <input
-                required
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-              />
-            </div>
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Patient Name</label>
+    <input
+      type="text"
+      name="name"
+      value={formData.name}
+      onChange={handleChange}
+      readOnly
+      style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', backgroundColor: '#f9f9f9' }}
+    />
+  </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Gender *</label>
-              <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={formData.gender === 'male'}
-                    onChange={handleChange}
-                  />
-                  Male
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={formData.gender === 'female'}
-                    onChange={handleChange}
-                  />
-                  Female
-                </label>
-              </div>
-            </div>
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Patient ID</label>
+    <input
+      type="text"
+      name="id"
+      value={formData.id}
+      onChange={handleChange}
+      readOnly
+      style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', backgroundColor: '#f9f9f9' }}
+    />
+  </div>
 
-            {/* Physical Measurements */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3 style={{ color: '#555', borderBottom: '2px solid #28a745', paddingBottom: '5px' }}>Physical Measurements</h3>
-            </div>
+  {/* Lab Test Fields */}
+  <div style={{ gridColumn: '1 / -1' }}>
+    <h3 style={{ color: '#555', borderBottom: '2px solid #28a745', paddingBottom: '5px' }}>Lab Test Results</h3>
+  </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Height (cm) *</label>
-              <input
-                required
-                type="number"
-                name="height"
-                value={formData.height}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>Weight (kg) *</label>
-              <input
-                required
-                type="number"
-                name="weight"
-                value={formData.weight}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-              />
-            </div>
-
-            {/* Vital Signs */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3 style={{ color: '#555', borderBottom: '2px solid #dc3545', paddingBottom: '5px' }}>Vital Signs</h3>
-            </div>
-
-            {[
-              { name: 'bp', label: 'Blood Pressure', placeholder: 'e.g., 120/80' },
-              { name: 'pulse', label: 'Pulse (bpm)' },
-              { name: 'bodyTemperature', label: 'Body Temperature (°F)' },
-              { name: 'heartRate', label: 'Heart Rate (bpm)' },
-              { name: 'oxygenSaturation', label: 'Oxygen Saturation (%)' }
-            ].map((field) => (
-              <div key={field.name}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>{field.label} *</label>
-                <input
-                  required
-                  type="text"
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={handleChange}
-                  placeholder={field.placeholder}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-                />
-              </div>
-            ))}
-
-            {/* Body Composition */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3 style={{ color: '#555', borderBottom: '2px solid #ffc107', paddingBottom: '5px' }}>Body Composition</h3>
-            </div>
-
-            {[
-              { name: 'bodyFat', label: 'Body Fat (%)' },
-              { name: 'visceralRate', label: 'Visceral Rate' },
-              { name: 'bmr', label: 'BMR (kcal)' },
-              { name: 'muscleMass', label: 'Muscle Mass (kg)' },
-              { name: 'muscleRate', label: 'Muscle Rate (%)' },
-              { name: 'skeletalMuscle', label: 'Skeletal Muscle (kg)' },
-              { name: 'boneMass', label: 'Bone Mass (kg)' },
-              { name: 'proteinRate', label: 'Protein Rate (%)' },
-              { name: 'proteinMass', label: 'Protein Mass (kg)' }
-            ].map((field) => (
-              <div key={field.name}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>{field.label} *</label>
-                <input
-                  required
-                  type="text"
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-                />
-              </div>
-            ))}
-
-            {/* Laboratory Tests */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3 style={{ color: '#555', borderBottom: '2px solid #6f42c1', paddingBottom: '5px' }}>Laboratory Tests</h3>
-            </div>
-
-            {[
-              { name: 'lipid', label: 'Total Cholesterol (mg/dL)' },
-              { name: 'rbc', label: 'RBC Count' },
-              { name: 'hb', label: 'Hemoglobin (g/dL)' },
-              { name: 'randomBloodSugar', label: 'Random Blood Sugar (mg/dL)' },
-              { name: 'creatinine', label: 'Creatinine (mg/dL)' },
-              { name: 'egfr', label: 'eGFR (mL/min/1.73m²)' },
-              { name: 'totalBilirubin', label: 'Total Bilirubin (mg/dL)' }
-            ].map((field) => (
-              <div key={field.name}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>{field.label} *</label>
-                <input
-                  required
-                  type="text"
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={handleChange}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
-                />
-              </div>
-            ))}
-
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '30px' }}>
+  {[
+    { name: 'rbc', label: 'RBC Count' },
+    { name: 'hb', label: 'Hemoglobin (Hb)' },
+    { name: 'randomBloodSugar', label: 'Random Blood Sugar (mg/dL)' },
+    { name: 'creatinine', label: 'Creatinine (mg/dL)' },
+    { name: 'egfr', label: 'eGFR (mL/min)' },
+    { name: 'totalBilirubin', label: 'Total Bilirubin (mg/dL)' }
+  ].map((field) => (
+    <div key={field.name}>
+      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>{field.label}</label>
+      <input
+        type="text"
+        name={field.name}
+        value={formData[field.name]}
+        onChange={handleChange}
+        style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
+      />
+    </div>
+  ))}
+</div>
+<div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '30px' }}>
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -803,7 +598,7 @@ function PathologyForm() {
                 {isSubmitting ? 'Processing...' : 'Generate & Download PDF Report'}
               </button>
             </div>
-          </div>
+
         </div>
       </div>
     </form>
