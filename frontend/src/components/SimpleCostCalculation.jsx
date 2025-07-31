@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import { AppContext } from '../App';
+import api from './api';
 // write by shyam 
 function SimpleCostCalculation() {
   const {
@@ -29,8 +30,8 @@ function SimpleCostCalculation() {
     const fetchServiceData = async () => {
       try {
         const [priceResponse, subserviceResponse] = await Promise.all([
-          axios.get('http://127.0.0.1:8000/api/prices/'),
-          axios.get('http://127.0.0.1:8000/api/service_costs/'),
+          api.get('/prices/'),
+          api.get('/service_costs/'),
         ]);
 
         console.log("📦 priceResponse.data:", priceResponse.data);
@@ -123,7 +124,7 @@ function SimpleCostCalculation() {
 
   const handleCouponSubmit = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/validate-coupon/${couponCode}/`);
+      const response = await api.get(`/validate-coupon/${couponCode}/`);
       setDiscount(response.data.discount_percentage);
       setError('');
     } catch (error) {
@@ -151,7 +152,7 @@ function SimpleCostCalculation() {
     };
 
     try {
-      await axios.post('http://127.0.0.1:8000/api/cost_details/', postData);
+      await api.post('/cost_details/', postData);
       handleFinalSubmit();
     } catch (error) {
       console.error('Error posting data:', error);
