@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import api from "./api"; 
 
 // Moved InputBlock outside to prevent re-renders
 function InputBlock({ label, field, type = "text", placeholder, value, onChange }) {
@@ -98,7 +99,7 @@ function VitalsForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Submit button clicked!");
-    
+
     setLoading(true);
     setError("");
     setSuccess("");
@@ -111,24 +112,19 @@ function VitalsForm() {
     }
 
     try {
-      // Create FormData for multipart/form-data submission
       const formPayload = new FormData();
 
-      // Add patient ID (required field)
       formPayload.append("patient_unique_id", formData.patient_unique_id);
 
-      // Add all other fields, converting empty strings to null and handling numeric conversion
       const numericFields = [
         'height', 'weight', 'pulse', 'oxygen_saturation', 'body_temperature',
         'inhale', 'exhale', 'heart_rate', 'body_fat', 'visceral_rate', 'bmr',
         'muscle_mass', 'muscle_rate', 'skeletal_muscle', 'bone_mass', 'protein_rate', 'protein_mass'
       ];
 
-      // Handle numeric fields
       numericFields.forEach(field => {
         const value = formData[field];
         if (value && value.toString().trim() !== "") {
-          // Convert to appropriate numeric type
           if (field === 'pulse') {
             formPayload.append(field, parseInt(value));
           } else {
@@ -137,7 +133,6 @@ function VitalsForm() {
         }
       });
 
-      // Handle text fields
       if (formData.bp && formData.bp.trim()) {
         formPayload.append("bp", formData.bp.trim());
       }
@@ -145,48 +140,32 @@ function VitalsForm() {
         formPayload.append("abdomen", formData.abdomen.trim());
       }
 
-      // Handle file upload
       if (formData.bmr_pdf && formData.bmr_pdf instanceof File) {
         formPayload.append("bmr_pdf", formData.bmr_pdf);
         console.log("📎 BMR PDF file added to form data:", formData.bmr_pdf.name);
       }
 
       console.log("Submitting form data...");
-      
-      // Log FormData contents for debugging
       for (let [key, value] of formPayload.entries()) {
         console.log(`${key}:`, value);
       }
 
-      // Submit vitals data with file
-      const res = await fetch("http://127.0.0.1:8000/api/technician/vitals/", {
-        method: "POST",
-        body: formPayload, // Don't set Content-Type header - let browser set it for multipart/form-data
+      // ✅ Submit vitals data
+      const vitalsRes = await api.post('/technician/vitals/', formPayload, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ message: "Failed to parse error response" }));
-        throw new Error(data?.message || `HTTP ${res.status}: Failed to save vitals data`);
-      }
+      console.log("✅ Vitals data submitted");
 
-      console.log("✅ Vitals data submitted (including BMR file if provided)");
-
-      // Mark service as completed (only if serviceId is provided)
+      // ✅ Mark service as completed
       if (serviceId && technicianId) {
-        const completeRes = await fetch("http://127.0.0.1:8000/api/technician/submit/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patient_id: patientId,
-            technician_id: technicianId,
-            service_id: serviceId,
-          }),
+        const completeRes = await api.post('/technician/submit/', {
+          patient_id: patientId,
+          technician_id: technicianId,
+          service_id: serviceId,
         });
-
-        if (!completeRes.ok) {
-          const data = await completeRes.json().catch(() => ({ message: "Failed to parse error response" }));
-          throw new Error(data?.message || `HTTP ${completeRes.status}: Failed to mark service as completed`);
-        }
 
         console.log("✅ Service marked as completed");
         setSuccess("Vitals data saved and service marked as completed!");
@@ -194,12 +173,11 @@ function VitalsForm() {
         setSuccess("Vitals data saved successfully!");
       }
 
-      // Navigate back after a delay
       setTimeout(() => navigate(-1), 2000);
 
     } catch (err) {
       console.error("Submit error:", err);
-      setError(err.message || "Error submitting form");
+      setError(err.response?.data?.message || err.message || "Error submitting form");
     } finally {
       setLoading(false);
     }
