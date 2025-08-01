@@ -3,6 +3,11 @@ import html2pdf from "html2pdf.js";
 import axios from "axios";
 import { onsiteAPI, onsiteUtils } from './api';
 import { useNavigate } from 'react-router-dom';
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.js';
+import QRCode from 'qrcode';
+
 
 
 const OnsiteDashboard = () => {
@@ -70,9 +75,60 @@ const handlePhotoChange = (e) => {
   setPhotoFile(e.target.files[0]);
 };
 
+GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const convertBase64PdfToImage = async (base64) => {
+  const pdfData = atob(base64);
+  const uint8Array = new Uint8Array([...pdfData].map(char => char.charCodeAt(0)));
+  const loadingTask = getDocument({ data: uint8Array });
+
+  const pdf = await loadingTask.promise;
+  const page = await pdf.getPage(1);
+
+  const scale = 2;
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  const context = canvas.getContext("2d");
+  await page.render({ canvasContext: context, viewport }).promise;
+
+  return canvas.toDataURL("image/png");
+};
 
 
+const generateQRCodeBase64 = async (patient) => {
+  const patientInfo = `Patient ID: ${patient.unique_patient_id}
+  Name: ${patient.name}
+  Age: ${patient.age}
+  Gender: ${patient.gender}`;
 
+  try {
+    console.log("Generating QR Code for:", patientInfo);
+    
+    // Check if QRCode library exists
+    if (typeof QRCode === 'undefined') {
+      throw new Error("QRCode library not loaded");
+    }
+    
+    const qrCode = await QRCode.toDataURL(patientInfo, {
+      width: 120,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    
+    console.log("QR Code generated successfully");
+    return qrCode;
+  } catch (err) {
+    console.error("QR generation error:", err);
+    // Return a placeholder or throw the error instead of empty string
+    throw err;
+  }
+};
 
 const handleSmartReportGenerate = async (patient) => {
   try {
@@ -84,49 +140,388 @@ const handleSmartReportGenerate = async (patient) => {
     // 2. Create temporary div for 3-page PDF
     const container = document.createElement("div");
 
-    // ----------- PAGE 1: PATIENT DETAILS -----------
+        // Helper function to safely get values with fallbacks
+    const getValue = (value, fallback = 'N/A', unit = '') => {
+      if (value === null || value === undefined || value === '') return fallback;
+      return `${value}${unit}`;
+    };
+
+    // Helper function to determine if value is in normal range
+    const getValueStatus = (value, min, max) => {
+      if (value === null || value === undefined || value === '') return '';
+      const numValue = parseFloat(value);
+      if (numValue < min) return 'Low';
+      if (numValue > max) return 'High';
+      return 'Normal';
+    };
+    
+
+    // ----------- PAGE 1: PATIENT DETAILS WITH LOGO AND QR CODE -----------
+    const photoBase64 = `data:image/webp;base64,${p.photo_base64}`;
+    const qrCodeBase64 = await generateQRCodeBase64(p); 
     const page1 = document.createElement("div");
     page1.style.pageBreakAfter = "always";
     page1.innerHTML = `
-      <div style="padding: 40px; font-family: Arial;">
-        <h1>Patient Details</h1>
-        <p><strong>ID:</strong> ${p.unique_patient_id}</p>
-        <p><strong>Name:</strong> ${p.name}</p>
-        <p><strong>Age:</strong> ${p.age}</p>
-        <p><strong>Gender:</strong> ${p.gender}</p>
+      <div style="
+    width: 794px; 
+    height: 900px; 
+    padding: 40px; 
+    font-family: Arial, sans-serif; 
+    box-sizing: border-box; 
+    position: relative;
+    border: 0px solid #000;
+    margin: auto;
+  ">
+
+    <!-- Header -->
+    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+      <img src="./campanylogo.jpeg" alt="Company Logo" style="height: 80px;">
+      <h1 style="margin-left: 20px; font-size: 28px;"></h1>
+    </div>
+
+    <!-- Profile Image -->
+    <div style="display: flex; justify-content: center; margin-bottom: 40px;">
+      <div style="width: 220px; height: 220px; border-radius: 50%; overflow: hidden; border: 4px solid #4285F4;">
+        <img src="${photoBase64}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
       </div>
-    `;
+    </div>
+
+    <!-- Patient Details + QR Code -->
+    <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+
+      <!-- Patient Table -->
+      <table style="border-collapse: collapse; font-size: 16px; width: 60%;">
+        <tr>
+          <td style="padding: 10px; border: 1px solid #000; background-color: #f0f0f0; font-weight: bold;">Patient Name</td>
+          <td style="padding: 10px; border: 1px solid #000;">${p.name || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #000; background-color: #f0f0f0; font-weight: bold;">Gender</td>
+          <td style="padding: 10px; border: 1px solid #000;">${p.gender || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #000; background-color: #f0f0f0; font-weight: bold;">Age</td>
+          <td style="padding: 10px; border: 1px solid #000;">${p.age || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; border: 1px solid #000; background-color: #f0f0f0; font-weight: bold;">Height</td>
+          <td style="padding: 10px; border: 1px solid #000;">${vitals?.height ? vitals.height + ' cm' : 'N/A'}</td>
+        </tr>
+      </table>
+
+      <!-- QR Code -->
+      <div style="text-align: center;">
+        <p style="margin-bottom: 10px; font-weight: bold;">Scan for Details</p>
+        <img src="${qrCodeBase64}" alt="QR Code" style="width: 140px; height: 140px; border: 1px solid #000;">
+      </div>
+    </div>
+  </div>
+`;
     container.appendChild(page1);
 
-    // ----------- PAGE 2: VITALS SUMMARY -----------
-    const vitalsFields = Object.entries(vitals || {})
-      .map(([key, val]) => `<li><strong>${key.replaceAll("_", " ")}:</strong> ${val ?? "N/A"}</li>`)
-      .join("");
-
+    // ----------- PAGE 2: BMR PDF IMAGE -----------
+    const imageDataUrl = await convertBase64PdfToImage(bmr_pdf_base64);
+    
     const page2 = document.createElement("div");
     page2.style.pageBreakAfter = "always";
     page2.innerHTML = `
-      <div style="padding: 40px; font-family: Arial;">
-        <h1>Vitals Summary</h1>
-        <ul>${vitalsFields}</ul>
+      <div style="padding: 20px; font-family: Arial, sans-serif; min-height: 100vh; text-align: center;">
+        <h1 style="margin-bottom: 30px; color: #333;">BMR Report</h1>
+        <img src="${imageDataUrl}" 
+             style="width: 794px; height: 1000px; padding: 20px; " 
+             alt="BMR Report Image">
       </div>
     `;
     container.appendChild(page2);
 
-    // ----------- PAGE 3: PATHOLOGY + BMR PDF (if present) -----------
-    const pathologyFields = Object.entries(pathology || {})
-      .map(([key, val]) => `<li><strong>${key.replaceAll("_", " ")}:</strong> ${val ?? "N/A"}</li>`)
-      .join("");
-
+    // ----------- PAGE 3: HEALTH CHECK-UP REPORT (PATHOLOGY) -----------
     const page3 = document.createElement("div");
-    page3.innerHTML = `
-      <div style="padding: 40px; font-family: Arial;">
-        <h1>Pathology Report</h1>
-        <ul>${pathologyFields}</ul>
-        ${bmr_pdf_base64 ? "<p><em>Note: Additional BMR PDF attached separately.</em></p>" : ""}
-      </div>
-    `;
-    container.appendChild(page3);
+page3.innerHTML = `
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check-up Report</title>
+    <style>
+       body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+}
+
+.report-container {
+    max-width: 794px; /* A4 width in px */
+    margin: 0 auto;
+    border: 4px solid #000;
+    background: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.header {
+    text-align: center;
+    padding: 20px;
+    background: #f8f8f8;
+    border-bottom: 3px solid #000;
+}
+
+.header h1 {
+    font-size: 26px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.content-wrapper {
+    display: flex;
+    height: auto;
+    max-height: 1000px; /* under A4 */
+    box-sizing: border-box;
+}
+
+.left-column, .right-column {
+    width: 32%;
+    padding: 6px;
+}
+
+.center-column {
+    width: 36%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+}
+
+.section-title {
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.cardio-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+    height: 150px;
+}
+
+
+
+.logo-img {
+  width: 100px;
+  object-fit: contain; /* maintains aspect ratio */
+}
+
+.organ-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.test-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5px;
+}
+
+.test-table td {
+    border: 1px solid #000;
+    padding: 4px 2px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.3; /* Added for spacing */
+}
+
+.test-table td:first-child {
+    text-align: left;
+    background: #E8F5E8;
+}
+
+.test-header-row {
+    background: #4CAF50;
+    color: white;
+    font-weight: bold;
+}
+
+.body-diagram {
+    width: 300px;     /* was 160px */
+    height:800px;    /* was 260px */
+    background: url('...') center/contain no-repeat;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+}
+
+.cardiovascular-section,
+.blood-section,
+.respiratory-section,
+.kidney-section,
+.liver-section,
+.glucose-section {
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.cardiovascular-section { background: #FFEBEE; }
+.blood-section         { background: #FFEBEE; }
+.respiratory-section   { background: #E3F2FD; }
+.kidney-section        { background: #E0F2F1; }
+.liver-section         { background: #EFEBE9; }
+.glucose-section       { background: #FFF3E0; }
+
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="header">
+            <h1>HEALTH CHECK-UP REPORT</h1>
+            <p style="font-size: 14px; color: #555;">Patient ID: ${p.unique_patient_id}  Name: ${p.name}</p>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Cardiovascular Assessment -->
+                <div class="cardiovascular-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./5.png" alt="XRAi Logo"></div>
+                        <div class="section-title">CARDIOVASCULAR<br>ASSESSMENT</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Heart Rate</td><td>${getValue(vitals?.heart_rate, 'N/A', ' beats/min')}</td><td>60 - 100 beats/min</td></tr>
+                        <tr><td>Blood Pressure</td><td>${getValue(vitals?.bp, 'N/A', ' mm Hg')}</td><td>90/60 - 120/80 mm Hg</td></tr>
+                        <tr><td>Lipids</td><td>${getValue(pathology?.lipids, 'Normal')}</td><td>Desirable</td></tr>
+                        <tr><td>Total Cholesterol</td><td>${getValue(pathology?.total_cholesterol, 'N/A', ' mg/dL')}</td><td>&lt;200 mg/dL</td></tr>
+                        <tr><td>Triglycerides</td><td>${getValue(pathology?.triglycerides, 'N/A', ' mg/dL')}</td><td>&lt;150 mg/dL</td></tr>
+                        <tr><td>LDL</td><td>${getValue(pathology?.ldl, 'N/A', ' mg/dL')}</td><td>&lt;100 mg/dL</td></tr>
+                        <tr><td>HDL</td><td>${getValue(pathology?.hdl, 'N/A', ' mg/dL')}</td><td>&gt;40 mg/dL(Men) &gt;50 mg/dL(Women)</td></tr>
+                        <tr><td>VLDL</td><td>${getValue(pathology?.vldl, 'N/A', ' mg/dL')}</td><td>5 - 30 mg/dL</td></tr>
+                    </table>
+                </div>
+
+                <!-- Respiratory Risk -->
+                <div class="respiratory-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./7.png" alt="XRAi Logo"></div>
+                        <div class="section-title">RESPIRATORY<br>RISK</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Body Temperature</td><td>${getValue(vitals?.body_temperature, 'N/A', '°F')}</td><td>97° - 99°F</td></tr>
+                        <tr><td>Oxygen Saturation</td><td>${getValue(vitals?.oxygen_saturation, 'N/A', '%')}</td><td>&gt;95%</td></tr>
+                    </table>
+                </div>
+
+                <!-- Kidney Function Test -->
+                <div class="kidney-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./9.png" alt="XRAi Logo"></div>
+                        <div class="section-title">KIDNEY<br>FUNCTION TEST</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Creatinine</td><td>${getValue(pathology?.creatinine, 'N/A', ' mg/dL')}</td><td>0.7 - 1.3 mg/dL</td></tr>
+                        <tr><td>EGFR</td><td>${getValue(pathology?.egfr, 'N/A', ' mL/min/1.73m²')}</td><td>&gt;90 mL/min/1.73m²</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Center Column -->
+            <div class="center-column">
+                <div class="body-diagram">
+                <div><img src="./humanbody.jpg" alt="XRAi Logo"></div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Blood Examination -->
+                <div class="blood-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./6.png" alt="XRAi Logo"></div>
+                        <div class="section-title">BLOOD EXAMINATION</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Hemoglobin</td><td>${getValue(pathology?.hb, 'N/A', ' g/dL')}</td><td>13.5 - 17.5 g/dL</td></tr>
+                        <tr><td>RBC</td><td>${getValue(pathology?.rbc, 'N/A', ' M/μL')}</td><td>4.7 - 6.1 M/μL</td></tr>
+                        <tr><td>M-cell</td><td>Normal</td><td>-----</td></tr>
+                        <tr><td>PCV</td><td>${getValue(pathology?.pcv, 'N/A', '%')}</td><td>38.3 - 48.6%</td></tr>
+                        <tr><td>MCV</td><td>${getValue(pathology?.mcv, 'N/A', ' fL')}</td><td>82 - 100 fL</td></tr>
+                        <tr><td>MCH</td><td>${getValue(pathology?.mch, 'N/A', ' pg')}</td><td>27 - 33 pg</td></tr>
+                        <tr><td>MCHC</td><td>${getValue(pathology?.mchc, 'N/A', ' g/dL')}</td><td>31 - 36 g/dL</td></tr>
+                    </table>
+                </div>
+
+                <!-- Blood Glucose Assessment -->
+                <div class="glucose-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./8.png" alt="XRAi Logo"></div>
+                        <div class="section-title">BLOOD GLUCOSE<br>ASSESSMENT</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Blood Sugar Level</td><td>${getValue(pathology?.random_blood_sugar, 'N/A', ' mg/dL')}</td><td>70 - 99 mg/dL</td></tr>
+                    </table>
+                </div>
+
+                <!-- Liver Function Test -->
+                <div class="liver-section">
+                    <div class="cardio-header">
+                        <div class="logo-container"><img src="./10.png" alt="XRAi Logo"></div>
+                        <div class="section-title">LIVER<br>FUNCTION TEST</div>
+                    </div>
+                    <table class="test-table">
+                        <tr class="test-header-row">
+                            <td>TEST</td>
+                            <td>FINDINGS</td>
+                            <td>RANGE</td>
+                        </tr>
+                        <tr><td>Direct Bilirubin</td><td>${getValue(pathology?.direct_bilirubin, 'N/A', ' mg/dL')}</td><td>0.0 - 0.3 mg/dL</td></tr>
+                        <tr><td>Indirect Bilirubin</td><td>${getValue(pathology?.indirect_bilirubin, 'N/A', ' mg/dL')}</td><td>0.2 - 0.8 mg/dL</td></tr>
+                        <tr><td>Total Bilirubin</td><td>${getValue(pathology?.total_bilirubin, 'N/A', ' mg/dL')}</td><td>0.1 - 1.2 mg/dL</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+`;
+
+container.appendChild(page3);
+
 
     // 3. Generate PDF Blob from 3 pages
     const pdfBlob = await html2pdf()
@@ -140,16 +535,13 @@ const handleSmartReportGenerate = async (patient) => {
       })
       .outputPdf("blob");
 
-    
-
     // 4. Upload generated report to backend
     const formData = new FormData();
     formData.append("patient_id", p.unique_patient_id);
     const file = new File([pdfBlob], `Smart_Report_${p.unique_patient_id}.pdf`, { type: "application/pdf" });
     formData.append("report_pdf", file);
 
-    await axios.post("http://127.0.0.1:8000/api/technician/smart-report-upload/", formData, {
-    });
+    await axios.post("http://127.0.0.1:8000/api/technician/smart-report-upload/", formData);
 
     alert("Smart report PDF generated and uploaded successfully!");
 

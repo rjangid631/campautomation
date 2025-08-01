@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
 import api from './api';
-
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const PathologyFormurl = '/technician/pathology';
 
 function PathologyForm() {
   const location = useLocation();
   const { patientId, patientName, technicianId, serviceId } = location.state || {};
+  const navigate = useNavigate();
 
   // Rename the state variable to formData and the setter to setFormData
   const [formData, setFormData] = useState({
@@ -19,8 +19,21 @@ function PathologyForm() {
     randomBloodSugar: '',
     creatinine: '',
     egfr: '',
-    totalBilirubin: ''
-  });
+    totalBilirubin: '',
+    directBilirubin: '',
+    indirectBilirubin: '',
+    totalCholesterol: '',
+    triglycerides: '',
+    ldl: '',
+    hdl: '',
+    vldl: '',
+    pcv: '',
+    mcv: '',
+    mch: '',
+    mchc: '',
+    lipids: ''
+});
+
 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -448,7 +461,18 @@ const getReportHTML = () => {
       formDataAPI.append('creatinine', formData.creatinine || '');
       formDataAPI.append('egfr', formData.egfr || '');
       formDataAPI.append('total_bilirubin', formData.totalBilirubin || '');
-  
+      formDataAPI.append('direct_bilirubin', formData.directBilirubin || '');
+      formDataAPI.append('indirect_bilirubin', formData.indirectBilirubin || '');
+      formDataAPI.append('total_cholesterol', formData.totalCholesterol || '');
+      formDataAPI.append('triglycerides', formData.triglycerides || '');
+      formDataAPI.append('ldl', formData.ldl || '');
+      formDataAPI.append('hdl', formData.hdl || '');
+      formDataAPI.append('vldl', formData.vldl || '');
+      formDataAPI.append('pcv', formData.pcv || '');
+      formDataAPI.append('mcv', formData.mcv || '');
+      formDataAPI.append('mch', formData.mch || '');
+      formDataAPI.append('mchc', formData.mchc || '');
+      formDataAPI.append('lipids', formData.lipids || '');
       // PDF Report File
       const pdfFile = new File([pdfBlob], 'health_report.pdf', { type: 'application/pdf' });
       formDataAPI.append('report', pdfFile);
@@ -484,14 +508,16 @@ const getReportHTML = () => {
       await saveToAPI(pdfBlob);
       
       // Open PDF in new window for printing
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(getReportHTML());
-      printWindow.document.close();
+      // const printWindow = window.open('', '_blank');
+      // printWindow.document.write(getReportHTML());
+      // printWindow.document.close();
       
       setTimeout(() => {
-        printWindow.print();
+        // printWindow.print();
         alert('Data and PDF saved successfully!');
+        
       }, 500);
+      navigate(-1);
     } catch (error) {
       console.error('Error in form submission:', error);
       alert('Failed to save pathology data: ' + error.message);
@@ -554,13 +580,25 @@ const getReportHTML = () => {
   </div>
 
   {[
-    { name: 'rbc', label: 'RBC Count' },
-    { name: 'hb', label: 'Hemoglobin (Hb)' },
-    { name: 'randomBloodSugar', label: 'Random Blood Sugar (mg/dL)' },
-    { name: 'creatinine', label: 'Creatinine (mg/dL)' },
-    { name: 'egfr', label: 'eGFR (mL/min)' },
-    { name: 'totalBilirubin', label: 'Total Bilirubin (mg/dL)' }
-  ].map((field) => (
+  { name: 'rbc', label: 'RBC Count' },
+  { name: 'hb', label: 'Hemoglobin (Hb)' },
+  { name: 'randomBloodSugar', label: 'Random Blood Sugar (mg/dL)' },
+  { name: 'creatinine', label: 'Creatinine (mg/dL)' },
+  { name: 'egfr', label: 'eGFR (mL/min)' },
+  { name: 'totalBilirubin', label: 'Total Bilirubin (mg/dL)' },
+  { name: 'directBilirubin', label: 'Direct Bilirubin (mg/dL)' },
+  { name: 'indirectBilirubin', label: 'Indirect Bilirubin (mg/dL)' },
+  { name: 'totalCholesterol', label: 'Total Cholesterol (mg/dL)' },
+  { name: 'triglycerides', label: 'Triglycerides (mg/dL)' },
+  { name: 'ldl', label: 'LDL (mg/dL)' },
+  { name: 'hdl', label: 'HDL (mg/dL)' },
+  { name: 'vldl', label: 'VLDL (mg/dL)' },
+  { name: 'pcv', label: 'PCV (%)' },
+  { name: 'mcv', label: 'MCV (fL)' },
+  { name: 'mch', label: 'MCH (pg)' },
+  { name: 'mchc', label: 'MCHC (g/dL)' },
+  { name: 'lipids', label: 'Lipids (summary/remarks)' }
+].map((field) => (
     <div key={field.name}>
       <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>{field.label}</label>
       <input
