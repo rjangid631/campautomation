@@ -1,12 +1,15 @@
 import base64
+import os
+from django.conf import settings
+
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
+
 from camp_manager.Models.Patientdata import PatientData
 from technician.Models.vitals import Vitals
 from technician.Models.pathology import Pathology
-from technician.Models.smartreport import SmartReport
+
 
 class SmartReportDataView(APIView):
     def get(self, request, patient_id):
@@ -15,10 +18,23 @@ class SmartReportDataView(APIView):
             vitals = Vitals.objects.get(patient=patient)
             pathology = Pathology.objects.get(patient=patient)
 
+            # Convert BMR PDF to base64
             bmr_base64 = None
             if vitals.bmr_pdf:
                 with open(vitals.bmr_pdf.path, "rb") as f:
                     bmr_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+            # Convert patient photo to base64
+            if patient.photo and os.path.exists(patient.photo.path):
+                photo_path = patient.photo.path
+            else:
+                photo_path = os.path.join(settings.MEDIA_ROOT, 'patient_photos/default.jpeg')
+
+            try:
+                with open(photo_path, "rb") as img_file:
+                    photo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+            except Exception as e:
+                photo_base64 = None
 
             data = {
                 "patient": {
@@ -26,27 +42,19 @@ class SmartReportDataView(APIView):
                     "name": patient.patient_name,
                     "age": patient.age,
                     "gender": patient.gender,
-                    "photo_url": request.build_absolute_uri(patient.photo.url) if patient.photo else request.build_absolute_uri('/media/patient_photos/default.jpeg'),
+                    "photo_base64": photo_base64,
                     # "camp_name": patient.camp.camp_name if patient.camp else None,
                 },
                 "vitals": {
-                    # "height": vitals.height,
-                    # "weight": vitals.weight,
                     "bp": vitals.bp,
                     "oxygen_saturation": vitals.oxygen_saturation,
                     "heart_rate": vitals.heart_rate,
-                    # "body_fat": vitals.body_fat,
                     "body_temperature": vitals.body_temperature,
-                    # "muscle_mass": vitals.muscle_mass,
-                    # "skeletal_muscle": vitals.skeletal_muscle,
-                    # "protein_rate": vitals.protein_rate,
-                    # "protein_mass": vitals.protein_mass,
-                    # "bmr": vitals.bmr,
                 },
                 "pathology": {
                     "rbc": pathology.rbc,
                     "hb": pathology.hb,
-                    "random_blood_sugar": pathology.blood_sugar_level,  # Assuming this is the same as blood_sugar_level
+                    "random_blood_sugar": pathology.blood_sugar_level,
                     "creatinine": pathology.creatinine,
                     "egfr": pathology.egfr,
                     "total_bilirubin": pathology.total_bilirubin,
