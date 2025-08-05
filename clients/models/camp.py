@@ -11,8 +11,12 @@ class Camp(models.Model):
     pin_code = models.CharField(max_length=10)
     start_date = models.DateField()
     end_date = models.DateField()
-    ready_to_go = models.BooleanField(default=False)  # ➕ Add this line
+    ready_to_go = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.client.name} - {self.location} ({self.start_date} to {self.end_date})"
+
+    @property
+    def name(self):
+        return f"{self.client.name} - {self.location}"

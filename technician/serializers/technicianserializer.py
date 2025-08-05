@@ -6,21 +6,37 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+# Nested serializers
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email']  # Adjust fields as needed
+
+class CampSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Camp
+        fields = ['id', 'name', 'location']  # Adjust fields
+
+class ServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ['id', 'name']  # Adjust fields
+
 class TechnicianSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), allow_null=True)
-    camps = serializers.PrimaryKeyRelatedField(queryset=Camp.objects.all(), many=True)
-    services = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all(), many=True)
-    
-    # Optional: include user details for read-only display
-    # name = serializers.SerializerMethodField()
-    # email = serializers.SerializerMethodField()
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True, source='user')
+
+    camps = CampSerializer(many=True, read_only=True)
+    camp_ids = serializers.PrimaryKeyRelatedField(queryset=Camp.objects.all(), many=True, write_only=True, source='camps')
+
+    services = ServiceSerializer(many=True, read_only=True)
+    service_ids = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all(), many=True, write_only=True, source='services')
 
     class Meta:
         model = Technician
-        fields = ['id', 'user', 'camps', 'services',]
-
-    # def get_name(self, obj):
-    #     return obj.user.name if obj.user else None
-
-    # def get_email(self, obj):
-    #     return obj.user.email if obj.user else None
+        fields = [
+            'id',
+            'user', 'user_id',
+            'camps', 'camp_ids',
+            'services', 'service_ids',
+        ]
