@@ -48,6 +48,7 @@ import BloodGroupingForm from './components/BloodGroupingForm';
 import OnsiteDashboard from './components/OnsiteDashboard';
 import StatusTracking from './components/StatusTracking';
 import CampStatusPage from './components/CampStatusPage';
+import AdminDashboard from './components/AdminDashboard'; // ✅ Explicit .js
 export const AppContext = createContext();
 function App() {
   const [loginType, setLoginType] = useState(null);
@@ -258,6 +259,7 @@ const handleLogin = (type, id) => {
             <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/campStatus/:campId" element={<CampStatusPage/>} />
             <Route path="/download-reports/:campId" element={<DownloadReports />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
 
           <Outlet />
