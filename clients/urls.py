@@ -12,6 +12,7 @@ from clients.views.clientdashboard import ClientDashboardView
 from clients.views.clientview import ClientRegisterView
 from clients.views.clientviewset import ClientViewSet
 from clients.views.copypriceview import CopyPriceViewSet
+from clients.views.discountcouponviewset import DiscountCouponViewSet
 from clients.views.packageview import PackageViewSet
 from clients.views.pdfuploadview import PDFUploadView, generate_pdf_view
 from clients.views.service_id_lookup import get_service_id_by_name
@@ -33,6 +34,7 @@ router.register(r'copyprice', CopyPriceViewSet)
 router.register(r'services', ServiceViewSet)
 router.register(r'packages', PackageViewSet)
 router.register(r'clients', ClientViewSet, basename='clients')
+router.register(r'discount-coupons', DiscountCouponViewSet, basename='discount-coupons')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -40,7 +42,7 @@ urlpatterns = [
     path('register/', ClientRegisterView.as_view(), name='client-register'),
     path('client-dashboard/', ClientDashboardView.as_view(), name='client-dashboard'),
     path('prices/', ServicePriceView.as_view(), name='service-prices'),
-    path('api/validate-coupon/<str:code>/', validate_coupon, name='validate_coupon'),
+    path('validate-coupon/<str:code>/', validate_coupon, name='validate_coupon'),
     path('upload-pdf/', PDFUploadView.as_view(), name='upload_pdf'),
     path('view-pdf/<int:pk>/', generate_pdf_view, name='view_pdf'),
 

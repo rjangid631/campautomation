@@ -1,6 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from technician.Views.audiometristviewset import AudiometristViewSet
 from technician.Views.audiometry_signature import AudiometristSignatureView
 from technician.Views.audiometryviewset import AudiometryViewSet
 from technician.Views.dental import DentalConsultationViewSet
@@ -13,7 +14,7 @@ from technician.Views.getassignedtech import get_technician_assignments
 from technician.Views.pathologyviewset import PathologyViewSet
 from technician.Views.patientreportview import PatientReportLinksView
 from technician.Views.smartreportview import SmartReportDataView
-from technician.Views.technicains import get_all_technicians
+from technician.Views.technicains import TechnicianViewSet
 from technician.Views.technicianlogin import technician_login
 from technician.Views.getassigned import get_assigned_patients
 from technician.Views.mark_service import get_camp_progress, get_patient_service_summary, mark_service_done
@@ -34,6 +35,9 @@ router.register(r'service-logs', ServiceLogViewSet, basename='service-log')
 router.register(r'dental-consultation', DentalConsultationViewSet, basename='dental-consultation')
 router.register(r'dentists', DentistViewSet, basename='dentists')
 router.register(r'pathology', PathologyViewSet, basename='pathology')
+router.register(r'audiometrists', AudiometristViewSet, basename='audiometrist')
+router.register(r'technicians', TechnicianViewSet, basename='technician')
+
 
 urlpatterns = [
     path('audiometry/upload-frontend-pdf/', UploadFrontendGeneratedPDFView.as_view(), name='upload-frontend-pdf'),
@@ -43,7 +47,7 @@ urlpatterns = [
     path('submit/', mark_service_done, name='mark_service_done'),
     path('assign/', assign_technicians, name='assign_technicians'),
     path('assignments/', get_technician_assignments, name='get_technician_assignments'),
-    path('technicians/', get_all_technicians, name='get_all_technicians'),
+    # path('technicians/', get_all_technicians, name='get_all_technicians'),
     path('assign-package/', assign_technicians_to_package, name='assign_technicians_to_package'),
     path('camp/<int:camp_id>/progress/', get_camp_progress, name='get_camp_progress'),
     path('patient/<str:patient_id>/summary/', get_patient_service_summary, name='get_patient_service_summary'),
