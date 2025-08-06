@@ -577,55 +577,7 @@ const DoctorConsultationForm = () => {
             </div>
           </div>
 
-          {/* Doctor Details */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <User className="text-indigo-600" size={20} />
-              <h2 className="text-xl font-semibold text-gray-900">Doctor's Details</h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Doctor Name:</label>
-                <p className="text-gray-900 bg-gray-50 p-2 rounded border">{doctor?.name || 'Dr. [Name to be filled]'}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Designation:</label>
-                <div className="text-gray-900 bg-gray-50 p-2 rounded border">
-                  {doctor?.designation ? 
-                    (typeof doctor.designation === 'string' ? 
-                      doctor.designation.split('<br>').map((line, index) => (
-                        <div key={index}>{line}</div>
-                      )) : 
-                      doctor.designation
-                    ) : 
-                    'Medical Officer'
-                  }
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Signature:</label>
-                <div className="border rounded-lg p-4 bg-gray-50 min-h-[80px] flex items-center justify-center">
-                  {doctor?.signature ? (
-                    <img 
-                      src={doctor.signature} 
-                      alt="Doctor Signature" 
-                      className="h-16 max-w-full object-contain"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                  ) : null}
-                  <p className={`text-gray-500 text-sm ${doctor?.signature ? 'hidden' : 'block'}`}>
-                    {doctor?.signature ? 'Signature not available' : 'Digital signature will be added here'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          
 
           {/* Submit Button */}
           <div className="bg-white rounded-lg shadow-sm p-6">

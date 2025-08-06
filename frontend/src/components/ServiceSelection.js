@@ -25,8 +25,7 @@ function ServiceSelection({ userType }) {
   const services = [
     'X-ray', 'ECG', 'PFT', 'Audiometry', 'Optometry',
     'Doctor Consultation', 'Pathology', 'Dental Consultation',
-    'Vitals', 'Form 7', 'BMD', 'Tetanus Vaccine', 'Typhoid Vaccine', 'Coordinator'
-  ];
+    'Vitals', 'Form 7', 'BMD', 'Tetanus Vaccine', 'Typhoid Vaccine'  ];
 
   const pathologySubServices = [
     'CBC', 'Complete Hemogram', 'Hemoglobin', 'Urine Routine',
