@@ -20,6 +20,7 @@ const AdminDashboard = () => {
   const [currentItem, setCurrentItem] = useState(null);
   const [formData, setFormData] = useState({});
   const [signatureFile, setSignatureFile] = useState(null);
+  const [camps, setCamps] = useState([]);
 
   // API Base URL
   const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -29,12 +30,19 @@ const AdminDashboard = () => {
     { key: 'services', url: '/api/services/', icon: Stethoscope, name: 'Services', method: 'GET, POST' },
     { key: 'testCaseData', url: '/api/test-case-data/', icon: TestTube, name: 'Test Cases', method: 'GET, POST' },
     { key: 'copyPrices', url: '/api/copyprice/', icon: DollarSign, name: 'Copy Prices', method: 'GET, POST' },
-    { key: 'technicians', url: '/api/technician/technicians/', icon: UserCheck, name: 'Technicians', method: 'GET, POST' }, // Added POST capability
+    { key: 'technicians', url: '/api/technician/technicians/', icon: UserCheck, name: 'Technicians', method: 'GET, POST' },
     { key: 'doctors', url: '/api/technician/doctors/', icon: Activity, name: 'Doctors', method: 'GET, POST' },
     { key: 'dentists', url: '/api/technician/dentists/', icon: User, name: 'Dentists', method: 'GET, POST' },
     { key: 'optometrists', url: '/api/technician/optometrists/', icon: Eye, name: 'Optometrists', method: 'GET, POST' },
     { key: 'audiometrists', url: '/api/technician/audiometrists/', icon: Ear, name: 'Audiometrists', method: 'GET, POST' }
   ];
+  
+
+
+  const filteredCamps = camps.filter(camp => camp.ready_to_go === true);
+  console.log('Filtered Camps:', filteredCamps);
+  const filteredUsers = data.clients.filter(client => client.login_type.toLowerCase() !== 'client');
+
 
   // Form field configurations
   const formConfigs = {
@@ -42,7 +50,8 @@ const AdminDashboard = () => {
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'email', label: 'Email', type: 'email', required: true },
       { key: 'contact_number', label: 'Contact Number', type: 'tel', required: true },
-      { key: 'login_type', label: 'Login Type', type: 'select', options: ['Client', 'Doctor'], required: true }
+      { key: 'login_type', label: 'Login Type', type: 'select', options: ['Client', 'Doctor','Dentist','Optometrist','Audiometrist','Technician'], required: true },
+      { key: 'password', label: 'Password', type: 'password', required: true }
     ],
     services: [
       { key: 'name', label: 'Service Name', type: 'text', required: true },
@@ -59,38 +68,134 @@ const AdminDashboard = () => {
       { key: 'hard_copy_price', label: 'Hard Copy Price', type: 'number', step: '0.01', required: true }
     ],
     technicians: [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'email', label: 'Email', type: 'email', required: true },
-      { key: 'camps', label: 'Camps', type: 'text', required: true },
-      { key: 'services', label: 'Services', type: 'text', required: true }
+       { 
+           key: 'user', 
+           label: 'User', 
+           type: 'select', 
+           options: filteredUsers,
+           optionLabel: 'name', 
+           optionValue: 'id',
+           required: true 
+         },
+         { 
+           key: 'camps', 
+           label: 'Camps', 
+           type: 'multi-select',   // a new type for multiple selections
+           options: filteredCamps,
+           optionLabel: 'location',
+           optionValue: 'id',
+           required: true
+         },
+         { 
+           key: 'services', 
+           label: 'Services', 
+           type: 'multi-select',
+           options: data.services,
+           optionLabel: 'name',
+           optionValue: 'id',
+           required: true
+         }
     ],
     doctors: [
+      { 
+        key: 'user', 
+        label: 'User', 
+        type: 'select', 
+        options: [], 
+        optionLabel: 'name', 
+        optionValue: 'id',
+        required: true 
+      },
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'designation', label: 'Designation', type: 'textarea', required: true },
       { key: 'signature', label: 'Signature', type: 'file', required: false }
     ],
     dentists: [
+      { 
+        key: 'user', 
+        label: 'User', 
+        type: 'select', 
+        options: [], 
+        optionLabel: 'name', 
+        optionValue: 'id',
+        required: true 
+      },
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'designation', label: 'Designation', type: 'text', required: true },
-      { key: 'user_email', label: 'Email', type: 'email', required: true },
       { key: 'signature', label: 'Signature', type: 'file', required: false }
     ],
     optometrists: [
+      { 
+        key: 'user', 
+        label: 'User', 
+        type: 'select', 
+        options: [], 
+        optionLabel: 'name', 
+        optionValue: 'id',
+        required: true 
+      },
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'designation', label: 'Designation', type: 'text', required: true },
       { key: 'signature', label: 'Signature', type: 'file', required: false }
     ],
     audiometrists: [
+      { 
+        key: 'user', 
+        label: 'User', 
+        type: 'select', 
+        options: [], 
+        optionLabel: 'name', 
+        optionValue: 'id',
+        required: true 
+      },
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'designation', label: 'Designation', type: 'text', required: true },
       { key: 'signature', label: 'Signature', type: 'file', required: false }
     ]
   };
 
+
+  const fetchCamps = async () => {
+   try {
+     const response = await fetch(`${API_BASE_URL}/api/campmanager/camps/`);
+     if (response.ok) {
+       const result = await response.json();
+       setCamps(result);
+     } else {
+       setCamps([]);
+       console.error('Failed to fetch Camps');
+     }
+   } catch (error) {
+     setCamps([]);
+     console.error('Error fetching Camps:', error);
+   }
+ };
+
+//   useEffect(() => {
+//     fetchAllData();
+//   }, []);
+
   useEffect(() => {
     fetchAllData();
+    fetchCamps();
   }, []);
-  
+
+  useEffect(() => {
+    // Update dropdown options for professional forms when clients data changes
+    if (data.clients.length > 0) {
+      const professionalForms = ['technicians', 'doctors', 'dentists', 'optometrists', 'audiometrists'];
+      
+      professionalForms.forEach(formKey => {
+        const field = formConfigs[formKey].find(f => f.key === 'user');
+        if (field) {
+          field.options = data.clients.filter(client => 
+            client.login_type.toLowerCase() === formKey.slice(0, -1) || 
+            (formKey === 'technicians' && client.login_type === 'Technician')
+          );
+        }
+      });
+    }
+  }, [data.clients]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -116,23 +221,44 @@ const AdminDashboard = () => {
     setLoading(false);
   };
 
-  const handleAdd = (endpointKey) => {
-    setModalMode('add');
-    setCurrentItem(null);
+const handleAdd = (endpointKey) => {
+  setModalMode('add');
+  setCurrentItem(null);
+  
+  if (endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
+    setFormData({
+      user: '',
+      camps: [],
+      services: []
+    });
+  } else {
     setFormData({});
-    setSignatureFile(null);
-    setActiveTab(endpointKey);
-    setShowModal(true);
-  };
+  }
+  
+  setSignatureFile(null);
+  setActiveTab(endpointKey);
+  setShowModal(true);
+};
 
-  const handleEdit = (item, endpointKey) => {
-    setModalMode('edit');
-    setCurrentItem(item);
+const handleEdit = (item, endpointKey) => {
+  setModalMode('edit');
+  setCurrentItem(item);
+
+  if (endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
+    setFormData({
+      ...item, 
+      camps: item.camps ? (Array.isArray(item.camps) ? item.camps.map(c => c.id || c) : [item.camps.id || item.camps]) : [],
+      services: item.services ? (Array.isArray(item.services) ? item.services.map(s => s.id || s) : [item.services.id || item.services]) : [],
+      user: item.user ? item.user.id || item.user : ''
+    });
+  } else {
     setFormData(item);
-    setSignatureFile(null);
-    setActiveTab(endpointKey);
-    setShowModal(true);
-  };
+  }
+  
+  setSignatureFile(null);
+  setActiveTab(endpointKey);
+  setShowModal(true);
+};
 
   const handleDelete = async (item, endpointKey) => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
@@ -157,6 +283,25 @@ const AdminDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const config = formConfigs[activeTab];
+    const missingFields = [];
+    
+
+
+    for (const field of config) {
+      if (field.required) {
+        const value = formData[field.key];
+        if (!value || (Array.isArray(value) && value.length === 0) || value === '') {
+          missingFields.push(field.label);
+        }
+      }
+    }
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+      return;
+    }
     
     try {
       const endpoint = endpoints.find(e => e.key === activeTab);
@@ -165,22 +310,35 @@ const AdminDashboard = () => {
         : `${API_BASE_URL}${endpoint.url}${currentItem.id}/`;
       
       const method = modalMode === 'add' ? 'POST' : 'PUT';
+
+      let submitData = { ...formData };
+      if (activeTab === 'technicians') {
+        submitData = {
+          ...submitData,
+          user: parseInt(submitData.user), // Convert to integer
+          camps: Array.isArray(submitData.camps) ? submitData.camps : [submitData.camps],
+          services: Array.isArray(submitData.services) ? submitData.services : [submitData.services]
+        };
+      }
       
       // Handle signature upload separately
       const formHasSignature = formConfigs[activeTab].some(field => field.key === 'signature');
+      const formHasFile = signatureFile || formHasSignature;
       
-      if (formHasSignature && signatureFile) {
+      if (formHasFile) {
         const formDataObj = new FormData();
         
-        // Add all form data except signature
+        // Add all form data
         for (const key in formData) {
           if (key !== 'signature') {
             formDataObj.append(key, formData[key]);
           }
         }
         
-        // Add signature file
-        formDataObj.append('signature', signatureFile);
+        // Add signature file if exists
+        if (signatureFile) {
+          formDataObj.append('signature', signatureFile);
+        }
         
         const response = await fetch(url, {
           method,
@@ -202,7 +360,7 @@ const AdminDashboard = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(submitData), 
         });
 
         if (response.ok) {
@@ -244,8 +402,13 @@ const AdminDashboard = () => {
             required={field.required}
           >
             <option value="">Select {field.label}</option>
-            {field.options.map(option => (
-              <option key={option} value={option}>{option}</option>
+            {field.options && field.options.map(option => (
+              <option 
+                key={field.optionValue ? option[field.optionValue] : option} 
+                value={field.optionValue ? option[field.optionValue] : option}
+              >
+                {field.optionLabel ? option[field.optionLabel] : option}
+              </option>
             ))}
           </select>
         );
@@ -299,6 +462,32 @@ const AdminDashboard = () => {
             <p className="text-xs text-gray-500 mt-1">Upload signature image (PNG, JPG)</p>
           </div>
         );
+
+        case 'multi-select':
+          return (
+            <select
+              multiple
+              value={Array.isArray(value) ? value.map(v => String(v)) : []}
+              onChange={(e) => {
+                const selectedOptions = Array.from(e.target.selectedOptions).map(option => 
+                  field.optionValue ? parseInt(option.value) : option.value
+                );
+                handleInputChange(field.key, selectedOptions);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={field.required}
+            >
+              {field.options && field.options.map(option => (
+                <option
+                  key={field.optionValue ? option[field.optionValue] : option}
+                  value={field.optionValue ? option[field.optionValue] : option}
+                >
+                  {field.optionLabel ? option[field.optionLabel] : option}
+                </option>
+              ))}
+            </select>
+          );
+        
       default:
         return (
           <input
@@ -428,7 +617,9 @@ const AdminDashboard = () => {
     }
 
     const firstItem = dataArray[0];
-    const columns = Object.keys(firstItem);
+    const columns = Object.keys(firstItem).filter(col => 
+      !['signature', 'user', 'technician'].includes(col)
+    );
 
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -613,7 +804,7 @@ const AdminDashboard = () => {
     if (typeof value === 'string' && value.includes('http')) {
       return (
         <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-          View
+          View Signature
         </a>
       );
     }
