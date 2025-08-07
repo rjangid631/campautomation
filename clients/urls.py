@@ -7,6 +7,7 @@ from clients.views.Costsummaryview import CostSummaryViewSet
 from clients.views.ServiceCostView import ServiceCostViewSet, validate_coupon
 from clients.views.Serviceselectionview import ServiceSelectionViewSet
 from clients.views.Testcaseview import TestCaseDataViewSet
+from clients.views.adminlogin import admin_login
 from clients.views.clientcampviewlist import ClientCampViewSet
 from clients.views.clientdashboard import ClientDashboardView
 from clients.views.clientview import ClientRegisterView
@@ -45,6 +46,7 @@ urlpatterns = [
     path('validate-coupon/<str:code>/', validate_coupon, name='validate_coupon'),
     path('upload-pdf/', PDFUploadView.as_view(), name='upload_pdf'),
     path('view-pdf/<int:pk>/', generate_pdf_view, name='view_pdf'),
+    path('admin/login/', admin_login, name='admin_login'),
 
     # ✅ JWT Token Login & Refresh
     path('login/', ClientLoginView.as_view(), name='client_login'), 
