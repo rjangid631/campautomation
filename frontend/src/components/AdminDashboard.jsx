@@ -42,6 +42,9 @@ const AdminDashboard = () => {
   const filteredCamps = camps.filter(camp => camp.ready_to_go === true);
   console.log('Filtered Camps:', filteredCamps);
   const filteredUsers = data.clients.filter(client => client.login_type.toLowerCase() !== 'client');
+  // const filteredTechnicians = data.technicians.filter(tech => tech.user && tech.user.login_type === 'Technician');  
+  const technicianUserIds = data.technicians.map(tech => typeof tech.user === 'object' ? tech.user.id : tech.user);
+  const usersWithTechnician = data.clients.filter(client => technicianUserIds.includes(client.id));
 
 
   // Form field configurations
@@ -68,40 +71,40 @@ const AdminDashboard = () => {
       { key: 'hard_copy_price', label: 'Hard Copy Price', type: 'number', step: '0.01', required: true }
     ],
     technicians: [
-       { 
-           key: 'user', 
-           label: 'User', 
-           type: 'select', 
-           options: filteredUsers,
-           optionLabel: 'name', 
-           optionValue: 'id',
-           required: true 
-         },
-         { 
-           key: 'camps', 
-           label: 'Camps', 
-           type: 'multi-select',   // a new type for multiple selections
-           options: filteredCamps,
-           optionLabel: 'location',
-           optionValue: 'id',
-           required: true
-         },
-         { 
-           key: 'services', 
-           label: 'Services', 
-           type: 'multi-select',
-           options: data.services,
-           optionLabel: 'name',
-           optionValue: 'id',
-           required: true
-         }
+      { 
+        key: 'user', 
+        label: 'User', 
+        type: 'select', 
+        options: filteredUsers, 
+        optionLabel: 'name', 
+        optionValue: 'id',
+        required: true 
+      },
+      { 
+        key: 'camps', 
+        label: 'Camps', 
+        type: 'multi-select', 
+        options: filteredCamps,
+        optionLabel: 'location',
+        optionValue: 'id',
+        required: true
+      },
+      { 
+        key: 'services', 
+        label: 'Services', 
+        type: 'multi-select',
+        options: data.services,
+        optionLabel: 'name',
+        optionValue: 'id',
+        required: true
+      }
     ],
     doctors: [
       { 
         key: 'user', 
         label: 'User', 
         type: 'select', 
-        options: [], 
+        options: usersWithTechnician, 
         optionLabel: 'name', 
         optionValue: 'id',
         required: true 
@@ -115,7 +118,7 @@ const AdminDashboard = () => {
         key: 'user', 
         label: 'User', 
         type: 'select', 
-        options: [], 
+        options: usersWithTechnician, 
         optionLabel: 'name', 
         optionValue: 'id',
         required: true 
@@ -129,7 +132,7 @@ const AdminDashboard = () => {
         key: 'user', 
         label: 'User', 
         type: 'select', 
-        options: [], 
+        options: usersWithTechnician, 
         optionLabel: 'name', 
         optionValue: 'id',
         required: true 
@@ -143,7 +146,7 @@ const AdminDashboard = () => {
         key: 'user', 
         label: 'User', 
         type: 'select', 
-        options: [], 
+        options: usersWithTechnician, 
         optionLabel: 'name', 
         optionValue: 'id',
         required: true 
@@ -153,6 +156,7 @@ const AdminDashboard = () => {
       { key: 'signature', label: 'Signature', type: 'file', required: false }
     ]
   };
+
 
 
   const fetchCamps = async () => {
@@ -282,101 +286,120 @@ const handleEdit = (item, endpointKey) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const config = formConfigs[activeTab];
-    const missingFields = [];
-    
+  const config = formConfigs[activeTab];
+  const missingFields = [];
 
-
-    for (const field of config) {
-      if (field.required) {
-        const value = formData[field.key];
-        if (!value || (Array.isArray(value) && value.length === 0) || value === '') {
-          missingFields.push(field.label);
-        }
+  for (const field of config) {
+    if (field.required) {
+      const value = formData[field.key];
+      if (!value || (Array.isArray(value) && value.length === 0) || value === '') {
+        missingFields.push(field.label);
       }
     }
-    
-    if (missingFields.length > 0) {
-      alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
-      return;
+  }
+
+  if (missingFields.length > 0) {
+    alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+    return;
+  }
+
+  try {
+    const endpoint = endpoints.find(e => e.key === activeTab);
+    const url = modalMode === 'add' 
+      ? `${API_BASE_URL}${endpoint.url}`
+      : `${API_BASE_URL}${endpoint.url}${currentItem.id}/`;
+
+    const method = modalMode === 'add' ? 'POST' : 'PUT';
+
+    let submitData = { ...formData };
+
+    // Handle technician tab
+    if (activeTab === 'technicians') {
+      submitData = {
+        ...submitData,
+        user: parseInt(submitData.user),
+        camps: Array.isArray(submitData.camps) ? submitData.camps : [submitData.camps],
+        services: Array.isArray(submitData.services) ? submitData.services : [submitData.services]
+      };
     }
-    
-    try {
-      const endpoint = endpoints.find(e => e.key === activeTab);
-      const url = modalMode === 'add' 
-        ? `${API_BASE_URL}${endpoint.url}`
-        : `${API_BASE_URL}${endpoint.url}${currentItem.id}/`;
-      
-      const method = modalMode === 'add' ? 'POST' : 'PUT';
 
-      let submitData = { ...formData };
-      if (activeTab === 'technicians') {
-        submitData = {
-          ...submitData,
-          user: parseInt(submitData.user), // Convert to integer
-          camps: Array.isArray(submitData.camps) ? submitData.camps : [submitData.camps],
-          services: Array.isArray(submitData.services) ? submitData.services : [submitData.services]
-        };
+    // Handle audiometrists, optometrists, dentists, doctors
+    if (['audiometrists', 'optometrists', 'dentists', 'doctors'].includes(activeTab)) {
+      const technician = data.technicians.find(t => {
+        const userId = typeof t.user === 'object' ? t.user.id : t.user;
+        return String(userId) === String(formData.user);
+      });
+
+      if (!technician) {
+        alert("No technician found for this user. Please add this user as a technician first.");
+        return;
       }
-      
-      // Handle signature upload separately
-      const formHasSignature = formConfigs[activeTab].some(field => field.key === 'signature');
-      const formHasFile = signatureFile || formHasSignature;
-      
-      if (formHasFile) {
-        const formDataObj = new FormData();
-        
-        // Add all form data
-        for (const key in formData) {
-          if (key !== 'signature') {
-            formDataObj.append(key, formData[key]);
-          }
-        }
-        
-        // Add signature file if exists
-        if (signatureFile) {
-          formDataObj.append('signature', signatureFile);
-        }
-        
-        const response = await fetch(url, {
-          method,
-          body: formDataObj
-        });
 
-        if (response.ok) {
-          setShowModal(false);
-          fetchAllData();
-          alert(`Item ${modalMode === 'add' ? 'added' : 'updated'} successfully!`);
-        } else {
-          const errorData = await response.json();
-          alert(`Failed to ${modalMode} item: ${JSON.stringify(errorData)}`);
+      submitData = {
+        ...submitData,
+        technician: technician.id,
+        user: parseInt(formData.user)
+      };
+    }
+
+    // Check for file field
+    const formHasSignature = formConfigs[activeTab].some(field => field.key === 'signature');
+    const formHasFile = signatureFile || formHasSignature;
+
+    if (formHasFile) {
+      const formDataObj = new FormData();
+
+      for (const key in submitData) {
+        if (key !== 'signature') {
+          formDataObj.append(key, submitData[key]);
         }
+      }
+
+      if (signatureFile) {
+        formDataObj.append('signature', signatureFile);
+      }
+
+      const response = await fetch(url, {
+        method,
+        body: formDataObj
+      });
+
+      if (response.ok) {
+        setShowModal(false);
+        fetchAllData();
+        alert(`Item ${modalMode === 'add' ? 'added' : 'updated'} successfully!`);
       } else {
-        // Regular JSON request
-        const response = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(submitData), 
-        });
-
-        if (response.ok) {
-          setShowModal(false);
-          fetchAllData();
-          alert(`Item ${modalMode === 'add' ? 'added' : 'updated'} successfully!`);
-        } else {
-          const errorData = await response.json();
-          alert(`Failed to ${modalMode} item: ${JSON.stringify(errorData)}`);
-        }
+        const errorData = await response.json();
+        alert(`Failed to ${modalMode} item: ${JSON.stringify(errorData)}`);
       }
-    } catch (error) {
-      console.error(`Error ${modalMode}ing item:`, error);
-      alert(`Error ${modalMode}ing item`);
+
+    } else {
+      // Regular JSON request
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      if (response.ok) {
+        setShowModal(false);
+        fetchAllData();
+        alert(`Item ${modalMode === 'add' ? 'added' : 'updated'} successfully!`);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to ${modalMode} item: ${JSON.stringify(errorData)}`);
+      }
     }
-  };
+  } catch (error) {
+    console.error(`Error ${modalMode}ing item:`, error);
+    alert(`Error ${modalMode}ing item`);
+  }
+};
+
 
   const handleInputChange = (key, value) => {
     setFormData(prev => ({
