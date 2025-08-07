@@ -6,6 +6,7 @@ import {
   loginAsCustomer,
   signupUser,
   loginAsTechnician,
+  loginAsAdmin, // Add this import
 } from "./api";
 
 function CoordinatorLogin({ onLogin }) {
@@ -182,6 +183,32 @@ function CoordinatorLogin({ onLogin }) {
     }
   };
 
+  // NEW: Add Admin Login Handler
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    const { username, password } = formData;
+
+    try {
+      const response = await loginAsAdmin(username, password);
+      
+      console.log('🔐 Admin login response:', response);
+      
+      // Store admin tokens and info
+      localStorage.setItem("admin_access_token", response.access);
+      localStorage.setItem("admin_refresh_token", response.refresh);
+      localStorage.setItem("admin_name", response.name);
+      localStorage.setItem("role", "Admin");
+      localStorage.setItem("loginType", "Admin");
+      
+      onLogin("Admin");
+      navigate("/admin-dashboard");
+      
+    } catch (error) {
+      console.error("Admin login failed:", error);
+      setErrorMessage(error.message || "Admin login failed. Please try again.");
+    }
+  };
+
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     
@@ -231,6 +258,8 @@ function CoordinatorLogin({ onLogin }) {
         return "Customer Login";
       case "technician":
         return "Technician Login";
+      case "admin":
+        return "Admin Login";
       default:
         return "Login";
     }
@@ -244,6 +273,8 @@ function CoordinatorLogin({ onLogin }) {
         return "Customer Email";
       case "technician":
         return "Technician Email";
+      case "admin":
+        return "Admin Email";
       default:
         return "Username/Email";
     }
@@ -257,6 +288,8 @@ function CoordinatorLogin({ onLogin }) {
         return "Enter customer email";
       case "technician":
         return "Enter technician email";
+      case "admin":
+        return "Enter admin email";
       default:
         return "Enter username or email";
     }
@@ -271,6 +304,8 @@ function CoordinatorLogin({ onLogin }) {
         return handleCustomerLogin;
       case "technician":
         return handleTechnicianLogin;
+      case "admin":
+        return handleAdminLogin;
       default:
         return handleCoordinatorLogin;
     }
@@ -309,11 +344,11 @@ function CoordinatorLogin({ onLogin }) {
           </div>
         )}
 
-        {/* Login Mode Selection Buttons */}
-        <div className="flex justify-center gap-2 mb-4 flex-wrap">
+        {/* Login Mode Selection Buttons - Updated to include Admin */}
+        <div className="flex justify-center gap-1 mb-4 flex-wrap">
           <button
             type="button"
-            className={`px-3 py-1 rounded-xl font-medium transition-all duration-200 text-xs ${
+            className={`px-2 py-1 rounded-lg font-medium transition-all duration-200 text-xs ${
               loginMode === "coordinator" 
                 ? "text-white shadow-lg" 
                 : "text-gray-600 hover:bg-gray-300"
@@ -328,7 +363,7 @@ function CoordinatorLogin({ onLogin }) {
           </button>
           <button
             type="button"
-            className={`px-3 py-1 rounded-xl font-medium transition-all duration-200 text-xs ${
+            className={`px-2 py-1 rounded-lg font-medium transition-all duration-200 text-xs ${
               loginMode === "customer" 
                 ? "text-white shadow-lg" 
                 : "text-gray-600 hover:bg-gray-300"
@@ -343,7 +378,7 @@ function CoordinatorLogin({ onLogin }) {
           </button>
           <button
             type="button"
-            className={`px-3 py-1 rounded-xl font-medium transition-all duration-200 text-xs ${
+            className={`px-2 py-1 rounded-lg font-medium transition-all duration-200 text-xs ${
               loginMode === "technician" 
                 ? "text-white shadow-lg" 
                 : "text-gray-600 hover:bg-gray-300"
@@ -355,6 +390,21 @@ function CoordinatorLogin({ onLogin }) {
             disabled={showSignup}
           >
             Technician
+          </button>
+          <button
+            type="button"
+            className={`px-2 py-1 rounded-lg font-medium transition-all duration-200 text-xs ${
+              loginMode === "admin" 
+                ? "text-white shadow-lg" 
+                : "text-gray-600 hover:bg-gray-300"
+            }`}
+            style={{ 
+              backgroundColor: loginMode === "admin" ? '#0cc0df' : '#e5e7eb'
+            }}
+            onClick={() => setLoginMode("admin")}
+            disabled={showSignup}
+          >
+            Admin
           </button>
         </div>
 

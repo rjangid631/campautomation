@@ -169,6 +169,33 @@ export const loginAsCoordinator = async (username, password) => {
   }
 };
 
+export const loginAsAdmin = async (email, password) => {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/admin/login/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return {
+        access: data.access,
+        refresh: data.refresh,
+        name: data.name,
+        message: data.message || 'Admin login successful'
+      };
+    } else {
+      throw new Error(data.detail || 'Admin login failed');
+    }
+  } catch (error) {
+    throw new Error(error.message || 'Server error. Please try again later.');
+  }
+};
+
 // ✅ REGISTER
 export const signupUser = async ({
   client_id,

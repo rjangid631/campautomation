@@ -259,7 +259,7 @@ const handleLogin = (type, id) => {
             <Route path="*" element={<Navigate to="/login" />} />
             <Route path="/campStatus/:campId" element={<CampStatusPage/>} />
             <Route path="/download-reports/:campId" element={<DownloadReports />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
           </Routes>
 
           <Outlet />
