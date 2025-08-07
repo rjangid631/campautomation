@@ -416,20 +416,17 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
 
         # Prescription (Rx) with proper symbol
         story.append(Paragraph("<b>R<sub>x</sub></b>", section_style))
-        
+
         if consultation.medications:
             medications = [med.strip() for med in consultation.medications.split('\n') if med.strip()]
-            for medication in medications:
-                story.append(Paragraph(f"• {medication}", custom_style))
-            # Fill remaining lines up to 4
-            remaining_lines = 4 - len(medications)
-            for i in range(remaining_lines):
-                story.append(Paragraph("•", custom_style))
+            if medications:  # ✅ Only render bullets if there are non-empty entries
+                for medication in medications:
+                    story.append(Paragraph(f"• {medication}", custom_style))
         else:
-            # Show 4 empty bullet points
-            for i in range(4):
-                story.append(Paragraph("•", custom_style))
+            story.append(Paragraph("No medications prescribed.", custom_style))  # Optional: or skip this line entirely
+
         story.append(Spacer(1, 8))
+
 
         # Advice
         story.append(Paragraph("<b>Advice:</b>", section_style))
@@ -442,12 +439,8 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         dentist = consultation.dentist
         doctor_name = dentist.name if dentist else "Dr. Name"
         doctor_designation = dentist.designation if dentist and dentist.designation else "Dental Surgeon"
-        
-        story.append(Paragraph(f"<b>{doctor_name}</b>", custom_style))
-        story.append(Paragraph(doctor_designation, custom_style))
-        story.append(Spacer(1, 12))
 
-        # Signature
+        # Signature block
         if dentist and dentist.signature and hasattr(dentist.signature, 'path'):
             if os.path.exists(dentist.signature.path):
                 try:
@@ -465,6 +458,11 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
         else:
             story.append(Paragraph("_" * 30, custom_style))
             story.append(Paragraph("Signature", custom_style))
+
+        # Name and Designation (shown after signature)
+        story.append(Paragraph(f"<b>{doctor_name}</b>", custom_style))
+        story.append(Paragraph(doctor_designation, custom_style))
+        story.append(Spacer(1, 12))
 
         # Build PDF
         try:

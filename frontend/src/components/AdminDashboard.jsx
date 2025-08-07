@@ -341,7 +341,12 @@ const handleEdit = (item, endpointKey) => {
   for (const field of config) {
     if (field.required) {
       const value = formData[field.key];
-      if (!value || (Array.isArray(value) && value.length === 0) || value === '') {
+      if (
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
         missingFields.push(field.label);
       }
     }
@@ -354,15 +359,15 @@ const handleEdit = (item, endpointKey) => {
 
   try {
     const endpoint = endpoints.find(e => e.key === activeTab);
-    const url = modalMode === 'add' 
-      ? `${API_BASE_URL}${endpoint.url}`
-      : `${API_BASE_URL}${endpoint.url}${currentItem.id}/`;
+    const url =
+      modalMode === 'add'
+        ? `${API_BASE_URL}${endpoint.url}`
+        : `${API_BASE_URL}${endpoint.url}${currentItem.id}/`;
 
     const method = modalMode === 'add' ? 'POST' : 'PUT';
-
     let submitData = { ...formData };
 
-    // Handle technician tab
+    // 👉 Handle Technician form
     if (activeTab === 'technicians') {
       submitData = {
         ...submitData,
@@ -372,50 +377,57 @@ const handleEdit = (item, endpointKey) => {
       };
     }
 
-    // Add this right after the submitData declaration
+    // 👉 Handle Service form (price_ranges)
     if (activeTab === 'services') {
-      // Ensure price_ranges is properly formatted
       if (!submitData.price_ranges || submitData.price_ranges.length === 0) {
         alert('Please add at least one price range');
         return;
       }
-      
-      // Convert string values to numbers for price_ranges
+
       submitData.price_ranges = submitData.price_ranges.map(range => ({
         max_cases: parseInt(range.max_cases),
         price: parseFloat(range.price)
       }));
     }
 
-    // Handle audiometrists, optometrists, dentists, doctors
+    // 👉 Handle Doctor, Dentist, Optometrist, Audiometrist forms
     if (['audiometrists', 'optometrists', 'dentists', 'doctors'].includes(activeTab)) {
-      const technician = data.technicians.find(t => {
-        const userId = typeof t.user === 'object' ? t.user.id : t.user;
-        return String(userId) === String(formData.user);
-      });
-
-      if (!technician) {
-        alert("No technician found for this user. Please add this user as a technician first.");
+      if (!formData.user) {
+        alert("Please select a user.");
         return;
       }
 
-      submitData = {
-        ...submitData,
-        technician: technician.id,
-        user: parseInt(formData.user)
-      };
+      const technician = data.technicians.find(t => {
+      const userId = typeof t.user === 'object' ? t.user.id : t.user;
+      return String(userId) === String(formData.user);
+    });
+
+    if (!technician) {
+      alert("No technician found for this user. Please add this user as a technician first.");
+      return;
     }
 
-    // Check for file field
-    const formHasSignature = formConfigs[activeTab].some(field => field.key === 'signature');
+    submitData = {
+      ...submitData,
+      technician: technician.id,
+      user: parseInt(formData.user)
+    };
+
+    }
+
+    // 👉 Handle file uploads (signature)
+    const formHasSignature = config.some(field => field.key === 'signature');
     const formHasFile = signatureFile || formHasSignature;
 
     if (formHasFile) {
       const formDataObj = new FormData();
 
       for (const key in submitData) {
-        if (key !== 'signature') {
-          formDataObj.append(key, submitData[key]);
+        const value = submitData[key];
+        if (Array.isArray(value)) {
+          value.forEach(val => formDataObj.append(`${key}[]`, val));
+        } else {
+          formDataObj.append(key, value);
         }
       }
 
@@ -438,13 +450,13 @@ const handleEdit = (item, endpointKey) => {
       }
 
     } else {
-      // Regular JSON request
+      // 👉 Handle regular JSON request
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(submitData)
       });
 
       if (response.ok) {
@@ -461,6 +473,7 @@ const handleEdit = (item, endpointKey) => {
     alert(`Error ${modalMode}ing item`);
   }
 };
+
 
 
   const handleInputChange = (key, value) => {
