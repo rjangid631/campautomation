@@ -43,7 +43,7 @@ const AdminDashboard = () => {
   const filteredCamps = camps.filter(camp => camp.ready_to_go === true);
   const filteredUsers = data.clients.filter(client => client.login_type.toLowerCase() !== 'client');
   // const filteredTechnicians = data.technicians.filter(tech => tech.user && tech.user.login_type === 'Technician');  
-  const technicianUserIds = data.technicians.map(tech => typeof tech.user === 'object' ? tech.user.id : tech.user);
+  const technicianUserIds = data.technicians.map(tech => tech.user && typeof tech.user === 'object' ? tech.user.id : tech.user).filter(Boolean);
   const usersWithTechnician = data.clients.filter(client => technicianUserIds.includes(client.id));
 
 
@@ -367,13 +367,12 @@ const handleEdit = (item, endpointKey) => {
     const method = modalMode === 'add' ? 'POST' : 'PUT';
     let submitData = { ...formData };
 
-    // 👉 Handle Technician form
+    // 👉 FIXED: Technician form
     if (activeTab === 'technicians') {
       submitData = {
-        ...submitData,
-        user: parseInt(submitData.user),
-        camps: Array.isArray(submitData.camps) ? submitData.camps : [submitData.camps],
-        services: Array.isArray(submitData.services) ? submitData.services : [submitData.services]
+        user_id: parseInt(formData.user),
+        camp_ids: Array.isArray(formData.camps) ? formData.camps : [formData.camps],
+        service_ids: Array.isArray(formData.services) ? formData.services : [formData.services]
       };
     }
 
@@ -390,7 +389,7 @@ const handleEdit = (item, endpointKey) => {
       }));
     }
 
-    // 👉 Handle Doctor, Dentist, Optometrist, Audiometrist forms
+    // 👉 FIXED: Doctor, Dentist, Optometrist, Audiometrist forms
     if (['audiometrists', 'optometrists', 'dentists', 'doctors'].includes(activeTab)) {
       if (!formData.user) {
         alert("Please select a user.");
@@ -398,21 +397,20 @@ const handleEdit = (item, endpointKey) => {
       }
 
       const technician = data.technicians.find(t => {
-      const userId = typeof t.user === 'object' ? t.user.id : t.user;
-      return String(userId) === String(formData.user);
-    });
+        const userId = typeof t.user === 'object' ? t.user.id : t.user;
+        return String(userId) === String(formData.user);
+      });
 
-    if (!technician) {
-      alert("No technician found for this user. Please add this user as a technician first.");
-      return;
-    }
+      if (!technician) {
+        alert("No technician found for this user. Please add this user as a technician first.");
+        return;
+      }
 
-    submitData = {
-      ...submitData,
-      technician: technician.id,
-      user: parseInt(formData.user)
-    };
-
+      submitData = {
+        ...submitData,
+        technician: technician.id,
+        user_id: parseInt(formData.user)
+      };
     }
 
     // 👉 Handle file uploads (signature)
@@ -450,7 +448,7 @@ const handleEdit = (item, endpointKey) => {
       }
 
     } else {
-      // 👉 Handle regular JSON request
+      // 👉 Regular JSON request
       const response = await fetch(url, {
         method,
         headers: {
@@ -473,6 +471,7 @@ const handleEdit = (item, endpointKey) => {
     alert(`Error ${modalMode}ing item`);
   }
 };
+
 
 
 
