@@ -20,27 +20,57 @@ function ServiceSelection({ userType }) {
     }
   ]);
 
-  
-
-  const services = [
-    'X-ray', 'ECG', 'PFT', 'Audiometry', 'Optometry',
-    'Doctor Consultation', 'Pathology', 'Dental Consultation',
-    'Vitals', 'Form 7', 'BMD', 'Tetanus Vaccine', 'Typhoid Vaccine'  ];
-
-  const pathologySubServices = [
-    'CBC', 'Complete Hemogram', 'Hemoglobin', 'Urine Routine',
-    'Stool Examination', 'Lipid Profile', 'Kidney Profile',
-    'LFT', 'KFT', 'Random Blood Glucose', 'Blood Grouping'
-  ];
+  // State for services fetched from API
+  const [services, setServices] = useState([]);
+  const [pathologySubServices, setPathologySubServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
 
+  // Fetch services from API
   useEffect(() => {
-  const cid = localStorage.getItem('clientId');
-  const campId = localStorage.getItem('campId');
-  console.log('🔍 ServiceSelection - clientId:', cid);
-  console.log('🔍 ServiceSelection - campId:', campId);
-}, []);
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://127.0.0.1:8000/api/services/');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Extract service names from the API response
+        const serviceNames = data.map(service => service.name);
+        setServices(serviceNames);
+        
+        // If there's a pathology service, you might want to fetch pathology sub-services too
+        // For now, keeping it empty - you can add another API call here if needed
+        setPathologySubServices([]);
+        
+        setError(null);
+        console.log('✅ Services fetched successfully:', serviceNames);
+      } catch (err) {
+        console.error('❌ Error fetching services:', err);
+        setError(err.message);
+        // No fallback - completely dependent on API
+        setServices([]);
+        setPathologySubServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  useEffect(() => {
+    const cid = localStorage.getItem('clientId');
+    const campId = localStorage.getItem('campId');
+    console.log('🔍 ServiceSelection - clientId:', cid);
+    console.log('🔍 ServiceSelection - campId:', campId);
+  }, []);
 
   const handleAddPackage = () => {
     setPackages([
@@ -172,14 +202,14 @@ function ServiceSelection({ userType }) {
       });
 
       const flatServices = packagesWithIds.flatMap(pkg => {
-      const normalServices = pkg.services.filter(s => s !== 'Pathology');
-      const pathology = pkg.services.includes('Pathology') ? pkg.pathologyOptions : [];
+        const normalServices = pkg.services.filter(s => s !== 'Pathology');
+        const pathology = pkg.services.includes('Pathology') ? pkg.pathologyOptions : [];
 
-      return [...normalServices, ...pathology].map(service => ({
-        package: pkg.id,  // ⬅ add package ID here
-        service_name: service
-      }));
-    });
+        return [...normalServices, ...pathology].map(service => ({
+          package: pkg.id,  // ⬅ add package ID here
+          service_name: service
+        }));
+      });
 
       console.log("✅ Final package list with IDs:", packagesWithIds);
       handleServiceSelectionNext(packagesWithIds, flatServices);
@@ -189,6 +219,37 @@ function ServiceSelection({ userType }) {
       alert(err.message || 'Error saving packages');
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 py-10 px-4 flex justify-center items-center">
+        <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading services...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 py-10 px-4 flex justify-center items-center">
+        <div className="bg-white shadow-xl rounded-lg p-8 w-full max-w-md text-center">
+          <div className="text-red-500 mb-4 text-4xl">⚠️</div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Failed to Load Services</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 py-10 px-4 flex justify-center">
