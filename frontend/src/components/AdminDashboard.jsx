@@ -5,7 +5,7 @@ const AdminDashboard = () => {
   const [data, setData] = useState({
     clients: [],
     services: [],
-    testCaseData: [],
+    // testCaseData: [],
     copyPrices: [],
     technicians: [],
     doctors: [],
@@ -21,6 +21,7 @@ const AdminDashboard = () => {
   const [formData, setFormData] = useState({});
   const [signatureFile, setSignatureFile] = useState(null);
   const [camps, setCamps] = useState([]);
+  const [serviceSaveMode, setServiceSaveMode] = useState('save');
 
   // API Base URL
   const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -28,7 +29,7 @@ const AdminDashboard = () => {
   const endpoints = [
     { key: 'clients', url: '/api/clients/', icon: Users, name: 'Clients', method: 'GET, POST' },
     { key: 'services', url: '/api/services/', icon: Stethoscope, name: 'Services', method: 'GET, POST' },
-    { key: 'testCaseData', url: '/api/test-case-data/', icon: TestTube, name: 'Test Cases', method: 'GET, POST' },
+    // { key: 'testCaseData', url: '/api/test-case-data/', icon: TestTube, name: 'Test Cases', method: 'GET, POST' },
     { key: 'copyPrices', url: '/api/copyprice/', icon: DollarSign, name: 'Copy Prices', method: 'GET, POST' },
     { key: 'technicians', url: '/api/technician/technicians/', icon: UserCheck, name: 'Technicians', method: 'GET, POST' },
     { key: 'doctors', url: '/api/technician/doctors/', icon: Activity, name: 'Doctors', method: 'GET, POST' },
@@ -40,7 +41,6 @@ const AdminDashboard = () => {
 
 
   const filteredCamps = camps.filter(camp => camp.ready_to_go === true);
-  console.log('Filtered Camps:', filteredCamps);
   const filteredUsers = data.clients.filter(client => client.login_type.toLowerCase() !== 'client');
   // const filteredTechnicians = data.technicians.filter(tech => tech.user && tech.user.login_type === 'Technician');  
   const technicianUserIds = data.technicians.map(tech => typeof tech.user === 'object' ? tech.user.id : tech.user);
@@ -58,14 +58,14 @@ const AdminDashboard = () => {
     ],
     services: [
       { key: 'name', label: 'Service Name', type: 'text', required: true },
-      { key: 'price_ranges', label: 'Price Ranges', type: 'json', required: true }
+    //   { key: 'price_ranges', label: 'Price Ranges', type: 'json', required: true }
     ],
-    testCaseData: [
-      { key: 'service_name', label: 'Service Name', type: 'text', required: true },
-      { key: 'case_per_day', label: 'Cases Per Day', type: 'number', required: true },
-      { key: 'number_of_days', label: 'Number of Days', type: 'number', required: true },
-      { key: 'total_case', label: 'Total Cases', type: 'number', required: true }
-    ],
+    // testCaseData: [
+    //   { key: 'service_name', label: 'Service Name', type: 'text', required: true },
+    //   { key: 'case_per_day', label: 'Cases Per Day', type: 'number', required: true },
+    //   { key: 'number_of_days', label: 'Number of Days', type: 'number', required: true },
+    //   { key: 'total_case', label: 'Total Cases', type: 'number', required: true }
+    // ],
     copyPrices: [
       { key: 'name', label: 'Service Name', type: 'text', required: true },
       { key: 'hard_copy_price', label: 'Hard Copy Price', type: 'number', step: '0.01', required: true }
@@ -225,39 +225,86 @@ const AdminDashboard = () => {
     setLoading(false);
   };
 
+
+
+
+    // Functions for handling price ranges
+  const addPriceRange = () => {
+    setFormData(prev => ({
+      ...prev,
+      price_ranges: [
+        ...(prev.price_ranges || []),
+        { max_cases: '', price: '' }
+      ]
+    }));
+  };
+
+
+const updatePriceRange = (index, field, value) => {
+    const newRanges = [...formData.price_ranges];
+    newRanges[index] = { ...newRanges[index], [field]: value };
+    
+    setFormData(prev => ({
+      ...prev,
+      price_ranges: newRanges
+    }));
+  };
+
+
+
+const removePriceRange = (index) => {
+    const newRanges = formData.price_ranges.filter((_, i) => i !== index);
+    
+    setFormData(prev => ({
+      ...prev,
+      price_ranges: newRanges
+    }));
+  };
+
+
 const handleAdd = (endpointKey) => {
   setModalMode('add');
   setCurrentItem(null);
-  
-  if (endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
+
+
+  if (endpointKey === 'services') {
     setFormData({
-      user: '',
-      camps: [],
-      services: []
-    });
-  } else {
-    setFormData({});
-  }
-  
-  setSignatureFile(null);
-  setActiveTab(endpointKey);
-  setShowModal(true);
-};
+        name: '',
+        price_ranges: [{ max_cases: '', price: '' }] // Initialize with one empty price range
+      });
+    } else if (endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
+      setFormData({
+        user: '',
+        camps: [],
+        services: []
+      });
+    } else {
+      setFormData({});
+    }
+    
+    setSignatureFile(null);
+    setActiveTab(endpointKey);
+    setShowModal(true);
+  };
 
 const handleEdit = (item, endpointKey) => {
   setModalMode('edit');
   setCurrentItem(item);
-
-  if (endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
-    setFormData({
-      ...item, 
-      camps: item.camps ? (Array.isArray(item.camps) ? item.camps.map(c => c.id || c) : [item.camps.id || item.camps]) : [],
-      services: item.services ? (Array.isArray(item.services) ? item.services.map(s => s.id || s) : [item.services.id || item.services]) : [],
-      user: item.user ? item.user.id || item.user : ''
-    });
-  } else {
-    setFormData(item);
-  }
+  if (endpointKey === 'services') {
+      setFormData({
+        ...item,
+        price_ranges: item.price_ranges || [{ max_cases: '', price: '' }]
+      });
+    } else if(endpointKey === 'technicians' || endpointKey === 'doctors' || endpointKey === 'dentists' || endpointKey === 'optometrists' || endpointKey === 'audiometrists') {
+       setFormData({
+         ...item, 
+         camps: item.camps ? (Array.isArray(item.camps) ? item.camps.map(c => c.id || c) : [item.camps.id || item.camps]) : [],
+         services: item.services ? (Array.isArray(item.services) ? item.services.map(s => s.id || s) : [item.services.id || item.services]) : [],
+         user: item.user ? item.user.id || item.user : ''
+       });
+    } else {
+      setFormData(item);
+    }
   
   setSignatureFile(null);
   setActiveTab(endpointKey);
@@ -323,6 +370,21 @@ const handleEdit = (item, endpointKey) => {
         camps: Array.isArray(submitData.camps) ? submitData.camps : [submitData.camps],
         services: Array.isArray(submitData.services) ? submitData.services : [submitData.services]
       };
+    }
+
+    // Add this right after the submitData declaration
+    if (activeTab === 'services') {
+      // Ensure price_ranges is properly formatted
+      if (!submitData.price_ranges || submitData.price_ranges.length === 0) {
+        alert('Please add at least one price range');
+        return;
+      }
+      
+      // Convert string values to numbers for price_ranges
+      submitData.price_ranges = submitData.price_ranges.map(range => ({
+        max_cases: parseInt(range.max_cases),
+        price: parseFloat(range.price)
+      }));
     }
 
     // Handle audiometrists, optometrists, dentists, doctors
@@ -547,14 +609,16 @@ const handleEdit = (item, endpointKey) => {
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {config.map((field) => (
+             {activeTab === 'services' ? (
+              renderServiceForm()
+            ):(config.map((field) => (
               <div key={field.key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {field.label} {field.required && <span className="text-red-500">*</span>}
                 </label>
                 {renderFormField(field)}
               </div>
-            ))}
+            )))}
             
             <div className="flex justify-end space-x-2 pt-4">
               <button
@@ -564,19 +628,177 @@ const handleEdit = (item, endpointKey) => {
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {modalMode === 'add' ? 'Add' : 'Update'}
-              </button>
+               {activeTab === 'services' ? (
+                <div className="flex flex-col items-end">
+                  <button
+                    type="submit"
+                    onClick={() => setServiceSaveMode('save')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold"
+                  >
+                    SAVE
+                  </button>
+                  <div className="flex space-x-3 mt-2">
+                    <button
+                      type="submit"
+                      onClick={() => setServiceSaveMode('saveAndAddAnother')}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Save and add another
+                    </button>
+                    <button
+                      type="submit"
+                      onClick={() => setServiceSaveMode('saveAndContinue')}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Save and continue editing
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {modalMode === 'add' ? 'Add' : 'Update'}
+                </button>
+              )}
             </div>
           </form>
         </div>
       </div>
     );
   };
+
+  // Render service-specific form fields
+// Render service-specific form fields
+const renderServiceForm = () => (
+  <div className="space-y-4">
+    {/* Service Name */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Service Name <span className="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        value={formData.name || ''}
+        onChange={(e) => handleInputChange('name', e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
+        placeholder="Enter service name"
+      />
+    </div>
+
+    {/* Price Ranges Section */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        PRICE RANGES <span className="text-red-500">*</span>
+      </label>
+      
+      {/* Check if price_ranges exists and has items */}
+      {(!formData.price_ranges || formData.price_ranges.length === 0) ? (
+        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+          <p className="text-gray-500 mb-4">No price ranges added yet</p>
+          <button
+            type="button"
+            onClick={addPriceRange}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add First Price Range
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    MAX CASES <span className="text-red-500">*</span>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    PRICE <span className="text-red-500">*</span>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    DELETE?
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {formData.price_ranges.map((range, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="number"
+                        value={range.max_cases || ''}
+                        onChange={(e) => updatePriceRange(index, 'max_cases', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="1"
+                        placeholder="e.g. 100"
+                        required
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                        <input
+                          type="number"
+                          value={range.price || ''}
+                          onChange={(e) => updatePriceRange(index, 'price', e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => removePriceRange(index)}
+                        className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1 rounded transition-colors"
+                        title="Delete this price range"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Add another price range button */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={addPriceRange}
+              className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add another Price range
+            </button>
+          </div>
+          
+          {/* Price ranges summary */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <strong>Total price ranges:</strong> {formData.price_ranges.length}
+            </p>
+            {formData.price_ranges.length > 0 && (
+              <p className="text-xs text-blue-600 mt-1">
+                Price structure will apply based on the number of cases processed.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+);
+
 
   const renderOverview = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -909,8 +1131,8 @@ const handleEdit = (item, endpointKey) => {
         return renderServicePricing();
       case 'clients':
         return renderTable(data.clients, 'Clients / Customers', 'clients');
-      case 'testCaseData':
-        return renderTable(data.testCaseData, 'Test Case Data', 'testCaseData');
+    //   case 'testCaseData':
+    //     return renderTable(data.testCaseData, 'Test Case Data', 'testCaseData');
       case 'copyPrices':
         return renderTable(data.copyPrices, 'Copy Prices', 'copyPrices');
       case 'technicians':
