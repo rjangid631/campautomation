@@ -239,10 +239,10 @@ function DentalConsultationForm() {
 
   // Render tooth selection grid
   const renderTeethGrid = (type) => {
-  const upperRight = [1, 2, 3, 4, 5, 6, 7, 8];
-  const upperLeft = [9, 10, 11, 12, 13, 14, 15, 16];
-    const lowerRight = [32, 31, 30, 29, 28, 27, 26, 25];
-    const lowerLeft = [24, 23, 22, 21, 20, 19, 18, 17];
+  const upperRight = [11, 12, 13, 14, 15, 16, 17, 18];
+  const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28];
+    const lowerRight = [41, 42, 43, 44, 45, 46, 47, 48];
+    const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
 
     return (
       <div className="teeth-box">
@@ -250,7 +250,7 @@ function DentalConsultationForm() {
         <div className="flex justify-between gap-2 mb-2">
           {/* Upper Right */}
           <div className="flex-1 max-w-[50%]">
-            <small className="text-gray-500">Upper Right</small>
+            <small className="text-gray-500">Upper Left</small>
             <div className="grid grid-cols-4 gap-1">
               {upperRight.map(tooth => (
                 <span 
@@ -267,7 +267,7 @@ function DentalConsultationForm() {
           </div>
           {/* Upper Left */}
           <div className="flex-1 max-w-[50%]">
-            <small className="text-gray-500">Upper Left</small>
+            <small className="text-gray-500">Upper Right</small>
             <div className="grid grid-cols-4 gap-1">
               {upperLeft.map(tooth => (
                 <span 
@@ -287,7 +287,7 @@ function DentalConsultationForm() {
         <div className="flex justify-between gap-2">
           {/* Lower Right */}
           <div className="flex-1 max-w-[50%]">
-            <small className="text-gray-500">Lower Right</small>
+            <small className="text-gray-500">Lower Left</small>
             <div className="grid grid-cols-4 gap-1">
               {lowerRight.map(tooth => (
                 <span 
@@ -304,7 +304,7 @@ function DentalConsultationForm() {
           </div>
           {/* Lower Left */}
           <div className="flex-1 max-w-[50%]">
-            <small className="text-gray-500">Lower Left</small>
+            <small className="text-gray-500">Lower Right</small>
             <div className="grid grid-cols-4 gap-1">
               {lowerLeft.map(tooth => (
                 <span 
