@@ -24,18 +24,26 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 class TechnicianSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True, source='user')
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), write_only=True, source='user', required=False
+    )
 
     camps = CampSerializer(many=True, read_only=True)
-    camp_ids = serializers.PrimaryKeyRelatedField(queryset=Camp.objects.all(), many=True, write_only=True, source='camps')
+    camp_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Camp.objects.all(), many=True, write_only=True, source='camps', required=False
+    )
 
     services = ServiceSerializer(many=True, read_only=True)
-    service_ids = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all(), many=True, write_only=True, source='services')
+    service_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Service.objects.all(), many=True, write_only=True, source='services', required=False
+    )
+
+    name = serializers.CharField(source='user.name', read_only=True)
 
     class Meta:
         model = Technician
         fields = [
-            'id',
+            'id', 'name',
             'user', 'user_id',
             'camps', 'camp_ids',
             'services', 'service_ids',

@@ -23,6 +23,7 @@ from technician.Views.uploadaudiometry import UploadFrontendGeneratedPDFView
 from technician.Views.uploadsmartreport import UploadSmartReportPDF
 from technician.Views.vitalsviewset import VitalsViewSet
 from technician.Views.servicelogviewset import ServiceLogViewSet
+from technician.Views.technicains import get_all_technicians
 
 router = DefaultRouter()
 router.register(r'audiometry', AudiometryViewSet)
@@ -47,7 +48,7 @@ urlpatterns = [
     path('submit/', mark_service_done, name='mark_service_done'),
     path('assign/', assign_technicians, name='assign_technicians'),
     path('assignments/', get_technician_assignments, name='get_technician_assignments'),
-    # path('technicians/', get_all_technicians, name='get_all_technicians'),
+    path('technicians/', get_all_technicians, name='get_all_technicians'),
     path('assign-package/', assign_technicians_to_package, name='assign_technicians_to_package'),
     path('camp/<int:camp_id>/progress/', get_camp_progress, name='get_camp_progress'),
     path('patient/<str:patient_id>/summary/', get_patient_service_summary, name='get_patient_service_summary'),
