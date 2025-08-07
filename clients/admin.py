@@ -5,7 +5,6 @@ from clients.forms import PackageAdminForm
 from clients.models.serviceselection import ServiceSelection
 from clients.models.package import Package
 from clients.models.camp import Camp
-# from clients.models.companydetails import CompanyDetails  # Removed: module not found
 from clients.models.copyprice import CopyPrice
 from clients.models.costdetails import CostDetails
 from clients.models.costsummary import CostSummary
@@ -21,14 +20,17 @@ from clients.models.client import Client  # Your main client model
 
 # ----------------- Inlines & Custom Admins -----------------
 
+# Inline for PriceRange under Service
 class PriceRangeInline(admin.TabularInline):
     model = PriceRange
     extra = 1
 
+@admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ('name',)
     inlines = [PriceRangeInline]
 
+@admin.register(PriceRange)
 class PriceRangeAdmin(admin.ModelAdmin):
     list_display = ('service', 'max_cases', 'price')
     list_filter = ('service',)
@@ -55,7 +57,7 @@ class ClientAdmin(UserAdmin):
 
 @admin.register(Camp)
 class CampAdmin(admin.ModelAdmin):
-    list_display = ('client', 'location', 'district', 'state', 'pin_code', 'start_date', 'end_date', 'ready_to_go')  # ✅ Added 'ready_to_go'
+    list_display = ('client', 'location', 'district', 'state', 'pin_code', 'start_date', 'end_date', 'ready_to_go')
     list_editable = ('ready_to_go',)
     search_fields = ('location', 'client__name')
 
@@ -69,7 +71,6 @@ class ServiceSelectionAdmin(admin.ModelAdmin):
 class TestDataAdmin(admin.ModelAdmin):
     list_display = ('client', 'service_name', 'case_per_day', 'number_of_days', 'total_case')
     search_fields = ('service_name', 'client__name')
-
 
 @admin.register(CostDetails)
 class CostDetailsAdmin(admin.ModelAdmin):
@@ -99,7 +100,7 @@ class CopyPriceAdmin(admin.ModelAdmin):
 @admin.register(Package)
 class PackageAdmin(admin.ModelAdmin):
     form = PackageAdminForm 
-    list_display = ('name', 'camp','client', 'start_date', 'end_date')
+    list_display = ('name', 'camp', 'client', 'start_date', 'end_date')
     filter_horizontal = ['services']
     list_filter = ['start_date', 'end_date']
     search_fields = ['name', 'client__name']
@@ -112,9 +113,6 @@ class TestTypeAdmin(admin.ModelAdmin):
 class ServiceCostAdmin(admin.ModelAdmin):
     list_display = ('test_type', 'salary', 'incentive', 'misc', 'equipment', 'consumables', 'reporting')
 
-admin.site.register(Service, ServiceAdmin)
-admin.site.register(PriceRange, PriceRangeAdmin)
-
-# Optional / legacy (if needed)
-# admin.site.register(CompanyDetails)  # Removed: model not found
-admin.site.register(ServiceDetails)
+@admin.register(ServiceDetails)
+class ServiceDetailsAdmin(admin.ModelAdmin):
+    pass  # Add list_display/search_fields if needed
