@@ -25,6 +25,7 @@ const OnsiteDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [idFile, setIdFile] = useState(null);
+  const [loanFile, setLoanFile] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDetailPatient, setSelectedDetailPatient] = useState(null);
 
@@ -554,6 +555,11 @@ container.appendChild(page3);
 
 const handleIdChange = (e) => {
   setIdFile(e.target.files[0]);
+};
+
+
+const handleLoanChange = (e) => {
+  setLoanFile(e.target.files[0]);
 };
 
   
@@ -1379,24 +1385,24 @@ const handlePrintQR = async (patient) => {
 
 
                         <button
-  onClick={(e) => {
-    e.stopPropagation();
-    handleSmartReportGenerate(patient);
-  }}
-  style={{
-    backgroundColor: COLORS.orange,
-    color: COLORS.white,
-    border: 'none',
-    borderRadius: '6px',
-    padding: '8px 16px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '14px',
-    transition: 'all 0.2s'
-  }}
->
-  SmartReportGenerator
-</button>
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSmartReportGenerate(patient);
+                          }}
+                          style={{
+                            backgroundColor: COLORS.orange,
+                            color: COLORS.white,
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          SmartReportGenerator
+                        </button>
 
                         <button
                           onClick={(e) => {
@@ -1459,6 +1465,7 @@ const handlePrintQR = async (patient) => {
     }
 
     return (
+
       <div style={{
         position: 'fixed',
         top: 0,
@@ -1537,6 +1544,29 @@ const handlePrintQR = async (patient) => {
                 }}
               />
             </div>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block',
+                fontWeight: '500', 
+                color: COLORS.darkText,
+                marginBottom: '8px'
+              }}>
+                Loan ID Document *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleLoanChange}
+                required
+                style={{ 
+                  width: '100%',
+                  padding: '8px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '6px'
+                }}
+              />
+            </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
@@ -1595,6 +1625,7 @@ const handleDetailSubmit = async (e) => {
     formData.append('photo', photoFile);
     formData.append('document_file', idFile);
     formData.append('unique_patient_id', selectedDetailPatient.unique_patient_id); // Changed from patient_id
+    formData.append('loan_document_file', loanFile); // Added loan ID file
 
     console.log('Uploading details for patient:', selectedDetailPatient.unique_patient_id);
     
