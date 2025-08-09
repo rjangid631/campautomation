@@ -31,6 +31,7 @@ const CustomerDashboard = () => {
   const [loadingCamps, setLoadingCamps] = useState(false);
   const [loadingCampDetails, setLoadingCampDetails] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
 
   // Enhanced color scheme with the primary color
   const colors = {
@@ -63,6 +64,14 @@ const CustomerDashboard = () => {
   const clientId = getClientId();
 
   console.log("✅ Final clientId used for fetch:", clientId);
+
+
+  useEffect(() => {
+    const hasSeenPopup = localStorage.getItem('hasSeenPopup');
+    if (!hasSeenPopup && companyDetails.length > 0) {
+      setShowWelcomePopup(true);
+    }
+  }, [companyDetails]);
 
   useEffect(() => {
     const fetchClientDashboard = async () => {
@@ -325,6 +334,67 @@ const CustomerDashboard = () => {
       </div>
     </div>
   );
+  
+const WelcomePopup = () => {
+  if (!showWelcomePopup) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end pr-6 z-50">
+      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full transform transition-all duration-300 animate-bounce">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: colors.primary }}>
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </div>
+          <button 
+            onClick={handleClosePopup}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Welcome to Your Dashboard!</h3>
+          <p className="text-gray-600 text-sm mb-4">
+            Ready to organize a health camp? Start by creating a 
+            <span className="font-semibold text-gray-800"> "Corporate X-Rai Test At Office"</span> camp.
+          </p>
+        </div>
+        
+        <div className="space-y-3">
+          <Link 
+            to="/camp-details"
+            onClick={handleClosePopup}
+            className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium transition-all duration-200 hover:opacity-90 hover:shadow-lg"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span>Add New Camp</span>
+          </Link>
+          
+          <button 
+            onClick={handleClosePopup}
+            className="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            Maybe Later
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+const handleClosePopup = () => {
+  localStorage.setItem('hasSeenPopup', 'true');
+  setShowWelcomePopup(false);
+};
 
   const displayedCompanyName =
     localStorage.getItem('companyName') &&
@@ -887,6 +957,7 @@ const CustomerDashboard = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
+      <WelcomePopup />
       <div className="flex flex-1">
         {/* Sidebar */}
         <div className="w-64 text-white min-h-screen shadow-xl" style={{ backgroundColor: colors.primary }}>

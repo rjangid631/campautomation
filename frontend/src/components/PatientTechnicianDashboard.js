@@ -90,7 +90,7 @@ function PatientTechnicianDashboard() {
     }
 
     // Special handling for ECG and X-ray
-    if (["ecg", "x-ray"].includes(trimmedService.toLowerCase())) {
+    if (["ecg", "x-ray", "pft"].includes(trimmedService.toLowerCase())) {
       if (window.confirm("You want to done")) {
         try {
           await submitTechnicianServiceDone({

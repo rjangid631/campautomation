@@ -485,8 +485,16 @@ function CoordinatorLogin({ onLogin }) {
                   }}
                   onFocus={(e) => e.target.style.borderColor = validationErrors.contact_number ? '#ef4444' : '#0cc0df'}
                   onKeyPress={(e) => {
-                    // Only allow numbers
-                    if (!/[0-9]/.test(e.key)) {
+                    const { value } = e.target;
+                    const key = e.key;
+              
+                    // Only allow digits
+                    if (!/[0-9]/.test(key)) {
+                      e.preventDefault();
+                    }
+              
+                    // Prevent first digit from being zero
+                    if (value.length === 0 && key === "0") {
                       e.preventDefault();
                     }
                   }}
@@ -495,6 +503,8 @@ function CoordinatorLogin({ onLogin }) {
                   <p className="mt-1 text-sm text-red-500">{validationErrors.contact_number}</p>
                 )}
               </label>
+
+
 
               {/* Password with validation */}
               <label className="relative">
