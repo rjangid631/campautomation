@@ -655,14 +655,14 @@ const handleEdit = (item, endpointKey) => {
                       onClick={() => setServiceSaveMode('saveAndAddAnother')}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      Save and add another
+                      
                     </button>
                     <button
                       type="submit"
                       onClick={() => setServiceSaveMode('saveAndContinue')}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      Save and continue editing
+                      
                     </button>
                   </div>
                 </div>

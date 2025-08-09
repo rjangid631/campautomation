@@ -851,13 +851,13 @@ const handleMarkCompleted = async () => {
 
           {/* Control Buttons */}
           <div className="flex gap-4 flex-wrap">
-            <button
+            {/* <button
               onClick={handleMarkCompleted}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               disabled={!selectedPatient || loading}
             >
-              Mark Completed
-            </button>
+               Mark Completed
+            </button> */}
             <button
               onClick={handleDeleteAll}
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
