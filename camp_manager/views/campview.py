@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from clients.models.camp import Camp
@@ -9,17 +9,20 @@ from clients.serializers.packageserializer import PackageSerializer
 from camp_manager.Serializers.patientdataserializer import PatientDataSerializer
 
 
-class CampManagerViewSet(viewsets.ViewSet):
+class CampManagerViewSet(viewsets.ModelViewSet):
+    queryset = Camp.objects.all()
+    serializer_class = CampSerializer
+
     def list(self, request):
         camps = Camp.objects.all()
-        serializer = CampSerializer(camps, many=True)
+        serializer = self.get_serializer(camps, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path='details')
     def details(self, request, pk=None):
         try:
-            camp = Camp.objects.get(id=pk)
-            camp_data = CampSerializer(camp).data
+            camp = self.get_object()
+            camp_data = self.get_serializer(camp).data
             packages = Package.objects.filter(camp_id=camp.id)
             package_data = PackageSerializer(packages, many=True).data
             return Response({"camp": camp_data, "packages": package_data})
