@@ -39,9 +39,19 @@ function CoordinatorLogin({ onLogin }) {
   };
 
   const validateContactNumber = (number) => {
-    const phoneRegex = /^\d{10}$/;
-    return phoneRegex.test(number);
-  };
+      number = number.trim().replace(/\s+/g, ''); // remove spaces
+      
+      const phoneRegex = /^[6-9]\d{9}$/; // Indian mobile format
+      const sameDigitRegex = /^([0-9])\1{9}$/; // same digit repeated
+      const ascending = "0123456789";
+      const descending = "9876543210";
+
+      if (!phoneRegex.test(number)) return false;
+      if (sameDigitRegex.test(number)) return false;
+      if (ascending.includes(number) || descending.includes(number)) return false;
+      
+      return true;
+    };
 
   const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
@@ -84,8 +94,18 @@ function CoordinatorLogin({ onLogin }) {
         }
         break;
       case 'contact_number':
-        if (value && !validateContactNumber(value)) {
-          error = 'Contact number must be exactly 10 digits';
+        if (value) {
+            const trimmedValue = value.trim().replace(/\s+/g, '');
+
+            if (!/^[6-9]\d{9}$/.test(trimmedValue)) {
+                error = 'Contact number must be 10 digits and start with 6-9';
+            } 
+            else if (/^([0-9])\1{9}$/.test(trimmedValue)) {
+                error = 'Contact number cannot have all digits the same';
+            } 
+            else if ("0123456789".includes(trimmedValue) || "9876543210".includes(trimmedValue)) {
+                error = 'Contact number cannot be sequential digits';
+            }
         }
         break;
       case 'password':
