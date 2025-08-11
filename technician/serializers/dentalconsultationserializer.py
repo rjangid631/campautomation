@@ -237,11 +237,8 @@ class DentalConsultationSerializer(serializers.ModelSerializer):
             if dental.missing_teeth and dental.missing_teeth_numbers:
                 findings.append(f"Missing Teeth w.r.t {dental.missing_teeth_numbers}")
             
-<<<<<<< HEAD
-            if dental.occlusion:
-=======
+
             if dental.occlusion_type:
->>>>>>> 6c341a1 (Intial Commit)
                 if dental.occlusion_type and dental.occlusion_type.lower() == "normal":
                     findings.append("Occlusion: Normal")
                 elif dental.occlusion_type and dental.occlusion_type.lower() == "malocclusion":
