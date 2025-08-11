@@ -1,8 +1,16 @@
 node_modules/
+<<<<<<< HEAD
 .venv
+=======
+myenv
+>>>>>>> 6c341a1 (Intial Commit)
 *.log
 __pycache__/
 *.pyc
 .vscode/
 .DS_Store
+<<<<<<< HEAD
 
+=======
+db.sqlite3
+>>>>>>> 6c341a1 (Intial Commit)
