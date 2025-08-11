@@ -3,7 +3,7 @@ import axios from 'axios';
 
 
 // ✅ ADD this utility function after imports
-const retryRequest = async (requestFn, maxRetries = 3, delay = 1000) => {
+export const retryRequest = async (requestFn, maxRetries = 3, delay = 1000) => {
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await requestFn();
@@ -18,7 +18,9 @@ const retryRequest = async (requestFn, maxRetries = 3, delay = 1000) => {
 
 
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+export const BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+
+
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -1055,6 +1057,20 @@ export const dashboardAPI = {
       return response.data;
     } catch (error) {
       console.error('Error fetching download reports:', error);
+      throw error;
+    }
+  },
+
+
+  updateCampDates: async (campId, startDate, endDate) => {
+    try {
+      const response = await api.patch(`campmanager/camps/${campId}/`, {
+        start_date: startDate,
+        end_date: endDate
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating camp dates:', error);
       throw error;
     }
   },

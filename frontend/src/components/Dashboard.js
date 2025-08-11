@@ -39,6 +39,12 @@ const Dashboard = () => {
   const [driveLink, setDriveLink] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [selectedUpdateCamp, setSelectedUpdateCamp] = useState(null);
+  const [updateStartDate, setUpdateStartDate] = useState('');
+  const [updateEndDate, setUpdateEndDate] = useState('');
+  const [updating, setUpdating] = useState(false);
+
 const fetchData = useCallback(async () => {
   try {
     const camps = await dashboardAPI.getAllCamps();
@@ -201,6 +207,58 @@ const fetchData = useCallback(async () => {
     setUploadModalOpen(true);
     setDriveLink('');
   };
+
+
+const handleUpdateCamp = (camp) => {
+  setSelectedUpdateCamp(camp);
+  setUpdateStartDate(camp.start_date);
+  setUpdateEndDate(camp.end_date);
+  setUpdateModalOpen(true);
+};
+
+const handleSubmitUpdate = async () => {
+  if (!updateStartDate || !updateEndDate) {
+    alert('Please select both start and end dates');
+    return;
+  }
+
+  if (new Date(updateStartDate) > new Date(updateEndDate)) {
+    alert('Start date cannot be after end date');
+    return;
+  }
+
+  setUpdating(true);
+  try {
+    await dashboardAPI.updateCampDates(selectedUpdateCamp.id, updateStartDate, updateEndDate);
+    
+    // Update the local data
+    setData(prevData => 
+      prevData.map(camp => 
+        camp.id === selectedUpdateCamp.id 
+          ? { ...camp, start_date: updateStartDate, end_date: updateEndDate }
+          : camp
+      )
+    );
+    
+    alert('Camp dates updated successfully!');
+    setUpdateModalOpen(false);
+    setSelectedUpdateCamp(null);
+    setUpdateStartDate('');
+    setUpdateEndDate('');
+  } catch (error) {
+    console.error('Error updating camp dates:', error);
+    alert('Failed to update camp dates. Please try again.');
+  } finally {
+    setUpdating(false);
+  }
+};
+
+const handleCloseUpdateModal = () => {
+  setUpdateModalOpen(false);
+  setSelectedUpdateCamp(null);
+  setUpdateStartDate('');
+  setUpdateEndDate('');
+};
   
   const handleSubmitReport = async () => {
     if (!driveLink.trim()) {
@@ -408,28 +466,55 @@ const fetchData = useCallback(async () => {
           )}
           {readyCamps.map(camp => (
             <div
-              key={camp.id}
-              onClick={() => handleCampClick(camp)}
-              style={{
-                padding: '16px',
-                border: `1px solid ${COLORS.mediumGrey}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                backgroundColor: selectedCamp?.id === camp.id ? `${COLORS.aquaBlue}10` : COLORS.white,
-                transition: 'all 0.2s',
-                boxShadow: selectedCamp?.id === camp.id ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: COLORS.darkText }}>
-                {camp.location} (ID: {camp.id})
-              </h3>
-              <p style={{ margin: '4px 0 0 0', color: COLORS.mediumText, fontSize: '14px' }}>
-                {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
-              </p>
-              <p style={{ margin: '4px 0 0 0', color: COLORS.lightText, fontSize: '12px' }}>
-                Client: {camp.client}
-              </p>
-            </div>
+  key={camp.id}
+  onClick={() => handleCampClick(camp)}
+  style={{
+    padding: '16px',
+    border: `1px solid ${COLORS.mediumGrey}`,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    backgroundColor: selectedCamp?.id === camp.id ? `${COLORS.aquaBlue}10` : COLORS.white,
+    transition: 'all 0.2s',
+    boxShadow: selectedCamp?.id === camp.id ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
+  }}
+>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ flex: 1 }}>
+      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: COLORS.darkText }}>
+        {camp.location} (ID: {camp.id})
+      </h3>
+      <p style={{ margin: '4px 0 0 0', color: COLORS.mediumText, fontSize: '14px' }}>
+        {camp.district}, {camp.state} | {formatDate(camp.start_date)} - {formatDate(camp.end_date)}
+      </p>
+      <p style={{ margin: '4px 0 0 0', color: COLORS.lightText, fontSize: '12px' }}>
+        Client: {camp.client}
+      </p>
+    </div>
+    <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleUpdateCamp(camp);
+        }}
+        style={{
+          backgroundColor: COLORS.vividPurple,
+          color: COLORS.white,
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 16px',
+          cursor: 'pointer',
+          fontWeight: '500',
+          fontSize: '14px',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => e.target.style.backgroundColor = COLORS.aquaBlue}
+        onMouseLeave={(e) => e.target.style.backgroundColor = COLORS.vividPurple}
+      >
+        Update
+      </button>
+    </div>
+  </div>
+</div>
           ))}
         </div>
 
@@ -962,125 +1047,154 @@ const fetchData = useCallback(async () => {
       </div>
 
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      {uploadModalOpen && (
+      {updateModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
           <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000
+            backgroundColor: COLORS.white,
+            borderRadius: '8px',
+            padding: '24px',
+            width: '500px',
+            maxWidth: '90vw',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{
-              backgroundColor: COLORS.white,
-              borderRadius: '8px',
-              padding: '24px',
-              width: '500px',
-              maxWidth: '90vw',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            <h3 style={{ 
+              fontSize: '18px', 
+              fontWeight: '600', 
+              color: COLORS.darkText, 
+              marginBottom: '16px',
+              margin: '0 0 16px 0'
             }}>
-              <h3 style={{ 
-                fontSize: '18px', 
-                fontWeight: '600', 
-                color: COLORS.darkText, 
-                marginBottom: '16px',
-                margin: '0 0 16px 0'
-              }}>
-                Upload Report for {selectedUploadCamp?.location}
-              </h3>
-              <p style={{ 
-                color: COLORS.mediumText, 
+              Update Dates for {selectedUpdateCamp?.location}
+            </h3>
+            <p style={{ 
+              color: COLORS.mediumText, 
+              fontSize: '14px', 
+              marginBottom: '20px',
+              margin: '0 0 20px 0'
+            }}>
+              Camp ID: {selectedUpdateCamp?.id} | {selectedUpdateCamp?.district}, {selectedUpdateCamp?.state}
+            </p>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
                 fontSize: '14px', 
-                marginBottom: '16px',
-                margin: '0 0 16px 0'
+                fontWeight: '500', 
+                color: COLORS.darkText, 
+                marginBottom: '8px' 
               }}>
-                Camp ID: {selectedUploadCamp?.id} | {selectedUploadCamp?.district}, {selectedUploadCamp?.state}
-              </p>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: COLORS.darkText, 
-                  marginBottom: '8px' 
-                }}>
-                  Drive Link
-                </label>
-                <input
-                  type="url"
-                  value={driveLink}
-                  onChange={(e) => setDriveLink(e.target.value)}
-                  placeholder="Enter Google Drive link or report URL"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${COLORS.mediumGrey}`,
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'all 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = COLORS.aquaBlue}
-                  onBlur={(e) => e.target.style.borderColor = COLORS.mediumGrey}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  onClick={handleCloseUploadModal}
-                  disabled={uploading}
-                  style={{
-                    backgroundColor: COLORS.lightGrey,
-                    color: COLORS.darkText,
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '10px 20px',
-                    cursor: uploading ? 'not-allowed' : 'pointer',
-                    fontWeight: '500',
-                    fontSize: '14px',
-                    opacity: uploading ? 0.6 : 1
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitReport}
-                  disabled={uploading || !driveLink.trim()}
-                  style={{
-                    backgroundColor: uploading || !driveLink.trim() ? COLORS.mediumGrey : COLORS.grassGreen,
-                    color: COLORS.white,
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '10px 20px',
-                    cursor: uploading || !driveLink.trim() ? 'not-allowed' : 'pointer',
-                    fontWeight: '500',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {uploading && (
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid transparent',
-                      borderTop: '2px solid white',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                  )}
-                  {uploading ? 'Uploading...' : 'Upload Report'}
-                </button>
-              </div>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={updateStartDate}
+                onChange={(e) => setUpdateStartDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = COLORS.aquaBlue}
+                onBlur={(e) => e.target.style.borderColor = COLORS.mediumGrey}
+              />
+            </div>
+      
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: COLORS.darkText, 
+                marginBottom: '8px' 
+              }}>
+                End Date
+              </label>
+              <input
+                type="date"
+                value={updateEndDate}
+                onChange={(e) => setUpdateEndDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: `1px solid ${COLORS.mediumGrey}`,
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = COLORS.aquaBlue}
+                onBlur={(e) => e.target.style.borderColor = COLORS.mediumGrey}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={handleCloseUpdateModal}
+                disabled={updating}
+                style={{
+                  backgroundColor: COLORS.lightGrey,
+                  color: COLORS.darkText,
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  cursor: updating ? 'not-allowed' : 'pointer',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  opacity: updating ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitUpdate}
+                disabled={updating || !updateStartDate || !updateEndDate}
+                style={{
+                  backgroundColor: updating || !updateStartDate || !updateEndDate ? COLORS.mediumGrey : COLORS.vividPurple,
+                  color: COLORS.white,
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '10px 20px',
+                  cursor: updating || !updateStartDate || !updateEndDate ? 'not-allowed' : 'pointer',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {updating && (
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid transparent',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                )}
+                {updating ? 'Updating...' : 'Update Dates'}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+      
+      
     </div>
   );
 };

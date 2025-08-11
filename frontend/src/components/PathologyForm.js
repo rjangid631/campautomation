@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
-import api from './api';
+import {api , BASE_URL} from './api';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const PathologyFormurl = '/technician/pathology';
@@ -477,7 +477,7 @@ const getReportHTML = () => {
       const pdfFile = new File([pdfBlob], 'health_report.pdf', { type: 'application/pdf' });
       formDataAPI.append('report', pdfFile);
   
-      const response = await fetch('http://127.0.0.1:8000/api/technician/pathology/', {
+      const response = await fetch(`${BASE_URL}/api/technician/pathology/`, {
         method: 'POST',
         body: formDataAPI,
       });

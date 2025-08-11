@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Stethoscope, TestTube, DollarSign, UserCheck, Activity, Eye, Ear, User, Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { BASE_URL } from './api'; // Adjust the import based on your project structure
 
 const AdminDashboard = () => {
   const [data, setData] = useState({
@@ -24,7 +25,7 @@ const AdminDashboard = () => {
   const [serviceSaveMode, setServiceSaveMode] = useState('save');
 
   // API Base URL
-  const API_BASE_URL = 'http://127.0.0.1:8000';
+  const API_BASE_URL = BASE_URL;
 
   const endpoints = [
     { key: 'clients', url: '/api/clients/', icon: Users, name: 'Clients', method: 'GET, POST' },

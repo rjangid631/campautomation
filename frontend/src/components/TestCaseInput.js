@@ -14,10 +14,10 @@ function TestCaseInput({ onNext, onBack }) {
   const [companyId, setCompanyId] = useState(null);
 
   const thresholds = {
-    'X-ray': 200, 'ECG': 100, 'PFT': 200, 'CBC': 120, 'pathology': 120,
-    'Audiometry': 125, 'Optometry': 150, 'Doctor Consultation': 100,
+    'X-ray': 2000, 'ECG': 2000, 'PFT': 2000, 'CBC': 2000, 'pathology': 2000,
+    'Audiometry': 2000, 'Optometry': 2000, 'Doctor Consultation': 2000,
     'Dental Consultation': 125, 'Vitals': 150, 'BMD': 150,
-    'Tetanus Vaccine': 125, 'Typhoid Vaccine': 125
+    'Tetanus Vaccine': 2000, 'Typhoid Vaccine': 2000
   };
 
   useEffect(() => {

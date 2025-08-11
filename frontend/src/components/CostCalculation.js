@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getServiceCosts, submitCostDetails } from './api';
+import { getServiceCosts, submitCostDetails, BASE_URL } from './api';
 import { useNavigate } from 'react-router-dom';
 
 const defaultCostValues = {
@@ -222,7 +222,9 @@ function CostCalculation({
           return;
         }
 
-        const response = await fetch(`http://localhost:8000/api/serviceselection/?client=${companyId}`);
+        // const response = await fetch(`http://localhost:8000/api/serviceselection/?client=${companyId}`);
+        const response = await fetch(`${BASE_URL}/api/serviceselection/?client=${companyId}`);
+
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

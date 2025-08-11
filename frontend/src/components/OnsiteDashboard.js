@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import html2pdf from "html2pdf.js";
 import axios from "axios";
-import { onsiteAPI, onsiteUtils } from './api';
+import { onsiteAPI, onsiteUtils ,BASE_URL } from './api';
 import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
@@ -134,7 +134,8 @@ const generateQRCodeBase64 = async (patient) => {
 const handleSmartReportGenerate = async (patient) => {
   try {
     // 1. Get full smart report data
-    const { data } = await axios.get(`http://127.0.0.1:8000/api/technician/smart-report/${patient.unique_patient_id}/`);
+    // const { data } = await axios.get(`http://127.0.0.1:8000/api/technician/smart-report/${patient.unique_patient_id}/`);
+    const { data } = await axios.get(`${BASE_URL}/api/technician/smart-report/${patient.unique_patient_id}/`);
     const { patient: p, vitals, pathology, bmr_pdf_base64 } = data;
     console.log("Smart Report Data:", data);
 
@@ -542,7 +543,8 @@ container.appendChild(page3);
     const file = new File([pdfBlob], `Smart_Report_${p.unique_patient_id}.pdf`, { type: "application/pdf" });
     formData.append("report_pdf", file);
 
-    await axios.post("http://127.0.0.1:8000/api/technician/smart-report-upload/", formData);
+    // await axios.post("http://127.0.0.1:8000/api/technician/smart-report-upload/", formData);
+    await axios.post(`${BASE_URL}/api/technician/smart-report-upload/`, formData);
 
     alert("Smart report PDF generated and uploaded successfully!");
 
