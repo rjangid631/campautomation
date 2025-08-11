@@ -2,6 +2,10 @@ import React, { useState, useContext, useEffect } from 'react';
 import { creatservices } from './api';
 import PropTypes from 'prop-types';
 import { AppContext } from '../App';
+<<<<<<< HEAD
+=======
+import api from './api';
+>>>>>>> 84d0f94 (updated code)
 
 function ServiceSelection({ userType }) {
   const appContext = useContext(AppContext);
@@ -33,6 +37,7 @@ function ServiceSelection({ userType }) {
     const fetchServices = async () => {
       try {
         setLoading(true);
+<<<<<<< HEAD
         const response = await fetch('http://127.0.0.1:8000/api/services/');
         
         if (!response.ok) {
@@ -49,12 +54,28 @@ function ServiceSelection({ userType }) {
         // For now, keeping it empty - you can add another API call here if needed
         setPathologySubServices([]);
         
+=======
+
+        // ✅ No hardcoded IP, uses baseURL from api.js
+        const { data } = await retryRequest(() => api.get('/services/'));
+
+        // Extract service names
+        const serviceNames = data.map(service => service.name);
+        setServices(serviceNames);
+
+        // Reset pathology sub-services
+        setPathologySubServices([]);
+
+>>>>>>> 84d0f94 (updated code)
         setError(null);
         console.log('✅ Services fetched successfully:', serviceNames);
       } catch (err) {
         console.error('❌ Error fetching services:', err);
         setError(err.message);
+<<<<<<< HEAD
         // No fallback - completely dependent on API
+=======
+>>>>>>> 84d0f94 (updated code)
         setServices([]);
         setPathologySubServices([]);
       } finally {
