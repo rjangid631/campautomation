@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { creatservices } from './api';
 import PropTypes from 'prop-types';
 import { AppContext } from '../App';
-import api from './api';
+import api, { retryRequest } from './api';
 
 function ServiceSelection({ userType }) {
   const appContext = useContext(AppContext);
